@@ -468,6 +468,32 @@ export const ANIM = {
     ],
   },
 
+  // De pe para sentado. Existe para o sentar NAO ser instantaneo: ele
+  // desce, apoia a mao no chao e se acomoda.
+  sitDown: {
+    dur: 1.05, loop: false,
+    keys: [
+      { t: 0.00, p: pose({}) },
+      { t: 0.30, p: pose({ hy: 5, torso: 16, head: 8, lFt: 30, lFs: -54, lFf: 8, lBt: 26, lBs: -50, lBf: 8, aFu: 22, aFf: -30, aBu: 18, aBf: -26 }) },
+      { t: 0.62, p: pose({ hy: 15, torso: 15, head: 7, lFt: 54, lFs: -86, lFf: 12, lBt: 48, lBs: -80, lBf: 10, aFu: 40, aFf: -54, aBu: 36, aBf: -50 }) },
+      { t: 0.85, p: pose({ hy: 21, torso: 11, head: 5, lFt: 63, lFs: -98, lFf: 13, lBt: 55, lBs: -90, lBf: 11, aFu: 47, aFf: -63, aBu: 41, aBf: -57 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+    ],
+    events: [{ t: 0.66, ev: 'sit' }],
+  },
+
+  // e de volta
+  standUp: {
+    dur: 0.85, loop: false,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.28, p: pose({ hy: 16, torso: 18, head: 2, lFt: 56, lFs: -88, lFf: 12, lBt: 50, lBs: -82, lBf: 10, aFu: 42, aFf: -56, aBu: 38, aBf: -52 }) },
+      { t: 0.62, p: pose({ hy: 6, torso: 17, head: 3, lFt: 32, lFs: -56, lFf: 8, lBt: 28, lBs: -52, lBf: 8, aFu: 24, aFf: -32, aBu: 20, aBf: -28 }) },
+      { t: 1.00, p: pose({}) },
+    ],
+    events: [{ t: 0.30, ev: 'step' }],
+  },
+
   // Sentado no chao, impaciente: joelhos dobrados, bracos apoiados neles,
   // e a perna batendo. Sem cigarro para ocupar a mao, so resta o pe.
   sitImpatient: {

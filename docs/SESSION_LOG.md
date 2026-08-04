@@ -788,6 +788,36 @@ alternating presses, monotonic) but a scripted loop of sixty presses never
 completed. The mechanism is verified; the loop is a harness artifact I did
 not chase further. **Worth a real play-test.**
 
+### Session 08b — corrections
+
+**The pipe never broke.** The QTE numbers were calibrated against my own
+test harness, which fires presses every two frames — thirty per second.
+A human alternating at four presses per second gained 0.232/s against a
+0.20/s decay: a net of +0.03/s, or **half a minute of hammering**. It was
+technically winnable and practically not.
+
+Rebalanced to 0.085 per press against 0.09/s decay. At five presses per
+second it now fills in about three seconds. Lesson: never tune a
+timing-based mechanic against a scripted press rate.
+
+**Sitting came too early and too fast.** Two separate mistakes:
+
+- `idleAnim` replaced the idle outright, so he dropped to the floor the
+  instant he stopped moving. There is now an `idleMode`, and the idle
+  timer runs first: he stands there for seven seconds *before* deciding to
+  sit, exactly like the cigarette.
+- Getting up was instant too. Added `sitDown` and `standUp` transitions,
+  and a `standing` state that locks movement for half a second while he
+  gets to his feet.
+
+Also `idleMode` is reset on new game, so a previous escape no longer leaks
+sitting into a fresh playthrough — the cigarette idle is back where it
+belongs, before the kidnapping.
+
+Verified: before the kidnapping, six seconds standing gives `idle` and nine
+gives `smoke`. After it, three seconds gives `idle`, seven starts `sitDown`,
+nine reaches `sitImpatient`, and walking plays `standUp` first.
+
 ### Next session starts with
 
 What is on the other side of that door.

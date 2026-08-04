@@ -266,6 +266,13 @@ class Game {
   startNewGame() {
     this.playtime = 0;
     this.flags = {};
+    // jogo novo: ele tem cigarro no bolso de novo, e arma no coldre
+    this.player.idleMode = null;
+    this.player.hasGun = true;
+    this.player.ammo = 6;
+    this.player.reserve = 18;
+    this.player.det.props.gun = 'holstered';
+    this.qte = null;
     audio.stopMusic(1.2);
     audio.stopAllLoops();
     this.opening = new Opening(this.road, this.car, this.player, this.rain, this.fx);
@@ -635,7 +642,11 @@ class Game {
     else if (d && q.last !== 'D') { q.last = 'D'; puxou = true; }
 
     if (puxou) {
-      q.prog = clamp(q.prog + 0.058, 0, 1);
+      // Numeros calibrados para MAO HUMANA. Antes eram 0.058 por toque
+      // contra 0.20/s de queda: alternando a 4 toques por segundo o saldo
+      // era +0.03/s, ou seja meio minuto de martelada. Agora 4 toques por
+      // segundo enchem a barra em cerca de tres segundos.
+      q.prog = clamp(q.prog + 0.085, 0, 1);
       q.pull = 0.16;
       audio.strain(0.7 + q.prog * 0.5);
       if (Math.random() < 0.4) audio.chainRattle(0.5);
@@ -645,7 +656,7 @@ class Game {
     // conquistado. Sem isso, quem martela devagar fica preso para sempre e
     // o jogo vira um teste de dedo, nao de tensao.
     q.floor = Math.max(q.floor || 0, Math.floor(q.prog * 4) / 4);
-    q.prog = Math.max(q.floor, q.prog - dt * 0.20);
+    q.prog = Math.max(q.floor, q.prog - dt * 0.09);
     if (q.pull > 0) q.pull -= dt;
 
     const puxando = q.pull > 0;
@@ -673,8 +684,9 @@ class Game {
     p.frozen = false;
     p.controllable = true;
     p.det.play('idle', { blend: 0.4 });
-    // De pe, mas sem nada: o ocio dele agora e sentar e esperar.
-    p.idleAnim = 'sitImpatient';
+    // De pe, mas sem nada. So a partir daqui o ocio dele vira sentar — e
+    // ainda assim so depois de um tempo em pe, como quem cansa de esperar.
+    p.idleMode = 'sit';
     lv.minX = lv.freeMinX;
     lv.maxX = lv.freeMaxX;
     lv.interactables = lv.interLivre;

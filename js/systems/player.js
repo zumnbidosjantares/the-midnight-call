@@ -108,6 +108,12 @@ export class Player {
       this.state = 'idle';
       this.idleTime = 0;
       this.det.play('idle', { blend: 0.22 });
+    } else if (this.state === 'sit') {
+      // Ele nao teleporta para de pe: levanta, e isso custa meio segundo.
+      this.state = 'standing';
+      this.idleTime = 0;
+      this.lockTime = 0.5;
+      this.det.play('standUp', { restart: true, blend: 0.15 });
     }
   }
 
@@ -265,7 +271,8 @@ export class Player {
     }
 
     // ---- movimento ----
-    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact') {
+    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact'
+        && this.state !== 'sit' && this.state !== 'standing') {
       ax = dir * ACC;
       this.facing = dir;
       d.setFacing(dir);
@@ -299,6 +306,11 @@ export class Player {
       }
     } else if (this.state === 'smoke') {
       if (d.done) { this.state = 'idle'; this.idleTime = 0; }
+    } else if (this.state === 'sit') {
+      // sitDown termina e ele fica sentado, batendo o pe, ate mandarem
+      if (d.anim === 'sitDown' && d.done) d.play('sitImpatient', { blend: 0.25 });
+    } else if (this.state === 'standing') {
+      if (d.done) { this.state = 'idle'; this.idleTime = 0; }
     } else {
       const sp = Math.abs(this.vx);
       if (sp > SPEED_WALK + 6) { if (d.anim !== 'run') d.play('run'); d.speed = clamp(sp / SPEED_RUN, 0.72, 1.25); }
@@ -308,13 +320,20 @@ export class Player {
         // com a arma na mao ele nao vai procurar cigarro
         if (this.gun !== 'holstered') this.idleTime = 0;
         else this.idleTime += dt;
-        // Sem cigarro no bolso nao ha animacao de cigarro. Depois que
-        // levam tudo dele, o ocio precisa virar outra coisa.
-        const parado = this.idleAnim || 'idle';
-        if (this.idleTime > IDLE_TO_SMOKE && canAct && !this.idleAnim) {
-          this.state = 'smoke';
-          d.play('smoke', { restart: true, blend: 0.3 });
-        } else if (d.anim !== parado) d.play(parado, { blend: 0.35 });
+        // O que ele faz quando fica parado depende do que ainda tem no
+        // bolso. Com cigarro: tenta fumar e desiste. Sem nada, depois do
+        // sequestro: cansa de esperar em pe e senta. Nos dois casos ele
+        // passa PRIMEIRO um tempo simplesmente parado — sentar na hora
+        // pareceria um comando, nao um cansaco.
+        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
+          if (this.idleMode === 'sit') {
+            this.state = 'sit';
+            d.play('sitDown', { restart: true, blend: 0.3 });
+          } else {
+            this.state = 'smoke';
+            d.play('smoke', { restart: true, blend: 0.3 });
+          }
+        } else if (d.anim !== 'idle') d.play('idle', { blend: 0.3 });
       }
     }
 

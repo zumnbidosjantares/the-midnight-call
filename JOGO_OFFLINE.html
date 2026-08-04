@@ -2886,6 +2886,32 @@ const ANIM = {
     ],
   },
 
+  // De pe para sentado. Existe para o sentar NAO ser instantaneo: ele
+  // desce, apoia a mao no chao e se acomoda.
+  sitDown: {
+    dur: 1.05, loop: false,
+    keys: [
+      { t: 0.00, p: pose({}) },
+      { t: 0.30, p: pose({ hy: 5, torso: 16, head: 8, lFt: 30, lFs: -54, lFf: 8, lBt: 26, lBs: -50, lBf: 8, aFu: 22, aFf: -30, aBu: 18, aBf: -26 }) },
+      { t: 0.62, p: pose({ hy: 15, torso: 15, head: 7, lFt: 54, lFs: -86, lFf: 12, lBt: 48, lBs: -80, lBf: 10, aFu: 40, aFf: -54, aBu: 36, aBf: -50 }) },
+      { t: 0.85, p: pose({ hy: 21, torso: 11, head: 5, lFt: 63, lFs: -98, lFf: 13, lBt: 55, lBs: -90, lBf: 11, aFu: 47, aFf: -63, aBu: 41, aBf: -57 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+    ],
+    events: [{ t: 0.66, ev: 'sit' }],
+  },
+
+  // e de volta
+  standUp: {
+    dur: 0.85, loop: false,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.28, p: pose({ hy: 16, torso: 18, head: 2, lFt: 56, lFs: -88, lFf: 12, lBt: 50, lBs: -82, lBf: 10, aFu: 42, aFf: -56, aBu: 38, aBf: -52 }) },
+      { t: 0.62, p: pose({ hy: 6, torso: 17, head: 3, lFt: 32, lFs: -56, lFf: 8, lBt: 28, lBs: -52, lBf: 8, aFu: 24, aFf: -32, aBu: 20, aBf: -28 }) },
+      { t: 1.00, p: pose({}) },
+    ],
+    events: [{ t: 0.30, ev: 'step' }],
+  },
+
   // Sentado no chao, impaciente: joelhos dobrados, bracos apoiados neles,
   // e a perna batendo. Sem cigarro para ocupar a mao, so resta o pe.
   sitImpatient: {
@@ -5964,6 +5990,12 @@ class Player {
       this.state = 'idle';
       this.idleTime = 0;
       this.det.play('idle', { blend: 0.22 });
+    } else if (this.state === 'sit') {
+      // Ele nao teleporta para de pe: levanta, e isso custa meio segundo.
+      this.state = 'standing';
+      this.idleTime = 0;
+      this.lockTime = 0.5;
+      this.det.play('standUp', { restart: true, blend: 0.15 });
     }
   }
 
@@ -6121,7 +6153,8 @@ class Player {
     }
 
     // ---- movimento ----
-    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact') {
+    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact'
+        && this.state !== 'sit' && this.state !== 'standing') {
       ax = dir * ACC;
       this.facing = dir;
       d.setFacing(dir);
@@ -6155,6 +6188,11 @@ class Player {
       }
     } else if (this.state === 'smoke') {
       if (d.done) { this.state = 'idle'; this.idleTime = 0; }
+    } else if (this.state === 'sit') {
+      // sitDown termina e ele fica sentado, batendo o pe, ate mandarem
+      if (d.anim === 'sitDown' && d.done) d.play('sitImpatient', { blend: 0.25 });
+    } else if (this.state === 'standing') {
+      if (d.done) { this.state = 'idle'; this.idleTime = 0; }
     } else {
       const sp = Math.abs(this.vx);
       if (sp > SPEED_WALK + 6) { if (d.anim !== 'run') d.play('run'); d.speed = clamp(sp / SPEED_RUN, 0.72, 1.25); }
@@ -6164,13 +6202,20 @@ class Player {
         // com a arma na mao ele nao vai procurar cigarro
         if (this.gun !== 'holstered') this.idleTime = 0;
         else this.idleTime += dt;
-        // Sem cigarro no bolso nao ha animacao de cigarro. Depois que
-        // levam tudo dele, o ocio precisa virar outra coisa.
-        const parado = this.idleAnim || 'idle';
-        if (this.idleTime > IDLE_TO_SMOKE && canAct && !this.idleAnim) {
-          this.state = 'smoke';
-          d.play('smoke', { restart: true, blend: 0.3 });
-        } else if (d.anim !== parado) d.play(parado, { blend: 0.35 });
+        // O que ele faz quando fica parado depende do que ainda tem no
+        // bolso. Com cigarro: tenta fumar e desiste. Sem nada, depois do
+        // sequestro: cansa de esperar em pe e senta. Nos dois casos ele
+        // passa PRIMEIRO um tempo simplesmente parado — sentar na hora
+        // pareceria um comando, nao um cansaco.
+        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
+          if (this.idleMode === 'sit') {
+            this.state = 'sit';
+            d.play('sitDown', { restart: true, blend: 0.3 });
+          } else {
+            this.state = 'smoke';
+            d.play('smoke', { restart: true, blend: 0.3 });
+          }
+        } else if (d.anim !== 'idle') d.play('idle', { blend: 0.3 });
       }
     }
 
@@ -8063,6 +8108,13 @@ class Game {
   startNewGame() {
     this.playtime = 0;
     this.flags = {};
+    // jogo novo: ele tem cigarro no bolso de novo, e arma no coldre
+    this.player.idleMode = null;
+    this.player.hasGun = true;
+    this.player.ammo = 6;
+    this.player.reserve = 18;
+    this.player.det.props.gun = 'holstered';
+    this.qte = null;
     audio.stopMusic(1.2);
     audio.stopAllLoops();
     this.opening = new Opening(this.road, this.car, this.player, this.rain, this.fx);
@@ -8432,7 +8484,11 @@ class Game {
     else if (d && q.last !== 'D') { q.last = 'D'; puxou = true; }
 
     if (puxou) {
-      q.prog = clamp(q.prog + 0.058, 0, 1);
+      // Numeros calibrados para MAO HUMANA. Antes eram 0.058 por toque
+      // contra 0.20/s de queda: alternando a 4 toques por segundo o saldo
+      // era +0.03/s, ou seja meio minuto de martelada. Agora 4 toques por
+      // segundo enchem a barra em cerca de tres segundos.
+      q.prog = clamp(q.prog + 0.085, 0, 1);
       q.pull = 0.16;
       audio.strain(0.7 + q.prog * 0.5);
       if (Math.random() < 0.4) audio.chainRattle(0.5);
@@ -8442,7 +8498,7 @@ class Game {
     // conquistado. Sem isso, quem martela devagar fica preso para sempre e
     // o jogo vira um teste de dedo, nao de tensao.
     q.floor = Math.max(q.floor || 0, Math.floor(q.prog * 4) / 4);
-    q.prog = Math.max(q.floor, q.prog - dt * 0.20);
+    q.prog = Math.max(q.floor, q.prog - dt * 0.09);
     if (q.pull > 0) q.pull -= dt;
 
     const puxando = q.pull > 0;
@@ -8470,8 +8526,9 @@ class Game {
     p.frozen = false;
     p.controllable = true;
     p.det.play('idle', { blend: 0.4 });
-    // De pe, mas sem nada: o ocio dele agora e sentar e esperar.
-    p.idleAnim = 'sitImpatient';
+    // De pe, mas sem nada. So a partir daqui o ocio dele vira sentar — e
+    // ainda assim so depois de um tempo em pe, como quem cansa de esperar.
+    p.idleMode = 'sit';
     lv.minX = lv.freeMinX;
     lv.maxX = lv.freeMaxX;
     lv.interactables = lv.interLivre;
