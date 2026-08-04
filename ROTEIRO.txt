@@ -10,9 +10,11 @@
   Documento de história. Só narrativa — nada de código aqui.
   A parte técnica fica em CHAMADO_DA_MEIA_NOITE.md.
 
-  Última atualização: 04/08/2026
+  Última atualização: 04/08/2026 (sessão 09)
   Estado: CAPÍTULO 1 escrito e implementado no jogo.
-          CAPÍTULO 2 em aberto — a ser escrito por Luiz.
+          CAPÍTULO 2 escrito, decidido e IMPLEMENTADO — os oito setores, os
+          três inimigos, o Credor, o diário, o inventário, a sanidade e a
+          cena do espelho estão no jogo. Falta teste humano.
 
   COMO USAR ESTE ARQUIVO
   ----------------------
@@ -772,9 +774,12 @@ TEMPO:  ~7 min
 
   ------- PRIMEIRO NPC -------
 
-  [ESCREVER AQUI — quem é, o que quer, o que esconde]
+  >>> O VIGIA — CONFIRMADO em 04/08 <<<  [JÁ NO JOGO]
 
-  MINHA SUGESTÃO (descarte à vontade):
+  Três perguntas, e ele se despede com "Boa noite, David". Ninguém
+  perguntou o nome dele. Ninguém comenta isso. Nunca.
+
+  A descrição original, que foi mantida inteira:
 
     O VIGIA. Um homem velho de uniforme desbotado, sentado na cadeira do
     escritório como se estivesse no turno dele. Fala com naturalidade
@@ -974,8 +979,8 @@ TEMPO:  ~8 min
       Dura poucos segundos. Depois a câmera recua e volta para a lateral,
       e o espelho está normal de novo.
 
-      DAVID: (voz sem força) [ESCREVER AQUI — a fala depois]
-             sugestão minha: "...era isso que eu não queria ver."
+      DAVID: (voz sem força) "...era isso que eu não queria ver."
+             CONFIRMADO em 04/08. [JÁ NO JOGO]
 
   CUSTO: perde MUITA sanidade. Talvez o maior dreno único do jogo.
 
@@ -1016,15 +1021,32 @@ TEMPO:  ~8 min
     "Isso não é possível. Já sei. Já anotei."
 
   EVENTO OBRIGATÓRIO — A PRIMEIRA ALUCINAÇÃO GRANDE:
-  [ESCREVER AQUI — sugestão minha abaixo]
+  >>> CONFIRMADO em 04/08 <<<  [JÁ NO JOGO]
 
     Os ganchos começam a balançar. Todos. No mesmo ritmo.
     Não há vento.
 
-    Ele acende o isqueiro e vê que um dos ganchos tem alguma coisa pendurada.
-    Quando a chama apaga e ele acende de novo, não tem mais nada.
+      "Os ganchos estão balançando. Todos."
+      "Não tem vento aqui."
 
-    E o que ele viu naquele segundo é [ESCREVER AQUI].
+    (pausa longa)
+
+      "Tem alguma coisa pendurada ali."
+
+    Ele acende o isqueiro. No gancho do meio há UM SOBRETUDO MARROM.
+    Vazio. Igual ao dele.
+
+      "Um casaco. Marrom."
+
+    A chama apaga — o isqueiro só aguenta alguns segundos por vez. Quando
+    ele acende de novo, não tem mais nada.
+
+      "Não tem nada ali."
+      "Nunca teve."
+
+    (nota: é o casaco que sobrou dele no fim do Capítulo 1 — "Deixaram o
+     casaco. Que gentileza." O título do capítulo, pendurado num gancho de
+     açougue. E ele continua vestindo o dele enquanto olha.)
 
   COISAS PARA EXAMINAR:
 
@@ -1071,7 +1093,7 @@ TEMPO:  ~8 min
 
     O jogo obriga a usar a arma imediatamente. Primeiro tiro é uma cena.
 
-    Aceita? [ESCREVER AQUI]
+    ACEITO — e implementado assim. [JÁ NO JOGO]
 
   COISAS PARA EXAMINAR:
 
@@ -1210,8 +1232,22 @@ TEMPO:  ~6 min
   RISCO: só funciona uma vez no jogo inteiro. Talvez valha guardar.
 
   ------------------------------------------------------------------------
-  ESCOLHIDA: [ESCREVER AQUI]
+  ESCOLHIDA: >>> OPÇÃO 1 — A TELEFONISTA <<<   (confirmado em 04/08)
   ------------------------------------------------------------------------
+  [JÁ NO JOGO] Ela está sentada na mesa telefônica, no único ponto
+  iluminado da passarela, plugando cabos que não vão a lugar nenhum.
+
+  Três perguntas possíveis, e a que importa é a primeira:
+    DAVID:       "Quem foi que me ligou?"
+    TELEFONISTA: "O senhor mesmo."
+    TELEFONISTA: "O senhor foi o único que atendeu."
+
+  As outras duas:
+    "Que lugar é este?"  ->  "É a central, senhor. Sempre foi."
+                             "Central de quê?"
+                             "De chamadas que ninguém atende."
+    "Esses cabos não estão ligados em nada."
+                         ->  "Estão sim. O senhor é que não vê a outra ponta."
 
   (nota: dá para usar mais de uma ao longo do jogo. Minha sugestão de ordem:
    Telefonista no Cap. 2 · Homem do Sobretudo no Cap. 3 · Entrevistado no 4 ·
@@ -1260,13 +1296,26 @@ TEMPO:  ~10 min
       fechando o cerco.
     - Sanidade drena rápido enquanto escondido. Ficar parado não é grátis.
 
-  O OBJETIVO: chegar até [ESCREVER AQUI — onde é a saída do capítulo?]
+  O OBJETIVO: chegar até a DOCA 3.  >>> CONFIRMADO em 04/08 <<<
 
-  FIM DO CAPÍTULO: [ESCREVER AQUI]
+  O portão de doca do Corredor de Carga esteve trancado por fora o capítulo
+  inteiro — ele até comenta: "Estou começando a achar que 'por fora' é o
+  único lado que existe." Durante a fuga, ele abre.
 
-  Minha sugestão: ele consegue sair, e a última coisa que a câmera mostra
-  antes do corte é o Credor parado, sem persegui-lo mais, apenas OLHANDO
-  ele ir embora. Como quem sabe que vai cobrar outro dia.
+  (nota: e é isso que fecha a ideia. O mapa que virou armadilha é o mesmo
+   mapa que virou saída. Ninguém explica por quê.)
+
+  FIM DO CAPÍTULO:
+
+  Ele sai para a chuva. E a última coisa que a câmera mostra antes do corte
+  é o Credor parado, sem persegui-lo mais, apenas OLHANDO ele ir embora.
+
+    "Ele não veio atrás."
+    "Só ficou olhando."
+    "Não era pra cobrar hoje."
+
+  TELA PRETA.  C O N T I N U A
+  [JÁ NO JOGO]
 
 
 ===============================================================================
@@ -1303,7 +1352,14 @@ PARTE V — SISTEMA DE DIÁRIO
   Isso amarra direto com o bilhete do Capítulo 1 — "essa letra... eu conheço
   essa letra" — e explica por que ele reconheceu sem saber de onde.
 
-  Aceita essa ideia? [ESCREVER AQUI]
+  APROVADO. [JÁ NO JOGO — três páginas existem]
+    "VOCÊ ESTÁ QUASE LEMBRANDO."   (aparece abaixo de 50 de sanidade)
+    "NÃO ERA CULPA DELA."          (abaixo de 25)
+    "SETE ANOS. CONTA DIREITO."    (guardada para o Capítulo 3)
+
+  Elas saem em vermelho e em caixa alta, com a categoria marcada só como
+  "?". Ninguém comenta. O detetive nunca menciona que há páginas no
+  caderno dele que ele não escreveu.
 
 
 ===============================================================================
@@ -1354,7 +1410,23 @@ VI.2 — OS TRÊS QUE EU PROPONHO PARA O CAPÍTULO 2
   │ POR QUE ELE: amarra com a ligação das 2h14 que não podia existir.  │
   └────────────────────────────────────────────────────────────────────┘
 
-  Quais entram no Capítulo 2? [ESCREVER AQUI]
+  Quais entram no Capítulo 2? >>> OS TRÊS <<<  [JÁ NO JOGO]
+
+  COMO FICARAM, NA PRÁTICA:
+
+    OS EMPILHADOS  3 de vida · rápidos · agarram de perto · o mesmo
+                   esqueleto do detetive andando de quatro, com o tronco
+                   quase deitado. Estantes e Câmara Fria.
+
+    OS SEM-ROSTO   2 de vida · lentos · param e OLHAM DE VOLTA de vez em
+                   quando, sem atacar. Corredor, Máquinas, Estantes.
+
+    O ECOADOR      não ataca e não morre. Mantém meia distância — foge se
+                   você chega, segue se você afasta — e TOCA TELEFONE,
+                   cada vez mais alto conforme se aproxima.
+
+  E abaixo de 50 de sanidade, parte do que aparece NÃO ESTÁ LÁ: some quando
+  acertada, e a bala foi gasta do mesmo jeito.
 
 
 VI.3 — O PERSEGUIDOR: "O CREDOR"
@@ -1572,7 +1644,11 @@ PARTE VIII — SISTEMA DE INVENTÁRIO
   E enquanto está aberto, o casaco cobre parte da tela — você fica cego para
   o que está atrás dele.
 
-  Aceita não pausar? [ESCREVER AQUI]
+  ACEITO. [JÁ NO JOGO]
+  TAB abre o casaco, Q abre o caderno, e nenhum dos dois para o mundo. O
+  porrete NÃO cabe em bolso nenhum: tem um espaço só dele, do lado de fora
+  do casaco, com uma barra embaixo dizendo quanta madeira ainda sobrou.
+  Arrastar com o mouse move; R gira.
 
 
 ===============================================================================
@@ -1659,39 +1735,73 @@ PARTE IX — PERGUNTAS PARA VOCÊ
   ✓ O espelho em 1ª pessoa ....... APROVADO — ele se vê desfigurado
 
   ------------------------------------------------------------------------
+  RESPONDIDO NA SESSÃO 09 (04/08) — tudo isto já está no jogo
+  ------------------------------------------------------------------------
+
+  2. A FIGURA DO MEZANINO ...... A TELEFONISTA.
+
+  3. O NPC DO ESCRITÓRIO ....... SIM, o Vigia. Fala de um turno que acabou
+                                 há dez anos e se despede com "Boa noite,
+                                 David" — e ninguém perguntou o nome dele.
+
+  4. INIMIGOS DO CAP. 2 ........ OS TRÊS.
+                                 Empilhados e Sem-Rosto nas Estantes;
+                                 Sem-Rosto no Corredor e nas Máquinas;
+                                 Empilhado na Câmara Fria;
+                                 Ecoador solto, como alarme.
+
+  5. SANIDADE ATÉ O CAP. 3 ..... Três formas, e nenhuma é o cigarro:
+                                 · ESCREVER NO DIÁRIO (+7 por página nova)
+                                 · setores de respiro com luz forte
+                                   (escritório e vestiário devolvem 1,6/s)
+                                 · matar um inimigo devolve quase nada (+2).
+                                   A violência acalma, e isso é feio, e é
+                                   exatamente o ponto.
+
+  6. FALA DEPOIS DO ESPELHO .... "...era isso que eu não queria ver."
+
+  8. A ALUCINAÇÃO DA CÂMARA FRIA
+     No gancho está UM SOBRETUDO MARROM. Vazio. O dele.
+       "Tem alguma coisa pendurada ali."
+       "Um casaco. Marrom."
+     A chama do isqueiro apaga. Quando ele acende de novo:
+       "Não tem nada ali."
+       "Nunca teve."
+     (nota: o casaco é a única coisa que sobrou dele depois do sequestro —
+      "Deixaram o casaco. Que gentileza." É o título do capítulo pendurado
+      num gancho de açougue. E ele continua vestindo o dele.)
+
+  9. O PREÇO DA PISTOLA ........ ACEITO, na versão cheia.
+                                 Ao encostar nela: as luzes de emergência
+                                 caem a um quarto, TODAS as máquinas ligam
+                                 de uma vez, e três Sem-Rosto entram pela
+                                 porta por onde ele veio.
+                                   "Claro."
+                                   "Toda gentileza cobra na saída."
+
+  10. FIM DO CAPÍTULO .......... A DOCA 3.
+                                 Durante a fuga o portão de doca do
+                                 corredor — que estava trancado por fora o
+                                 capítulo inteiro — vira a saída. Do outro
+                                 lado, chuva.
+                                 A última coisa que a câmera mostra é o
+                                 Credor parado, sem persegui-lo mais,
+                                 apenas OLHANDO ele ir embora.
+                                   "Ele não veio atrás."
+                                   "Só ficou olhando."
+                                   "Não era pra cobrar hoje."
+
+  ------------------------------------------------------------------------
   AINDA EM ABERTO
   ------------------------------------------------------------------------
 
   1. SOBRENOME DO DAVID .............................. [ESCREVER AQUI]
-
-  2. A FIGURA DO MEZANINO
-     Qual das cinco? (Telefonista / Homem do Sobretudo /
-     Entrevistado / Desaparecida / Ninguém) .......... [ESCREVER AQUI]
-
-  3. O NPC DO ESCRITÓRIO
-     Aceita o Vigia? ................................. [ESCREVER AQUI]
-
-  4. QUAIS INIMIGOS ENTRAM NO CAP. 2
-     (Empilhados / Sem-Rosto / Ecoador) .............. [ESCREVER AQUI]
-
-  5. ATÉ O CAPÍTULO 3, COMO SE RESTAURA SANIDADE?
-     (o cigarro está travado) ........................ [ESCREVER AQUI]
-
-  6. A FALA DEPOIS DO ESPELHO
-     (sugestão: "...era isso que eu não queria ver.") . [ESCREVER AQUI]
+     (nota: por enquanto ele não precisa de um. Ninguém neste jogo pergunta
+      o nome dele — todos já sabem. Um sobrenome só faz falta quando
+      aparecer um documento, uma ficha ou uma lápide.)
 
   7. A FALA DA PRIMEIRA TRAGADA (Cap. 3)
      (sugestão: "Sete anos." — traga — "Sete anos sem.") [ESCREVER AQUI]
-
-  8. A ALUCINAÇÃO DA CÂMARA FRIA
-     O que está pendurado no gancho? ................. [ESCREVER AQUI]
-
-  9. O PREÇO DA PISTOLA
-     Aceita: pegar a arma acende todas as máquinas e
-     traz três inimigos pela porta? .................. [ESCREVER AQUI]
-
-  10. FIM DO CAPÍTULO
-      Onde é a saída, e o que acontece? .............. [ESCREVER AQUI]
 
 
 ===============================================================================

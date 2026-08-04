@@ -62,13 +62,31 @@ export class Level {
     }
   }
 
+  // Quanto de escuro tem no ponto onde o jogador esta, de 0 a 1. Sai das
+  // proprias lampadas da fase, entao nao ha um segundo mapa de luz para
+  // manter sincronizado — se a lampada pisca, o escuro pisca junto.
+  // A sanidade consome isso: ficar no escuro custa.
+  darkAt(px) {
+    let k = 0;
+    for (const f of this.lightDefs) {
+      const d = Math.abs(px - f.x);
+      if (d < f.r) k = Math.max(k, (f.cur === undefined ? f.i : f.cur) * (1 - d / f.r));
+    }
+    return clamp(1 - k * 1.35, 0, 1);
+  }
+
+  // Gente ganha de movel. Sem isso, no mezanino a mesa telefonica ficava
+  // dois pixels mais perto do que a mulher sentada nela, e o jogador
+  // examinava o movel a noite inteira sem conseguir falar com ela.
   nearest(px) {
-    let best = null, bd = 1e9;
+    let best = null, bd = 1e9, bp = -1;
     for (const it of this.interactables) {
       if (it.disabled) continue;
       const cx = it.x + (it.w || 0) / 2;
       const d = Math.abs(px - cx);
-      if (d < (it.range || 26) && d < bd) { bd = d; best = it; }
+      if (d >= (it.range || 26)) continue;
+      const p = it.prio || 0;
+      if (p > bp || (p === bp && d < bd)) { bp = p; bd = d; best = it; }
     }
     return best;
   }

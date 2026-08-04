@@ -9,7 +9,7 @@
 // de _renderRig(). Todo o resto do jogo so chama play() e draw().
 
 import { PAL } from './palette.js';
-import { sprite, darken, stamp, rimPass, silhouettePass, DEG } from './pixel.js';
+import { sprite, darken, stamp, rimPass, silhouettePass, tintPass, DEG } from './pixel.js';
 import { makeBuffer, lerp, clamp, easeInOut } from '../core/gfx.js';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +30,8 @@ const MAP = {
   i: '#ded6c4', a: '#9d9484', N: '#ff6a2a',   // cigarro: papel, sombra, brasa
   F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama e fogo de boca
   M: '#727880', m: '#4b5158',                 // metal da arma
+  D: PAL.woodHi, G: PAL.wood, Z: PAL.woodDk,  // ripa de palete
+  I: '#8f959e', T: '#3a2f26',                 // prego e ferrugem
 };
 
 // Medidas do esqueleto, em pixels, a partir do chao. Proporcao puxada da
@@ -235,6 +237,50 @@ function buildParts() {
   P.foot = sprite({
     pivot: [3, 0], map: MAP, rows: [
       '.kbBBBBk..', 'kbBBBBBBBk', 'kbbbbbbbbk', '.kkkkkkkk.',
+    ]
+  });
+
+  // Rosto ALISADO: a mesma cabeca, o mesmo cabelo, e nenhum tra o dentro
+  // dela. Nao e um monstro — e uma pessoa de quem ele nao lembra mais a
+  // cara. Por isso a silhueta precisa continuar identica a de gente.
+  P.headBlank = sprite({
+    pivot: [6, 14], map: MAP, rows: [
+      '...HHHHHHH....',
+      '..HHhhhhhhhH..',
+      '.HHhhhgggggh..',
+      '.HHhhgggggSSt.',
+      '.HHhhgSSSSSSt.',
+      '.HHhhqSSSSSSt.',
+      '.HHhhqSSSSSst.',
+      '.HHhhqSSSSStS.',
+      '.HHhhqSSSSSqS.',
+      '.HHhhSSSSSSst.',
+      '..hhqSSSSSSst.',
+      '..shSSSSSSSs..',
+      '...sSSSSSSs...',
+      '....sSSSs.....',
+      '....sSSSs.....',
+    ]
+  });
+
+  // Ripa de palete com um prego torto na ponta. Fica na mao da frente,
+  // seguindo o antebraco — nao precisa de rotacao propria: o eixo "para
+  // fora da mao" ja e o +y local da cadeia do braco.
+  // Doze pixels, nao quinze: com a ripa mais comprida a ponta encostava no
+  // chao quando o braco ficava pendurado, e ela sumia dentro do assoalho.
+  P.club = sprite({
+    pivot: [1, 0], map: MAP, rows: [
+      'GDG', 'GDG', 'ZDG', 'GDG', 'GDZ', 'GDG', 'ZDG', 'GDG',
+      'GDZ', 'GDG', 'ZGZ', '.I.',
+    ]
+  });
+
+  // Cano de metal, enferrujado. O detetive se solta dele no fim do Cap. 1 —
+  // e o Credor arrasta o mesmo cano pelo chao no Cap. 2.
+  P.pipe = sprite({
+    pivot: [1, 0], map: MAP, rows: [
+      'mMm', 'mMm', 'mTm', 'mMm', 'mMm', 'mTm', 'mMm', 'mMm',
+      'mTm', 'mMm', 'mMm', 'mTm', 'mMm', 'mMm', 'kmk',
     ]
   });
 
@@ -529,6 +575,146 @@ export const ANIM = {
       { t: 1.00, p: pose({}) },
     ],
   },
+
+  // -----------------------------------------------------------------------
+  // CAPITULO 2
+  // -----------------------------------------------------------------------
+
+  // Golpe de porrete. Nao e soco: e PESADO. O braco sobe por cima do ombro
+  // (aFu negativo grande leva a mao para tras e para o alto), o corpo inteiro
+  // vai junto, e depois do impacto ha um quadro parado — sem ele a ripa volta
+  // deslizando e o golpe nao pesa nada. O tempo de recolhimento e longo de
+  // proposito: e o que impede o jogador de martelar o botao.
+  swing1: {
+    dur: 0.62, loop: false, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ aFu: -18, aFf: 26 }) },
+      { t: 0.26, p: pose({ torso: 10, head: -4, hx: -2.5, aFu: -128, aFf: -26, aBu: -20, aBf: 4, lFt: -8, lBt: 8 }) },
+      { t: 0.34, p: pose({ torso: 12, head: -5, hx: -3, aFu: -134, aFf: -28, aBu: -22, aBf: 4, lFt: -9, lBt: 9 }) },
+      { t: 0.54, p: pose({ torso: -16, head: 9, hx: 4, aFu: 58, aFf: 12, aBu: -14, aBf: -30, lFt: 12, lBt: -12 }) },
+      { t: 0.68, p: pose({ torso: -15, head: 9, hx: 3.6, aFu: 56, aFf: 13, aBu: -13, aBf: -28, lFt: 11, lBt: -11 }) },
+      { t: 1.00, p: pose({ aFu: -18, aFf: 26 }) },
+    ],
+    events: [{ t: 0.36, ev: 'whoosh' }, { t: 0.54, ev: 'clubhit' }],
+  },
+
+  // Segundo golpe: volta de baixo para cima, do outro lado. Mais curto,
+  // porque ele ja esta com o braco em movimento.
+  swing2: {
+    dur: 0.70, loop: false, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ aFu: -18, aFf: 26 }) },
+      { t: 0.22, p: pose({ torso: -12, head: 6, hx: 3, aFu: 92, aFf: 46, aBu: 16, aBf: -10, lFt: 10, lBt: -8 }) },
+      { t: 0.48, p: pose({ torso: 12, head: -6, hx: -3, aFu: -74, aFf: -40, aBu: -18, aBf: 6, lFt: -10, lBt: 10 }) },
+      { t: 0.60, p: pose({ torso: 11, head: -5, hx: -2.6, aFu: -70, aFf: -38, aBu: -17, aBf: 6, lFt: -9, lBt: 9 }) },
+      { t: 1.00, p: pose({ aFu: -18, aFf: 26 }) },
+    ],
+    events: [{ t: 0.28, ev: 'whoosh' }, { t: 0.48, ev: 'clubhit' }],
+  },
+
+  // Levar uma pancada: o corpo recua, a cabeca vai junto, e ele volta.
+  hurt: {
+    dur: 0.44, loop: false, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({}) },
+      { t: 0.22, p: pose({ torso: 18, head: -12, hx: -3.5, hy: -1, aFu: -30, aFf: 30, aBu: -26, aBf: 26, lFt: -14, lBt: 12 }) },
+      { t: 0.46, p: pose({ torso: 12, head: -6, hx: -2, aFu: -18, aFf: 22, aBu: -14, aBf: 20 }) },
+      { t: 1.00, p: pose({}) },
+    ],
+  },
+
+  // Cair. Usado pelos inimigos quando terminam; o corpo dobra para a frente
+  // e desce, e depois o desenho desaparece.
+  collapse: {
+    dur: 1.05, loop: false,
+    keys: [
+      { t: 0.00, p: pose({}) },
+      { t: 0.30, p: pose({ hy: 10, torso: -22, head: 12, lFt: 40, lFs: -76, lFf: 6, lBt: 34, lBs: -70, lBf: 6, aFu: -24, aFf: 30, aBu: -20, aBf: 26 }) },
+      { t: 0.70, p: pose({ hy: 22, torso: -52, head: 14, lFt: 62, lFs: -104, lFf: 8, lBt: 56, lBs: -98, lBf: 8, aFu: 40, aFf: -20, aBu: 34, aBf: -18 }) },
+      { t: 1.00, p: pose({ hy: 26, torso: -68, head: 14, lFt: 68, lFs: -112, lFf: 8, lBt: 62, lBs: -106, lBf: 8, aFu: 62, aFf: -8, aBu: 56, aBf: -8 }) },
+    ],
+  },
+
+  // OS EMPILHADOS: corpo dobrado sobre si mesmo, andando de quatro. E o
+  // mesmo esqueleto — o tronco quase deitado e os bracos viram as patas da
+  // frente. Nada aqui e uma peca nova: e um homem usado errado, que e
+  // exatamente o que a coisa e.
+  crawl: {
+    dur: 0.94, loop: true, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ hy: 16, torso: -64, head: 14, aFu: 76, aFf: -14, aBu: 26, aBf: -12, lFt: 46, lFs: -86, lFf: -8, lBt: 6, lBs: -62, lBf: -8 }) },
+      { t: 0.25, p: pose({ hy: 13, torso: -66, head: 14, aFu: 52, aFf: -13, aBu: 52, aBf: -13, lFt: 26, lFs: -74, lFf: -8, lBt: 26, lBs: -74, lBf: -8 }) },
+      { t: 0.50, p: pose({ hy: 16, torso: -64, head: 14, aFu: 26, aFf: -12, aBu: 76, aBf: -14, lFt: 6, lFs: -62, lFf: -8, lBt: 46, lBs: -86, lBf: -8 }) },
+      { t: 0.75, p: pose({ hy: 13, torso: -66, head: 14, aFu: 52, aFf: -13, aBu: 52, aBf: -13, lFt: 26, lFs: -74, lFf: -8, lBt: 26, lBs: -74, lBf: -8 }) },
+      { t: 1.00, p: pose({ hy: 16, torso: -64, head: 14, aFu: 76, aFf: -14, aBu: 26, aBf: -12, lFt: 46, lFs: -86, lFf: -8, lBt: 6, lBs: -62, lBf: -8 }) },
+    ],
+    events: [{ t: 0.04, ev: 'crawlstep' }, { t: 0.54, ev: 'crawlstep' }],
+  },
+
+  // OS SEM-ROSTO: andam. So isso. Passada curta, braco pendurado, sem
+  // nenhuma pressa — e a falta de pressa que assusta.
+  shamble: {
+    dur: 1.30, loop: true, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ torso: -2, head: -4, lFt: 13, lFs: -6, lFf: 4, lBt: -12, lBs: -16, lBf: -12, aFu: -8, aFf: 5, aBu: 8, aBf: 6 }) },
+      { t: 0.25, p: pose({ torso: -2, head: -4, hy: -0.8, lFt: 4, lFs: -4, lFf: 0, lBt: 2, lBs: -30, lBf: -8, aFu: -3, aFf: 5, aBu: 3, aBf: 6 }) },
+      { t: 0.50, p: pose({ torso: -2, head: -4, lFt: -12, lFs: -16, lFf: -12, lBt: 13, lBs: -6, lBf: 4, aFu: 8, aFf: 6, aBu: -8, aBf: 5 }) },
+      { t: 0.75, p: pose({ torso: -2, head: -4, hy: -0.8, lFt: 2, lFs: -30, lFf: -8, lBt: 4, lBs: -4, lBf: 0, aFu: 3, aFf: 6, aBu: -3, aBf: 5 }) },
+      { t: 1.00, p: pose({ torso: -2, head: -4, lFt: 13, lFs: -6, lFf: 4, lBt: -12, lBs: -16, lBf: -12, aFu: -8, aFf: 5, aBu: 8, aBf: 6 }) },
+    ],
+    events: [{ t: 0.03, ev: 'softstep' }, { t: 0.53, ev: 'softstep' }],
+  },
+
+  // O CREDOR: passada longa e lenta, e o braco da frente esticado para
+  // baixo, arrastando o cano. O cano nunca sai do chao — e o som dele que
+  // chega antes.
+  dragWalk: {
+    dur: 1.12, loop: true, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ torso: -6, head: 4, lFt: 28, lFs: -8, lFf: 8, lBt: -24, lBs: -26, lBf: -22, aFu: -4, aFf: 3, aBu: 14, aBf: 10 }) },
+      { t: 0.25, p: pose({ torso: -6, head: 4, hy: -1.4, lFt: 8, lFs: -5, lFf: 0, lBt: 4, lBs: -50, lBf: -12, aFu: -3, aFf: 3, aBu: 5, aBf: 11 }) },
+      { t: 0.50, p: pose({ torso: -6, head: 4, lFt: -24, lFs: -26, lFf: -22, lBt: 28, lBs: -8, lBf: 8, aFu: -2, aFf: 3, aBu: -14, aBf: 10 }) },
+      { t: 0.75, p: pose({ torso: -6, head: 4, hy: -1.4, lFt: 4, lFs: -50, lFf: -12, lBt: 8, lBs: -5, lBf: 0, aFu: -3, aFf: 3, aBu: -5, aBf: 11 }) },
+      { t: 1.00, p: pose({ torso: -6, head: 4, lFt: 28, lFs: -8, lFf: 8, lBt: -24, lBs: -26, lBf: -22, aFu: -4, aFf: 3, aBu: 14, aBf: 10 }) },
+    ],
+    events: [{ t: 0.02, ev: 'heavystep' }, { t: 0.52, ev: 'heavystep' }],
+  },
+
+  // Escondido: agachado o mais baixo que o corpo permite, cabeca enfiada
+  // entre os ombros, bracos em volta dos joelhos. A respiracao e visivel —
+  // e ela que denuncia, se ele nao prender.
+  hide: {
+    dur: 3.4, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 22, torso: -26, head: 14, lFt: 74, lFs: -122, lFf: -6, lBt: 66, lBs: -116, lBf: -6, aFu: 54, aFf: -84, aBu: 48, aBf: -80 }) },
+      { t: 0.50, p: pose({ hy: 21.2, torso: -29, head: 14, lFt: 74, lFs: -122, lFf: -6, lBt: 66, lBs: -116, lBf: -6, aFu: 55, aFf: -85, aBu: 49, aBf: -81 }) },
+      { t: 1.00, p: pose({ hy: 22, torso: -26, head: 14, lFt: 74, lFs: -122, lFf: -6, lBt: 66, lBs: -116, lBf: -6, aFu: 54, aFf: -84, aBu: 48, aBf: -80 }) },
+    ],
+  },
+
+  // Sentado numa cadeira, nao no chao: coxa na horizontal, canela na
+  // vertical. E a pose do Vigia, que continua no turno dele.
+  sitChair: {
+    dur: 5.2, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 13, torso: -3, head: 3, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 30, aFf: -58, aBu: 26, aBf: -54 }) },
+      { t: 0.50, p: pose({ hy: 12.2, torso: -5, head: 4, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 31, aFf: -59, aBu: 27, aBf: -55 }) },
+      { t: 1.00, p: pose({ hy: 13, torso: -3, head: 3, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 30, aFf: -58, aBu: 26, aBf: -54 }) },
+    ],
+  },
+
+  // A telefonista: sentada, trabalhando numa mesa telefonica. As maos
+  // plugam e desplugam cabos que nao estao ligados em lugar nenhum.
+  switchboard: {
+    dur: 4.6, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 13, torso: -6, head: 4, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 62, aFf: -46, aBu: 20, aBf: -96 }) },
+      { t: 0.22, p: pose({ hy: 13, torso: -8, head: 3, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 40, aFf: -78, aBu: 20, aBf: -96 }) },
+      { t: 0.44, p: pose({ hy: 13, torso: -6, head: 5, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 68, aFf: -34, aBu: 20, aBf: -96 }) },
+      { t: 0.70, p: pose({ hy: 13, torso: -7, head: 4, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 46, aFf: -70, aBu: 20, aBf: -96 }) },
+      { t: 1.00, p: pose({ hy: 13, torso: -6, head: 4, lFt: 84, lFs: -86, lFf: 0, lBt: 78, lBs: -80, lBf: 0, aFu: 62, aFf: -46, aBu: 20, aBf: -96 }) },
+    ],
+  },
 };
 
 export const ANIM_NAMES = Object.keys(ANIM);
@@ -563,6 +749,10 @@ export class Detective {
     if (!P.head) buildParts();
     this.buf = makeBuffer(BW, BH);
     this.rimBuf = makeBuffer(BW, BH);
+    // Buffer proprio para o tingimento. Sem ele, tingir e ter contorno de
+    // luz brigariam pelo mesmo buffer e um apagava o outro — e os inimigos
+    // ficavam sem a casquinha de luz que os separa do escuro.
+    this.tintBuf = null;
     this.anim = 'idle';
     this.time = 0;
     this.speed = 1;
@@ -574,7 +764,9 @@ export class Detective {
     this.blendDur = 0.14;
     this.done = false;
     this.onEvent = null;
-    this.props = { cig: 'none', lighter: 'none', flame: 0, gun: 'holstered' };
+    // club/pipe ficam de fora do _clearProps: uma arma na mao nao pode
+    // sumir so porque a animacao mudou.
+    this.props = { cig: 'none', lighter: 'none', flame: 0, gun: 'holstered', club: 'none', pipe: 'none' };
     // Mira: sobrescreve os angulos do braco da frente depois da animacao.
     // Nao da para keyframar isto — o angulo vem do mouse do jogador.
     this.aim = { on: false, angle: 0, recoil: 0 };
@@ -598,6 +790,12 @@ export class Detective {
     // contorno some. E assim que a figura negra e feita — o mesmo boneco
     // articulado, sem nenhuma informacao dentro.
     this.silhouette = null;
+    // Recolorir o boneco inteiro: e assim que os NPCs e os Sem-Rosto usam o
+    // mesmo esqueleto sem virarem clones do detetive.
+    this.tint = null;
+    this.tintK = 0.72;
+    // Rosto alisado, sem tra o nenhum.
+    this.faceless = false;
     this.scaleX = 1;
     this.scaleY = 1;
   }
@@ -747,6 +945,10 @@ export class Detective {
     if (this.silhouette) {
       silhouettePass(b.c, this.rimBuf, this.silhouette);
       src = this.rimBuf.c;
+    } else if (this.tint) {
+      if (!this.tintBuf) this.tintBuf = makeBuffer(BW, BH);
+      tintPass(b.c, this.tintBuf, this.tint, this.tintK);
+      src = this.tintBuf.c;
     }
 
     // reflexo no chao molhado
@@ -845,7 +1047,7 @@ export class Detective {
     // era isso que "desmanchava a cara do nada".
     g.rotate(R(Math.round(clamp(p.head, -14, 14) / 7) * 7));
     g.translate(1, -1);
-    stamp(g, P.head);
+    stamp(g, this.faceless ? P.headBlank : P.head);
     if (this.props.cig === 'mouth') {
       g.save();
       g.translate(7, -5);
@@ -892,6 +1094,16 @@ export class Detective {
     }
 
     stamp(g, sHa);
+
+    // Ripa e cano saem da mao seguindo o antebraco: o eixo "para fora da
+    // mao" ja e o +y local aqui dentro, entao nao ha rotacao a fazer — foi
+    // justamente isso que fez a arma aparecer deitada uma vez (B-17).
+    if (front && this.props.club === 'hand') {
+      g.save(); g.translate(0, 2); stamp(g, P.club); g.restore();
+    }
+    if (front && this.props.pipe === 'hand') {
+      g.save(); g.translate(0, 2); stamp(g, P.pipe); g.restore();
+    }
 
     // objetos presos a mao
     if (front && this.props.cig === 'hand') {

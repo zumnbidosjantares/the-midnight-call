@@ -608,6 +608,208 @@ class Audio {
     s.start(t, Math.random() * 2, 0.5); s.stop(t + 0.5);
   }
 
+  // ---------------- Capitulo 2 ----------------
+
+  // Ripa de palete acertando um corpo. E mais SECO e mais grave que o soco:
+  // madeira nao estala como osso, ela bate e para.
+  clubHit(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(34, t + 0.15);
+    this._env(o, t, 0.001, 0.2, 0.55 * vol);
+    o.start(t); o.stop(t + 0.25);
+    // o estalo curto da madeira por cima
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 3; f.frequency.value = 900 + Math.random() * 400;
+    s.connect(f);
+    const g = this._env(f, t, 0.001, 0.07, 0.34 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 0.2); s.stop(t + 0.2);
+  }
+
+  // A ripa se partindo. Dois estalos, o segundo mais grave: e assim que
+  // madeira racha — nunca de uma vez.
+  clubBreak(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    for (const [dt, fq, pk] of [[0, 1700, 0.32], [0.05, 760, 0.4]]) {
+      const s = c.createBufferSource();
+      s.buffer = this.noiseBuf;
+      const f = c.createBiquadFilter();
+      f.type = 'bandpass'; f.Q.value = 6; f.frequency.value = fq;
+      s.connect(f);
+      const g = this._env(f, t + dt, 0.001, 0.13, pk * vol);
+      g.connect(this.verb);
+      s.start(t + dt, Math.random() * 3, 0.25); s.stop(t + dt + 0.25);
+    }
+  }
+
+  // Telefone velho de campainha. Duas badaladas curtas, marteladas contra o
+  // sino — e o som que o Ecoador traz consigo, e ele nao devia existir.
+  phoneRing(vol = 1, longe = 0) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t0 = c.currentTime;
+    const corte = c.createBiquadFilter();
+    corte.type = 'lowpass';
+    corte.frequency.value = 5200 - longe * 4000;   // longe = abafado
+    corte.connect(this.busSfx);
+    const eco = c.createGain(); eco.gain.value = 0.5 + longe * 0.6;
+    corte.connect(eco); eco.connect(this.verb);
+    for (let r = 0; r < 2; r++) {
+      const base = t0 + r * 0.42;
+      for (let i = 0; i < 9; i++) {
+        const t = base + i * 0.024;
+        for (const fq of [1080, 1330]) {
+          const o = c.createOscillator();
+          o.type = 'sine';
+          o.frequency.value = fq * (1 + (Math.random() - 0.5) * 0.01);
+          const g = c.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.09 * vol, t + 0.004);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+          o.connect(g); g.connect(corte);
+          o.start(t); o.stop(t + 0.16);
+        }
+      }
+    }
+  }
+
+  // Cochicho: nao e palavra nenhuma, e ruido de banda estreita passeando na
+  // faixa da voz humana. A cabeca do jogador completa o resto sozinha.
+  whisper(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.7 + Math.random() * 0.5;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 9;
+    const f0 = 700 + Math.random() * 900;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.linearRampToValueAtTime(f0 * (0.6 + Math.random() * 0.8), t + 0.8);
+    s.connect(f);
+    const g = this._env(f, t, 0.18, 0.9, 0.075 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 1.3); s.stop(t + 1.3);
+  }
+
+  // Caneta no papel. Rabiscos curtos e irregulares — som de mao escrevendo,
+  // nao de maquina de escrever.
+  writing(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 2.4 + Math.random();
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 2.4;
+    f.frequency.value = 2600 + Math.random() * 1600;
+    s.connect(f);
+    this._env(f, t, 0.006, 0.05 + Math.random() * 0.05, 0.05 * vol);
+    s.start(t, Math.random() * 3, 0.14); s.stop(t + 0.14);
+  }
+
+  pageTurn(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 1.6;
+    const f = c.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 1800;
+    s.connect(f);
+    this._env(f, t, 0.02, 0.16, 0.09 * vol);
+    s.start(t, Math.random() * 3, 0.25); s.stop(t + 0.25);
+  }
+
+  // Todas as maquinas ligando ao mesmo tempo. Um baque de partida, e um
+  // zumbido que fica. E o preco da pistola.
+  machineStart(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(24, t);
+    o.frequency.exponentialRampToValueAtTime(58, t + 1.2);
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 320;
+    o.connect(f);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28 * vol, t + 0.5);
+    g.gain.setValueAtTime(0.28 * vol, t + 2.2);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.6);
+    f.connect(g); g.connect(this.busSfx);
+    o.start(t); o.stop(t + 3.8);
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const sf = c.createBiquadFilter();
+    sf.type = 'lowpass'; sf.frequency.value = 1100;
+    s.connect(sf);
+    const sg = this._env(sf, t, 0.01, 0.9, 0.3 * vol);
+    sg.connect(this.verb);
+    s.start(t, Math.random() * 2, 1.2); s.stop(t + 1.2);
+  }
+
+  // Cano de metal raspando o chao. O jogador precisa ouvir isto ANTES de
+  // ver o Credor — e a regra de ouro da perseguicao.
+  dragMetal(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 1.1;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 5;
+    f.frequency.setValueAtTime(1300 + Math.random() * 500, t);
+    f.frequency.linearRampToValueAtTime(2400, t + 0.4);
+    s.connect(f);
+    const g = this._env(f, t, 0.06, 0.5, 0.14 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 0.7); s.stop(t + 0.7);
+  }
+
+  // Porta de armario de vestiario. E o som de ser PROCURADO.
+  lockerBang(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 2; f.frequency.value = 520;
+    s.connect(f);
+    const g = this._env(f, t, 0.001, 0.32, 0.4 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 0.5); s.stop(t + 0.5);
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(220, t);
+    o.frequency.exponentialRampToValueAtTime(70, t + 0.2);
+    this._env(o, t, 0.001, 0.24, 0.22 * vol);
+    o.start(t); o.stop(t + 0.3);
+  }
+
+  // Respiracao. `presa` sobe o filtro e encurta tudo: e o ar saindo pelo
+  // nariz de quem esta com a boca fechada e nao pode fazer barulho.
+  breath(vol = 1, presa = false) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = presa ? 1.4 : 0.9;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = presa ? 6 : 2.2;
+    f.frequency.value = presa ? 900 : 520;
+    s.connect(f);
+    this._env(f, t, presa ? 0.05 : 0.14, presa ? 0.18 : 0.5, 0.1 * vol);
+    s.start(t, Math.random() * 3, 0.8); s.stop(t + 0.8);
+  }
+
   uiMove() {
     if (!this.ensure()) return;
     const c = this.ctx, t = c.currentTime;
@@ -681,6 +883,22 @@ class Audio {
       src.playbackRate.value = 0.25;
       f.type = 'lowpass'; f.frequency.value = 220;
       src.connect(f); f.connect(g);
+    } else if (name === 'hum') {
+      // Zumbido eletrico da sala de maquinas. O disjuntor geral esta
+      // desligado e selado com arame — e mesmo assim ele existe.
+      src.playbackRate.value = 0.12;
+      f.type = 'bandpass'; f.Q.value = 22; f.frequency.value = 120;
+      const f2 = c.createBiquadFilter();
+      f2.type = 'peaking'; f2.frequency.value = 240; f2.Q.value = 14; f2.gain.value = 9;
+      src.connect(f); f.connect(f2); f2.connect(g);
+    } else if (name === 'freezer') {
+      // Camara fria desligada ha uma decada: nao ha motor. O que sobra e o
+      // ar parado de um caixao de aco, mais agudo do que deveria ser.
+      src.playbackRate.value = 0.14;
+      f.type = 'lowpass'; f.frequency.value = 105;
+      const f2 = c.createBiquadFilter();
+      f2.type = 'peaking'; f2.frequency.value = 3100; f2.Q.value = 20; f2.gain.value = 11;
+      src.connect(f); f.connect(f2); f2.connect(g);
     } else if (name === 'wind') {
       src.playbackRate.value = 0.5;
       f.type = 'bandpass'; f.Q.value = 0.7; f.frequency.value = 480;

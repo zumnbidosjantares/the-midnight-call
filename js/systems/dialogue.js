@@ -9,7 +9,7 @@ import { text, wrap, measure } from '../core/text.js';
 import { PAL } from '../art/palette.js';
 import { input } from '../core/input.js';
 import { audio } from '../core/audio.js';
-import { t as T } from '../i18n.js';
+import { t as T, tx } from '../i18n.js';
 
 const BOX_X = 34, BOX_W = VW - 68, BOX_H = 54;
 const BOX_Y = VH - BOX_H - 16;
@@ -25,6 +25,11 @@ export class Dialogue {
     this.blipT = 0;
     this.onDone = null;
     this.closing = false;
+    // conversa com escolhas
+    this.talk = null;
+    this.choices = null;
+    this.choiceIdx = 0;
+    this.seen = null;
   }
 
   start(lines, opts = {}) {
@@ -34,8 +39,74 @@ export class Dialogue {
     this.reveal = 0;
     this.active = true;
     this.closing = false;
+    this.choices = null;
+    this.pendingChoices = null;
+    this.talk = null;
     this.onDone = opts.onDone || null;
     this._wrapCur();
+  }
+
+  // -------------------------------------------------------------------
+  // conversa com NPC: arvore de nos com escolhas
+  //
+  // Cada no e um punhado de falas e, no fim, as perguntas que ainda dao
+  // para fazer. Pergunta ja feita continua na lista, so que apagada — o
+  // jogador precisa saber o que ele ja perguntou, senao fica repetindo por
+  // engano e a conversa perde o peso.
+  // -------------------------------------------------------------------
+
+  startTalk(talk, opts = {}) {
+    this.talk = talk;
+    this.seen = new Set();
+    this.onDone = opts.onDone || null;
+    this.active = true;
+    this.closing = false;
+    this._node(talk.start);
+  }
+
+  _node(id) {
+    const n = this.talk.nodes[id];
+    if (!n) { this._endTalk(); return; }
+    this.nodeId = id;
+    const spk = tx(this.talk.speaker);
+    this.lines = n.lines.map(l => {
+      const s = tx(l);
+      // "ME|" marca a fala do proprio detetive dentro da conversa
+      if (s.slice(0, 3) === 'ME|') return { name: T('speaker_me'), text: s.slice(3), self: true };
+      return { name: spk, text: s };
+    });
+    this.idx = 0;
+    this.reveal = 0;
+    this.choices = null;
+    this.pendingChoices = null;
+    const volta = n.choices ? id : n.back;
+    if (volta) {
+      const alvo = this.talk.nodes[volta];
+      if (alvo && alvo.choices) this.pendingChoices = { from: volta, list: alvo.choices };
+    }
+    this._wrapCur();
+  }
+
+  _pick(c) {
+    if (!c) return;
+    if (!c.to) { this._endTalk(); return; }
+    this.seen.add(c.to);
+    audio.uiConfirm();
+    this._node(c.to);
+  }
+
+  _endTalk() {
+    const fim = this.talk && this.talk.nodes.fim;
+    if (fim && !this._fimDito) {
+      this._fimDito = true;
+      this._node('fim');
+      return;
+    }
+    this._fimDito = false;
+    this.talk = null;
+    this.choices = null;
+    this.closing = true;
+    audio.uiBack();
   }
 
   _wrapCur() {
@@ -55,6 +126,21 @@ export class Dialogue {
     if (this.closing) {
       this.fade -= dt * 8;
       if (this.fade <= 0) { this.active = false; this.closing = false; if (this.onDone) this.onDone(); }
+      return;
+    }
+
+    if (this.choices) {
+      const n = this.choices.list.length + 1;   // +1 = "deixa pra la"
+      if (input.pressed('menuUp')) { this.choiceIdx = (this.choiceIdx + n - 1) % n; audio.uiMove(); }
+      if (input.pressed('menuDown')) { this.choiceIdx = (this.choiceIdx + 1) % n; audio.uiMove(); }
+      if (input.pressed('confirm') || input.pressed('attack')) {
+        const c = this.choiceIdx < this.choices.list.length ? this.choices.list[this.choiceIdx] : null;
+        this.choices = null;
+        this._pick(c);
+      } else if (input.pressed('cancel')) {
+        this.choices = null;
+        this._endTalk();
+      }
       return;
     }
 
@@ -78,6 +164,14 @@ export class Dialogue {
 
   _next(skipAll) {
     if (skipAll || this.idx >= this.lines.length - 1) {
+      if (this.pendingChoices && !skipAll) {
+        this.choices = this.pendingChoices;
+        this.pendingChoices = null;
+        this.choiceIdx = 0;
+        audio.uiMove();
+        return;
+      }
+      if (this.talk) { this._endTalk(); return; }
       this.closing = true;
       audio.uiBack();
     } else {
@@ -138,7 +232,7 @@ export class Dialogue {
     }
 
     // seta de continuar
-    if (this.reveal >= this.total) {
+    if (this.reveal >= this.total && !this.choices) {
       const bl = (Math.sin(performance.now() * 0.006) > 0) ? 1 : 0.35;
       ctx.globalAlpha = a * bl;
       ctx.fillStyle = PAL.uiDim;
@@ -148,6 +242,50 @@ export class Dialogue {
       ctx.fillRect(ax + 2, ay + 2, 1, 1);
     }
     ctx.restore();
+
+    if (this.choices) this._drawChoices(ctx, a, y);
+  }
+
+  // Perguntas por cima da caixa. As ja feitas continuam na lista, apagadas:
+  // o jogador precisa enxergar o que ele ja gastou.
+  _drawChoices(ctx, a, boxY) {
+    const list = this.choices.list;
+    const n = list.length + 1;
+    const lh = 12;
+    const h = n * lh + 8;
+    const x = BOX_X, w = BOX_W;
+    // O vao de 16px nao e estetico: e onde cabe o nome de quem esta
+    // falando, que fica acima da caixa. Com 5px o painel de perguntas
+    // cobria o nome e a conversa virava monologo sem dono.
+    const y = boxY - h - 16;
+
+    ctx.save();
+    ctx.globalAlpha = a * 0.94;
+    ctx.fillStyle = '#0a0809';
+    ctx.fillRect(x, y, w, h);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = PAL.uiBoxEdge;
+    ctx.fillRect(x, y, w, 1);
+    ctx.fillRect(x, y + h - 1, w, 1);
+    ctx.fillRect(x, y, 1, h);
+    ctx.fillRect(x + w - 1, y, 1, h);
+    ctx.restore();
+
+    for (let i = 0; i < n; i++) {
+      const sel = i === this.choiceIdx;
+      const ult = i === list.length;
+      const feito = !ult && this.seen && this.seen.has(list[i].to);
+      const label = ult ? T('talk_leave') : tx(list[i]);
+      const cor = sel ? PAL.uiAccent : (feito ? PAL.uiFaint : PAL.uiText);
+      if (sel) {
+        text(ctx, '>', x + 8, y + 5 + i * lh, {
+          size: 9, font: 'ui', weight: 'bold', color: PAL.uiAccent, alpha: a,
+        });
+      }
+      text(ctx, label, x + 18, y + 5 + i * lh, {
+        size: 9, font: 'ui', weight: sel ? 'bold' : 'normal', color: cor, alpha: a, track: 1,
+      });
+    }
   }
 }
 

@@ -54,7 +54,7 @@
 | **Idiomas** | 🇧🇷 PT-BR e 🇬🇧 EN, com seletor no menu |
 | **Repositório** | `github.com/luizhenriquevfernandes2008-ops/the-midnight-call` (público) |
 | **Início** | 03/08/2026 |
-| **Status** | 🟡 Sessão 08b — Capítulo 1 jogável do início ao fim. Aguardando teste humano completo e o roteiro do Capítulo 2 |
+| **Status** | 🟡 Sessão 09 — **Capítulos 1 e 2 jogáveis do início ao fim.** Aguardando teste humano completo |
 
 ### Pitch
 
@@ -117,11 +117,17 @@ python ferramentas/gerar_offline.py
 ```
 A / D  ou setas ....... andar                SHIFT (segurar) ..... correr
 E ..................... interagir / avançar diálogo
-J  ou  ESPAÇO ......... socar (aperte de novo para o 2º golpe)
+J  ou  ESPAÇO ......... socar (com a ripa na mão, golpear)
 
 BOTÃO DIREITO (segurar) saca a arma e mira
 MOUSE ↑ / ↓ ........... levanta e abaixa o cano (horizontal é IGNORADO)
 BOTÃO ESQUERDO ........ atirar               R ................... recarregar
+
+--- Capítulo 2 ---
+TAB ................... abre o casaco (inventário) — NÃO pausa o jogo
+Q ..................... abre o caderno       F ................... isqueiro
+SHIFT (escondido) ..... prender a respiração
+ARRASTAR / R .......... mover e girar item dentro do casaco
 
 ESC ................... pausar / voltar      DELETE .............. apagar save
 ESC ou ENTER (segurar)  pular a cutscene     F1 .................. depuração
@@ -163,13 +169,21 @@ chamado da meia noite/
 │   ├── world/
 │   │   ├── camera.js          câmera lateral com atraso e antecipação
 │   │   ├── materials.js       pincéis: tijolo, asfalto, sangue, destroço...
-│   │   ├── levels.js          as 5 fases + carro + rua da cutscene
+│   │   ├── levels.js          as 5 fases do Cap. 1 + carro + rua da cutscene
+│   │   ├── levels-ch2.js      os 8 setores do Capítulo 2
 │   │   └── fx.js              chuva, névoa, partículas, poeira
 │   ├── systems/
-│   │   ├── player.js          controle, arma, falas, estados de ócio
-│   │   ├── dialogue.js        caixa de diálogo, legendas, balão de interagir
+│   │   ├── player.js          controle, arma, porrete, dano, falas, ócio
+│   │   ├── dialogue.js        caixa de diálogo, ESCOLHAS, legendas, balão
 │   │   ├── cutscene.js        abertura (carro + narração)
-│   │   └── scene-nota.js      cena da nota, figura negra, nocaute, despertar
+│   │   ├── scene-nota.js      cena da nota, figura negra, nocaute, despertar
+│   │   ├── scene-espelho.js   o espelho em PRIMEIRA PESSOA (Cap. 2)
+│   │   ├── sanity.js          o medidor que não aparece na tela
+│   │   ├── journal.js         o caderno, e as páginas que ele não escreveu
+│   │   ├── inventory.js       o inventário É O SOBRETUDO
+│   │   ├── enemies.js         os 3 inimigos, o Credor e o DIRETOR
+│   │   ├── npc.js             o Vigia e a Telefonista
+│   │   └── chase.js           a perseguição do Credor
 │   └── ui/
 │       ├── menu.js            tela de título (é uma cena viva, não um cartaz)
 │       ├── panels.js          slots de save e painel de opções
@@ -317,6 +331,16 @@ Antebraço ............. 9
 | `sitImpatient` | 2.6s | ✅ | suave | 🟢 sentado batendo o pé |
 | `standUp` | 0.85s | ❌ | suave | 🟢 sentado → de pé |
 | `lookback` | 1.6s | ❌ | suave | ⚪ reservada para sustos |
+| `swing1` | 0.62s | ❌ | **linear** | 🟡 golpe de porrete, com quadro de espera |
+| `swing2` | 0.70s | ❌ | **linear** | 🟡 volta de baixo para cima |
+| `hurt` | 0.44s | ❌ | **linear** | 🟡 recuo de quem apanhou |
+| `collapse` | 1.05s | ❌ | suave | 🟡 cair (usada pelos inimigos) |
+| `crawl` | 0.94s | ✅ | **linear** | 🟡 **os Empilhados**, de quatro |
+| `shamble` | 1.30s | ✅ | **linear** | 🟡 **os Sem-Rosto**, sem pressa |
+| `dragWalk` | 1.12s | ✅ | **linear** | 🟡 **o Credor**, arrastando o cano |
+| `hide` | 3.4s | ✅ | suave | 🟡 agachado num esconderijo |
+| `sitChair` | 5.2s | ✅ | suave | 🟡 sentado numa cadeira (o Vigia) |
+| `switchboard` | 4.6s | ✅ | suave | 🟡 a Telefonista trabalhando |
 
 ### 🔑 A decisão mais importante: `ease: 'linear'`
 
@@ -356,6 +380,28 @@ respirando por baixo.
 16% mais alta e 6% mais estreita. Anda com o mesmo rig — por isso se move como
 gente e continua sem rosto. Como a cena é multiplicada pela luz, preto continua
 preto debaixo de qualquer lâmpada.
+
+### Os inimigos do Capítulo 2 — mesma ideia, levada mais longe
+
+**Nenhum deles tem uma peça de arte nova.** São todos o mesmo boneco, usado
+errado — que é exatamente o que as coisas são.
+
+| Quem | Como é feito |
+|---|---|
+| **Os Empilhados** | `crawl`: tronco a −64°, os braços viram as patas da frente. Rosto alisado (`faceless`), corpo recolorido, 14% mais largo e 18% mais baixo |
+| **Os Sem-Rosto** | `shamble` + `P.headBlank` — a MESMA cabeça, com o mesmo cabelo, e nenhum traço dentro dela. A silhueta continua de gente, e é isso que assusta |
+| **O Ecoador** | silhueta preta a 50% de alpha, 20% mais estreita. Não ataca e não morre |
+| **O Credor** | silhueta preta, 34% mais alto, com `props.pipe` na mão da frente. O sobretudo é o mesmo — grande demais |
+
+Duas técnicas novas em `pixel.js` sustentam isso:
+
+- **`tintPass`** — recolore o boneco inteiro *sem apagar a sombra interna*. Com
+  `k = 0.6` o desenho de baixo continua aparecendo por dentro da cor, então
+  o corpo mantém volume. Tingimento forte demais (0.78) transformava o
+  Empilhado num borrão claro rastejando; foi corrigido na sessão 09.
+- **buffer próprio para o tingimento** — sem ele, tingir e ter luz de contorno
+  brigavam pelo mesmo buffer, e os inimigos ficavam sem a casquinha de luz
+  que os separa do escuro.
 
 ### Ócio: o que ele faz parado
 
@@ -416,7 +462,26 @@ tinha mudado.
 | Beco | `rain` 0.22 · `wind` 0.04 | trovão a cada 26–70s |
 | Bar | `roomtone` 0.10 · `rain` 0.035 (abafada) | gota a cada 6–15s |
 | Depósito | `roomtone` 0.09 | gota a cada 4–10s |
-| **Galpão** | `hall` 0.11 · `wind` 0.022 | gota 3.5–9s · metal 11–26s · batida distante 22–50s · corrente 17–40s |
+| **Galpão (cela)** | `hall` 0.11 · `wind` 0.022 | gota 3.5–9s · metal 11–26s · batida distante 22–50s · corrente 17–40s |
+| Corredor de carga | `hall` 0.12 · `wind` 0.02 | gota · metal · batida · corrente |
+| Escritório | `roomtone` 0.10 | gota a cada 8–20s |
+| Estantes | `hall` 0.10 | metal 8–20s · batida 18–40s |
+| Vestiário | `roomtone` 0.11 | gota a cada 9–22s |
+| **Câmara fria** | `freezer` 0.13 | metal 7–18s · gota 5–13s |
+| Sala de máquinas | `hall` 0.09 · **`hum` 0.05** | metal · batida |
+| Mezanino | `hall` 0.10 · `wind` 0.03 | metal · corrente |
+| **Doca 3** | `hall` 0.07 · **`rain` 0.05** | trovão a cada 20–50s |
+
+> A chuva **volta a ser ouvida na doca**, abafada. É o primeiro sinal, em uma
+> hora inteira de jogo, de que existe um lado de fora.
+
+### Sons novos do Capítulo 2
+
+`clubHit` (madeira em corpo, mais seca e grave que o soco) · `clubBreak` (dois
+estalos, o segundo mais grave — madeira nunca racha de uma vez) · `phoneRing`
+(campainha de martelo contra sino, com abafamento por distância) · `whisper` ·
+`writing` · `pageTurn` · `machineStart` · `dragMetal` · `lockerBang` ·
+`breath` (com modo "presa") · loops `hum` e `freezer`.
 
 > Os intervalos são **sorteados dentro de uma faixa**. Som em batida fixa deixa
 > de ser ambiente e vira metrônomo.
@@ -494,9 +559,17 @@ salva texto diferente**.
 | Cena da nota + figura negra | 🟢 |
 | Galpão + QTE de fuga | 🟡 QTE recalibrado, **precisa de teste humano** |
 | Sistema de falas (barks) | 🟢 |
-| Sistema de diálogo com NPC | 🟡 pronto, **sem nenhum NPC ainda** |
+| Sistema de diálogo com NPC | 🟢 **com escolhas, e com dois NPCs usando** |
 | Sala de teste de animação | 🟢 |
-| Capítulo 2 | ⚪ aguardando roteiro |
+| **CAPÍTULO 2 — os 8 setores** | 🟡 construídos e percorridos por script |
+| Sanidade (4 estados, sem barra) | 🟡 recalibrada na 09, **falta sentir jogando** |
+| Caderno / diário | 🟡 |
+| Inventário (o sobretudo) | 🟡 arrastar com o mouse, **falta mão humana** |
+| Inimigos (3 tipos) + Diretor | 🟡 |
+| Combate com porrete | 🟡 |
+| O espelho em primeira pessoa | 🟡 |
+| A perseguição do Credor | 🟡 |
+| A escada do cigarro (degrau 1) | 🟢 quatro recusas ciclando |
 
 ---
 
@@ -521,6 +594,17 @@ salva texto diferente**.
 | F-15 | Ócio muda depois do sequestro | Medido: 6s→idle, 9s→smoke antes; 7s→sitDown depois |
 | F-16 | Laço sobrevive a um quadro ruim | 3 falhas seguidas param e mostram o erro |
 | F-17 | Servidor acha porta livre e abre o navegador na hora certa | 8137 → 8138 → ... |
+| F-18 | Os 8 setores do Cap. 2 montam no boot sem erro | 29 módulos empacotados, 521 KB |
+| F-19 | Diálogo com escolhas | Vigia: 3 perguntas, "EU\|" vira fala do detetive; pergunta já feita fica apagada na lista |
+| F-20 | Item pego SOME do cenário | `itensSoltos()`: ripa, munição, maço, pistola, caderno, mapa |
+| F-21 | Combate com porrete fecha | Empilhado de 3 de vida morre em 3 golpes; a ripa cai para 0.62 de vida |
+| F-22 | Emboscada da pistola | Luzes a 25%, `machineStart`, 3 Sem-Rosto pela porta de entrada |
+| F-23 | Escada do cigarro | 4 recusas em ciclo, disparadas ao usar o maço dentro do casaco |
+| F-24 | Alucinação da câmara fria | 5 fases: balanço → "tem algo ali" → isqueiro → casaco → apaga → não tem nada |
+| F-25 | Perseguição entre setores | O Credor entra na fase do jogador ~6s depois, pelo lado de fora da tela |
+| F-26 | Esconder e prender a respiração | Barra de fôlego, batimento pela distância, `E` para sair |
+| F-27 | A câmera SOBE durante conversa com NPC | `cam.offsetY = 40`; sem isso a caixa de diálogo tapava quem estava falando |
+| F-28 | Gente ganha de móvel no `nearest()` | `prio`: NPC 2, pegar/porta 1, examinar 0 |
 
 ---
 
@@ -536,17 +620,13 @@ salva texto diferente**.
 
 | Item | Nota |
 |---|---|
-| **Nome do detetive** | Ele não tem nome até agora |
-| NPCs | O sistema de diálogo existe e nunca foi usado com um NPC |
-| Escolhas de diálogo | Estrutura prevista, não implementada |
-| Inimigos / combate real | O soco e a arma existem, não há em quem usar |
-| Sistema de sanidade | Previsto no design |
-| Diário / investigação | Previsto no design |
-| Inventário | Previsto no design |
-| Capítulos 2 a 4 | Aguardando roteiro |
+| Sobrenome do David | Só fará falta quando aparecer um documento, uma ficha ou uma lápide |
+| Capítulos 3 e 4 | O Capítulo 3 precisa do **degrau 4 da escada do cigarro** |
 | Música original | Só o piano do menu existe |
 | Dublagem | Nenhuma além da narração |
 | Gamepad | Estrutura de input permite, não implementado |
+| Empilhar item igual no inventário | Duas caixas de munição ocupam dois espaços |
+| Mapa desenhado à mão no caderno | A categoria LUGARES existe e está vazia |
 
 ---
 
@@ -591,6 +671,17 @@ salva texto diferente**.
 | B-28 | Portas pequenas demais | 26×46 para um homem de 62px — ele entraria de quatro | 32×74, que é a proporção real de porta para pessoa | 08 |
 | B-29 | Figura negra aparecia no galpão ao acordar | Ela continuava desenhada durante a fase `wake` e reaparecia junto com o jogador | Fica invisível ao entrar na fase `black` | 08b |
 | B-30 | Fala entregava o susto | "Tem alguém atrás de mim, não tem?" — o detetive não pode perceber a figura, senão o jogador para de sentir que sabe mais que ele | Trocada por "Essa letra... eu conheço essa letra." | 08b |
+| B-31 | 🔥 **Corredor de carga preto** — o setor que existe para MOSTRAR o tamanho do lugar era onde não se via nada | O mesmo erro do B-23, de novo: luz calibrada para uma sala usada num corredor de 1700px. Lâmpadas a 450px uma da outra deixam o meio do caminho preto | Ambiente de `#1c212b` para `#2a3242`; lâmpada forte a cada ~400px **mais preenchimento fraco a cada ~200px na altura do chão**. Mesma correção nas Estantes, Máquinas e Mezanino | 09 |
+| B-32 | 🔥 **A sanidade zerava em meio minuto** | Escuro tirava 1,35/s e ver um inimigo 1,6/s. Trinta segundos no Setor B levavam o medidor de 100 a 16 — o capítulo acabaria no estado RENDIDO antes do vestiário | Escuro 0,45/s (e só depois de 3s parado), ver inimigo 0,5/s, câmara fria 0,9/s, escondido 1,1/s. Setor seguro devolve 1,6/s e escrever no caderno +7 | 09 |
+| B-33 | Item continuava desenhado depois de pego | Cenário é pintado uma vez na camada e só deslocado — pixel pintado não some. A ripa continuava encostada na coluna depois de ele levar a ripa embora | `itensSoltos()`: esses poucos objetos passam a ser desenhados por quadro, e só enquanto ainda estão lá | 09 |
+| B-34 | Inimigo tingido ficava sem luz de contorno | `tintPass` e `rimPass` gravavam no MESMO buffer auxiliar; um apagava o outro | Buffer próprio para o tingimento (`tintBuf`) | 09 |
+| B-35 | Os Empilhados eram um borrão claro rastejando | Tingimento a 0.78 cobre quase toda a sombra interna do boneco e o corpo perde volume | `tintK` para 0.62, e o tom clareado (a cena é multiplicada pela luz: cor "realista" vira preto) | 09 |
+| B-36 | A mesa telefônica ganhava da telefonista | `nearest()` escolhia só por distância, e o móvel estava 2px mais perto do que a mulher sentada nele. O jogador examinava a mesa a noite inteira sem conseguir falar com ela | Campo `prio`: gente 2, pegar/porta 1, examinar 0 | 09 |
+| B-37 | Quem falava ficava escondido atrás da própria fala | A caixa de diálogo ocupa o terço de baixo, e o chão fica em y≈254 | `cam.offsetY = 40` enquanto há conversa com NPC | 09 |
+| B-38 | Painel de escolhas cobria o nome do falante | O nome é desenhado 12px acima da caixa, e o painel começava 5px acima dela | Vão de 16px | 09 |
+| B-39 | A ripa encostava no chão e sumia dentro do assoalho | Sprite de 15px saindo de uma mão que fica a ~20px do chão | 12px | 09 |
+| B-40 | O casaco pendurado no gancho não aparecia | Ele era desenhado num ponto que a chama do isqueiro não alcança — o jogador ouvia "um casaco, marrom" e não via nada | Luz fraca própria no gancho enquanto `casaco > 0` | 09 |
+| B-41 | O portão da doca lia "13" | Uma barra vertical desenhada ao lado do "3" | Barra removida | 09 |
 
 ### 12.3 — 🔍 Erros de método (meus, registrados para não repetir)
 
@@ -599,6 +690,8 @@ salva texto diferente**.
 | M-01 | **Afirmei que o áudio era o meu roteiro provisório** citando duas fronteiras com erro 0,00s. Aquelas duas eram zero **por construção** — a primeira e a última fronteira de um mapeamento acumulado sempre coincidem. O erro médio real era 0,94s contra ~1,8s de um chute aleatório. Não era prova, e apresentei como se fosse |
 | M-02 | **Calibrei o QTE contra ritmo de script** (30 toques/s) em vez de mão humana. Resultado: mecânica tecnicamente vencível e praticamente impossível |
 | M-03 | **Deixei o servidor de captura na porta 8137**, a mesma do `ABRIR_JOGO.bat`, e derrubei o jogo do jogador no meio de uma sessão. Usar 8140 |
+| M-04 | **Repeti o B-23 inteiro** (sessão 09): construí o corredor de carga com luz calibrada para uma sala, num espaço 3× maior. A lição já estava escrita neste documento e eu não a apliquei. **A regra agora é numérica, não é sensibilidade:** lâmpada forte a cada ~400px e preenchimento fraco a cada ~200px na altura do chão, em qualquer fase maior que 800px |
+| M-05 | **Escrevi números de sanidade sem medir** (sessão 09). Trinta segundos de jogo levavam o medidor de 100 a 16. Números de ritmo têm que ser medidos rodando, e não escolhidos porque "parecem certos" — é o mesmo erro do M-02 com outra roupa |
 
 **Severidade:** 🔥 Crítico · 🟠 Alto · 🟡 Médio · 🔵 Cosmético
 
@@ -606,12 +699,14 @@ salva texto diferente**.
 
 ## 13. ⚠️ RESSALVAS — O QUE PRECISA MUDAR
 
-### 13.1 — Corrigido nesta sessão (08b)
+### 13.1 — Corrigido na sessão 09
 
 | # | Ressalva | Status |
 |---|---|---|
-| R-01 | A fala "Tem alguém atrás de mim, não tem?" durante a aproximação **cortava o clima** — entregava o susto | 🟢 Trocada por "Essa letra... eu conheço essa letra." |
-| R-02 | A figura preta aparecia na sala ao acordar e sumia do nada | 🟢 Sai de cena na fase `black` |
+| R-06 | O detetive não tinha nome | 🟢 **DAVID** (pronúncia inglesa). Sobrenome continua em aberto, e por enquanto não faz falta: ninguém neste jogo pergunta o nome dele |
+| R-15 | O corredor de carga estava preto | 🟢 B-31 |
+| R-16 | A sanidade zerava em meio minuto | 🟢 B-32 |
+| R-17 | Item pego continuava no cenário | 🟢 B-33 |
 
 ### 13.2 — 🟠 Precisa de atenção AGORA
 
@@ -620,7 +715,9 @@ salva texto diferente**.
 | R-03 | **Áudio da narração não corresponde ao roteiro** | Exportar a gravação nova e substituir `assets/audio/narrator.mp3` |
 | R-04 | **QTE precisa de teste humano** | Jogar a fuga do galpão e confirmar que o cano quebra num esforço razoável |
 | R-05 | **`assets/reference/` está num repositório público** | São artes conceituais e capturas de terceiros. **Apagar** ou tornar o repositório privado |
-| R-06 | **O detetive não tem nome** | Decisão sua. Trava a escrita dos diálogos do Capítulo 2 |
+| R-18 | 🔥 **O Capítulo 2 inteiro nunca foi jogado por uma pessoa** | Tudo foi percorrido por script. Ritmo, dificuldade do combate, duração real e o quanto a sanidade incomoda são coisas que só mão humana mede. **É o próximo passo** |
+| R-19 | **A duração de 1 hora é uma estimativa, não uma medida** | Cronometrar uma partida de verdade. Se der 25 minutos, faltam objetos para examinar, não faltam corredores |
+| R-20 | **O inventário nunca foi arrastado com um mouse de verdade** | Só por script. Conferir se pegar/soltar/girar responde bem |
 
 ### 13.3 — 🟡 Precisa de atenção, mas não urgente
 
@@ -642,48 +739,50 @@ salva texto diferente**.
 
 ---
 
-## 14. ROADMAP — CAPÍTULO 2
+## 14. ROADMAP — O QUE VEM AGORA
 
-### 📌 PRÓXIMO PASSO: **o roteiro do Capítulo 2**
+### 📌 PRÓXIMO PASSO: **jogar o Capítulo 2 inteiro, com as mãos**
 
-> **VOCÊ vai escrever o roteiro do Capítulo 2.** Ele cobre a história e o que
-> acontece durante a gameplay. Combinado em 04/08/2026.
+> Tudo abaixo foi construído e percorrido **por script**, não por uma pessoa.
+> O que só mão humana mede: se uma hora é uma hora, se o combate é justo, se
+> a sanidade incomoda na medida, e se a fuga assusta ou irrita.
 >
-> Enquanto ele não chega, **não começar a construir conteúdo novo do capítulo** —
-> só correções e sistemas que servem para qualquer roteiro.
+> Abrir `JOGO_OFFLINE.html`, jogar do começo ao fim, e anotar onde entedia.
 
-**O que o roteiro precisa dizer, para eu conseguir construir sem adivinhar:**
+### O Capítulo 2, como ficou
 
-| Item | Por quê |
-|---|---|
-| **Onde ele está** | O Capítulo 1 termina com ele forçando a porta do galpão. O que tem do outro lado? |
-| **Quem aparece** | O primeiro NPC. Nome, o que quer, o que esconde |
-| **O que ele descobre** | A investigação precisa de pistas concretas |
-| **Quais lugares novos** | Cada lugar são ~2 a 4 horas de trabalho de arte |
-| **Onde entra o horror** | Momento em que a cabeça dele começa a vazar para o mundo |
-| **Se ele recupera a arma** | Muda todo o balanço |
-| **O nome do detetive** | Trava os diálogos |
+```
+1 CORREDOR DE CARGA  1700px  revela a escala. O PORRETE.        Sem-Rosto
+2 ESCRITORIO          560px  o CADERNO, o MAPA, o VIGIA.        respiro
+3 SETOR B: ESTANTES  1500px  primeiro combate. A MUNICAO.       Empilhados + Sem-Rosto
+4 VESTIARIO          1150px  o MACO. ★ O ESPELHO.               respiro
+5 CAMARA FRIA         900px  o isqueiro. A alucinacao.          Empilhados
+6 SALA DE MAQUINAS    950px  a PISTOLA, e a emboscada.          Sem-Rosto
+7 MEZANINO           1000px  a TELEFONISTA.                     ninguem
+8 DOCA 3              760px  a saida, e quem fica olhando.      ninguem
+```
 
-### Escopo já preparado que o Capítulo 2 pode usar de graça
+### Sistemas novos, e o que cada um ainda deve
 
-| Sistema | Estado |
-|---|---|
-| Caixa de diálogo com máquina de escrever, nome de quem fala, fila | 🟢 pronto, sem uso |
-| Falas soltas em cima da cabeça | 🟢 em uso |
-| Cenas roteirizadas (`scene-nota.js` é o molde) | 🟢 |
-| QTE | 🟢 |
-| Pálpebras, tensão por distância, silhueta negra | 🟢 |
-| Save em 3 slots | 🟡 |
-| Sistema de luz e ambiente por fase | 🟢 |
+| Sistema | Estado | O que falta |
+|---|---|---|
+| Sanidade (4 estados) | 🟡 | sentir jogando. Números recalibrados na 09 |
+| Caderno | 🟡 | 17 páginas escritas; 3 são "as que ele não escreveu" |
+| Inventário (o sobretudo) | 🟡 | arrastar com um mouse de verdade |
+| Inimigos + Diretor | 🟡 | ver se o teto de 3 e os 40–60s de silêncio bastam |
+| Combate com porrete | 🟡 | 3 golpes matam um Empilhado; a ripa dura ~9 golpes |
+| Perseguição do Credor | 🟡 | conferir se dá para escapar sem ser injusto |
+| Diálogo com escolhas | 🟢 | — |
+| O espelho em 1ª pessoa | 🟡 | é uma carta que só se joga uma vez |
 
-### Ordem sugerida depois do roteiro
+### Ordem sugerida depois do teste
 
-1. Nome do detetive + primeiro NPC (valida o sistema de diálogo)
-2. Escolhas de diálogo
-3. Diário / investigação
-4. Primeiro inimigo de verdade (os pesadelos)
-5. Sanidade
-6. Capítulos 3 e 4
+1. **Ajustar o ritmo do Capítulo 2** com base no que a mão humana disser
+2. Gravar a narração que corresponde ao roteiro (R-03 destrava sozinho)
+3. Escrever o Capítulo 3 — e nele o **degrau 4 da escada do cigarro**, que é
+   onde o personagem finalmente cede
+4. Sobrenome do David, quando aparecer um documento que precise dele
+5. Capítulo 4 e a revelação da letra
 
 ---
 
@@ -746,13 +845,15 @@ propriedade.
 
 | # | Dúvida | Impacto |
 |---|---|---|
-| D-01 | **Qual o nome do detetive?** | Trava diálogos e a tela de save |
-| D-02 | Ele recupera a arma no Capítulo 2? | Muda o balanço do jogo inteiro |
-| D-03 | A figura negra é uma pessoa ou já é um pesadelo? | Define se o horror começa aqui ou depois |
-| D-04 | Quem escreveu a nota? | "Essa letra... eu conheço essa letra" abre a pergunta |
+| ~~D-01~~ | ~~Qual o nome do detetive?~~ | ✅ **DAVID**, pronúncia inglesa. Sobrenome em aberto |
+| ~~D-02~~ | ~~Ele recupera a arma no Capítulo 2?~~ | ✅ **Sim, na Sala de Máquinas** — e paga por ela |
+| D-03 | A figura negra é uma pessoa ou já é um pesadelo? | Define se o horror começa aqui ou depois. O Capítulo 2 escolheu não responder |
+| D-04 | Quem escreveu a nota? | "Essa letra... eu conheço essa letra". O caderno já plantou a resposta: a letra é dele mesmo, de sete anos atrás |
 | D-05 | O jogo terá múltiplos finais? | Muda a estrutura de flags de save |
 | D-06 | Vai existir música original ou só ambiente sintetizado? | Se sim, precisa de arquivos |
 | D-07 | Manter 5 horas ou cortar para 3 horas excelentes? | Recomendação minha: prefira 3 horas boas a 5 irregulares |
+| D-08 | **O Credor volta no Capítulo 3?** | Ele foi embora "sem cobrar hoje". Isso é uma promessa, e promessa não paga irrita |
+| D-09 | **Onde exatamente o cigarro destrava?** | O degrau 4 é uma das cenas mais importantes do jogo inteiro. Não pode ser num corredor qualquer |
 
 ---
 
@@ -850,6 +951,44 @@ Escrito este documento mestre.
 
 **Bugs corrigidos:** B-24, B-25, B-29, B-30.
 
+### Sessão 09 — 04/08/2026 · ~3h
+
+🎬 **O CAPÍTULO 2 INTEIRO — "GENTILEZA".**
+
+Luiz entregou o roteiro (`ROTEIRO.txt`) e travou as quatro decisões que
+faltavam: a **Telefonista** no mezanino, **os três inimigos**, a **emboscada**
+ao pegar a pistola, e o fim na **doca com o Credor olhando**.
+
+**Oito setores novos** (`levels-ch2.js`, ~1300 linhas): corredor de carga,
+escritório, estantes, vestiário, câmara fria, sala de máquinas, mezanino,
+doca. Com pincéis industriais novos — estante de três níveis, empilhadeira,
+portão de doca, relógio de ponto parado em 02h14, armários de vestiário,
+ganchos de açougue, caldeiras, mesa telefônica, porta de câmara fria.
+
+**Seis sistemas novos:**
+
+- `sanity.js` — quatro estados, **sem barra na tela**. O medidor é a própria
+  imagem: a vinheta fecha, o som mente, e aparecem coisas que não estão lá.
+- `journal.js` — ele anota sozinho, com animação de escrita à mão. E abaixo
+  de 50 começam a aparecer **páginas que ele não escreveu**.
+- `inventory.js` — o inventário **é o sobretudo**, visto por dentro. Não pausa
+  o jogo. O porrete não cabe em bolso nenhum.
+- `enemies.js` — Empilhados, Sem-Rosto, Ecoador e o Credor, todos feitos do
+  mesmo rig do detetive usado errado. Mais o **Diretor**, que decide quando
+  vale a pena pôr alguém em cena (teto de 3, nunca no campo de visão,
+  40–60s de silêncio depois de uma briga).
+- `chase.js` — a perseguição. As luzes apagam setor por setor vindo na
+  direção dele, e o som do cano arrastando chega **antes** dele.
+- `scene-espelho.js` — a única cena em primeira pessoa do jogo.
+
+**Onze animações novas** no rig, mais `tintPass` para recolorir sem apagar a
+sombra interna. **Diálogo com escolhas.** **Onze sons novos**, e os loops
+`hum` e `freezer`.
+
+**Bugs corrigidos:** B-31 a B-41.
+**Erros de método:** M-04 (repeti o B-23 inteiro), M-05 (números de ritmo
+escritos sem medir).
+
 ---
 
 ## 18. GLOSSÁRIO
@@ -870,8 +1009,15 @@ Escrito este documento mestre.
 | **Catraca** | Trava que impede o progresso do QTE de cair abaixo do último quarto conquistado |
 | **`enterBarksNow`** | Falas que disparam ao entrar na fase **cortando** o que estiver sendo dito |
 | **Sala de teste** | Modo acessível pelo menu para percorrer todas as animações |
+| **Diretor** | Quem decide quando vale a pena pôr um inimigo em cena. Não é gerador de ondas |
+| **Migalha** | Uma coisa que não fecha, plantada sem comentário. Sete famílias delas, listadas no ROTEIRO |
+| **A escada do cigarro** | O cigarro é item, e ele não consegue fumar até o Capítulo 3. Cada tentativa é uma recusa diferente |
+| **`tintPass`** | Recolore o boneco inteiro sem apagar a sombra de dentro. É como um NPC deixa de ser o detetive |
+| **`itensSoltos`** | Os poucos objetos desenhados por quadro, porque precisam sumir quando pegos |
+| **Conveniência** | A regra do Capítulo 2: tudo que ele precisa aparece na hora exata. Não é preguiça de design — é enredo, e ele comenta |
 
 ---
 
-> **Última atualização:** 04/08/2026 — Sessão 08b
-> **Próximo passo:** roteiro do Capítulo 2 (a ser escrito por Luiz)
+> **Última atualização:** 04/08/2026 — Sessão 09
+> **Próximo passo:** 🔥 **jogar o Capítulo 2 do início ao fim, com as mãos.**
+> Nada dele foi tocado por uma pessoa ainda — ver R-18, R-19 e R-20.

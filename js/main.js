@@ -17,14 +17,22 @@ import { ANIM_NAMES } from './art/detective.js';
 import { Camera } from './world/camera.js';
 import { Rain, Fog, Particles, DustMotes } from './world/fx.js';
 import { buildAlley, buildBar, buildBackroom, buildWarehouse, buildRoad, buildCar } from './world/levels.js';
+import { buildChapter2 } from './world/levels-ch2.js';
 import { NoteScene } from './systems/scene-nota.js';
+import { MirrorScene } from './systems/scene-espelho.js';
 import { Player } from './systems/player.js';
 import { Dialogue, drawPrompt, drawLocationCard } from './systems/dialogue.js';
 import { Opening } from './systems/cutscene.js';
+import { Sanity } from './systems/sanity.js';
+import { Journal } from './systems/journal.js';
+import { Inventory } from './systems/inventory.js';
+import { Director, Enemy } from './systems/enemies.js';
+import { Npc, NPCS } from './systems/npc.js';
+import { Chase } from './systems/chase.js';
 import { TitleMenu } from './ui/menu.js';
 import { PauseMenu } from './ui/pause.js';
 import { SlotPicker, OptionsPanel, screenDim, panelBox } from './ui/panels.js';
-import { t as T, setLang, getLang, LINES, line as L } from './i18n.js';
+import { t as T, setLang, getLang, LINES, line as L, TALKS } from './i18n.js';
 
 const settings = {
   lang: 'pt',
@@ -73,6 +81,12 @@ class Game {
     this.levels.backroom = buildBackroom();
     this.levels.warehouse = buildWarehouse();
 
+    // O Capitulo 2 e um galpao inteiro: sete setores mais a doca. Cada um
+    // e montado uma vez, aqui, e depois so deslocado.
+    set('acendendo o galpao...');
+    await frame();
+    Object.assign(this.levels, buildChapter2());
+
     set('ligando o carro...');
     await frame();
     this.road = buildRoad();
@@ -103,6 +117,20 @@ class Game {
     this.menuSlots = new SlotPicker();
     this.menuOptions = new OptionsPanel(settings, () => this.applySettings());
     this.player.onInteract = (it) => this.doInteract(it);
+
+    // ---- sistemas do Capitulo 2 ----
+    this.sanity = new Sanity();
+    this.journal = new Journal();
+    this.inv = new Inventory();
+    this.director = new Director();
+    this.chase = new Chase();
+    this.npcs = {};
+    for (const id of Object.keys(NPCS)) this.npcs[id] = new Npc(id);
+    this.player.onClubHit = () => this.golpeDePorrete();
+    this.player.onShot = (x, f, a) => this.tiro(x, f, a);
+    this.player.onHurt = (n) => { this.sanity.drain(n * 0.35, true); };
+    this.inv.onUse = (key) => this.usarItem(key);
+    this.sanity.onEvent = (tipo) => this.eventoSanidade(tipo);
 
     set(this.narrationUrl ? 'PRESSIONE QUALQUER TECLA' : 'PRESSIONE QUALQUER TECLA');
     this.state = 'waitkey';
@@ -182,6 +210,7 @@ class Game {
     switch (this.state) {
       case 'menu': this.updateMenu(dt); break;
       case 'cutscene': this.updateCutscene(dt); break;
+      case 'chapcard': this.updateChapCard(dt); break;
       case 'play': this.updatePlay(dt); break;
       case 'endcard': this.updateEndCard(dt); break;
       case 'lab': this.updateLab(dt); break;
@@ -272,7 +301,11 @@ class Game {
     this.player.ammo = 6;
     this.player.reserve = 18;
     this.player.det.props.gun = 'holstered';
+    this.player.segurarPorrete(false);
+    this.player.hp = 100;
+    this.player.club = false;
     this.qte = null;
+    this.resetChapter2();
     audio.stopMusic(1.2);
     audio.stopAllLoops();
     this.opening = new Opening(this.road, this.car, this.player, this.rain, this.fx);
@@ -347,6 +380,16 @@ class Game {
     if (lv.randomSfx) {
       for (const r of lv.randomSfx) this.randomSfxT.push(r.min + Math.random() * (r.max - r.min));
     }
+
+    // Se o setor teve as luzes derrubadas por uma cena, elas voltam ao
+    // entrar de novo — menos durante a perseguicao, que e quem esta
+    // apagando o galpao de proposito.
+    if (lv._apagada && !this.chase.ativo) {
+      for (const f of lv.lightDefs) if (f.i0 !== undefined) f.i = f.i0;
+      lv._apagada = false;
+    }
+    this.player.det.alpha = 1;
+    this.entrouCh2(lv);
   }
 
   updatePlay(dt) {
@@ -361,19 +404,46 @@ class Game {
     this.playtime += sim;
     if (this.locCard > 0) this.locCard -= sim;
 
+    const cap2 = lv.key.slice(0, 4) === 'ch2_';
+
+    // O caderno e o casaco NAO pausam o jogo. Abrir a mochila no meio do
+    // galpao tem que custar alguma coisa: enquanto o casaco esta aberto,
+    // ele tapa parte da tela.
+    if (cap2 && !paused && !this.scene && !this.dialogue.active && !this.transition) {
+      if (input.pressed('journal') && this.flags.caderno) { this.journal.toggle(); this.inv.open = false; }
+      if (input.pressed('bag')) { this.inv.toggle(); this.journal.open = false; }
+    }
+    if (cap2) { this.journal.update(paused ? 0 : dt); this.inv.update(paused ? 0 : dt); }
+    const uiAberta = this.journal.open || this.inv.open;
+
     if (!paused) {
       lv.update(sim);
       this.dialogue.update(sim);
       if (this.scene) {
         this.scene.update(sim);
         if (this.scene.finished) {
+          const era = this.scene;
           this.scene = null;
-          this.player.controllable = false;   // continua algemado
+          // A cena da nota devolve o jogador algemado; as do Capitulo 2
+          // devolvem ele de pe.
+          if (!(era instanceof MirrorScene)) this.player.controllable = false;
         }
       }
       if (this.qte) this.updateQte(sim);
-      const canControl = !this.dialogue.active && !this.transition && !this.scene && !this.qte;
+      if (this.emboscada > 0) {
+        this.emboscada -= sim;
+        if (this.emboscada <= 0) this.dispararEmboscada();
+      }
+      let prendendo = false;
+      if (this.escondido) prendendo = this.updateEsconderijo(sim);
+      const canControl = !this.dialogue.active && !this.transition && !this.scene
+        && !this.qte && !uiAberta && !this.escondido;
       this.player.update(sim, lv, canControl);
+      if (cap2) this.updateCh2(sim, lv, prendendo);
+      // Numa conversa a camera sobe. A caixa de dialogo ocupa o terco de
+      // baixo da tela, e sem isso quem esta falando com voce fica escondido
+      // atras da propria fala.
+      this.cam.offsetY = this.dialogue.talk ? 40 : 0;
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
       this.checkBarks(lv);
       this.updateRandomSfx(lv, sim);
@@ -393,6 +463,17 @@ class Game {
     gfx.begin('#05060a');
     lv.drawBack(gfx.s, cam);
     if (lv.drawProps) lv.drawProps(gfx.s, cam);
+    // Gente e inimigos vao ANTES do jogador: num corredor estreito o
+    // personagem do jogador nunca pode ficar escondido atras de nada.
+    if (cap2) {
+      for (const id of Object.keys(this.npcs)) {
+        const n = this.npcs[id];
+        if (n.cfg.level === lv.key) n.draw(gfx.s, cam, lv.groundY);
+      }
+      this.director.draw(gfx.s, cam);
+      this.chase.draw(gfx.s, cam, lv.key);
+      if (this.credorParado) this.drawCredorParado(gfx.s, cam);
+    }
     this.player.draw(gfx.s, cam);
     if (this.scene) this.scene.draw(gfx.s, cam);
     this.fx.draw(gfx.s, cam.ix, cam.iy);
@@ -409,6 +490,20 @@ class Game {
     gfx.addLight(this.player.x - cam.ix, this.player.y - cam.iy - 30, 86,
       lv.indoor ? '#a88458' : '#8f8d84', 0.26, 1.45);
     for (const L2 of this.player.lights(cam)) gfx.addLight(L2.x, L2.y, L2.r, L2.color, L2.i);
+    // O isqueiro e a lanterna dele na camara fria — e ele so aguenta
+    // alguns segundos aceso por vez.
+    if (this.isqueiroT > 0) {
+      const fx2 = this.player.x - cam.ix + this.player.facing * 8;
+      const fy2 = this.player.y - cam.iy - 40;
+      const tremor = 0.78 + Math.sin(lv.t * 21) * 0.1 + Math.random() * 0.12;
+      const fim = clamp(this.isqueiroT, 0, 1);
+      gfx.addLight(fx2, fy2, 64 * fim, PAL.flame, 0.95 * tremor * fim);
+      gfx.addLight(fx2, fy2, 16, '#fff0c0', 0.9 * fim);
+    }
+    if (lv.casaco > 0) {
+      gfx.addLight(lv.casacoX - cam.ix, lv.casacoY - cam.iy, 66,
+        PAL.flame, 0.55 * lv.casaco * (this.isqueiroT > 0 ? 1 : 0.3));
+    }
     if (this.scene) this.scene.addLights(cam);
     gfx.endLights(lv.bloom);
 
@@ -421,7 +516,8 @@ class Game {
     // O balao fica acima da CABECA do detetive, nao acima do objeto: quase
     // sempre ele esta colado no objeto, e em cima do objeto o balao tapava
     // justamente o personagem.
-    const near = (!this.dialogue.active && !paused && !this.scene && !this.qte)
+    const near = (!this.dialogue.active && !paused && !this.scene && !this.qte
+      && !uiAberta && !this.escondido)
       ? lv.nearest(this.player.x) : null;
     this.promptA = lerp(this.promptA || 0, near ? 1 : 0, 1 - Math.exp(-14 * dt));
     if (this.promptA > 0.02 && near) {
@@ -444,7 +540,8 @@ class Game {
 
     if (this.scene) this.scene.drawUI(gfx.s);
     if (this.qte) this.drawQteUI(gfx.s);
-    if (!paused && !this.scene && !this.qte) this.drawGunUI(gfx.s, cam);
+    if (!paused && !this.scene && !this.qte && !uiAberta) this.drawGunUI(gfx.s, cam);
+    if (cap2 && !this.scene) this.drawCh2UI(gfx.s);
 
     // Poupa o personagem do grao e das scanlines (ver gfx._post).
     gfx.protect = {
@@ -454,6 +551,7 @@ class Game {
     };
 
     this.dialogue.draw(gfx.s);
+    if (cap2) { this.journal.draw(gfx.s); this.inv.draw(gfx.s); }
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
@@ -588,9 +686,20 @@ class Game {
         ay: 260, life: 0.6, size: 1, color: '#43301e', a: 1, fade: 1,
       }));
       setTimeout(() => audio.doorCreak(1), 260);
-      this.fadeTo(() => this.endOfChapter(), 1.4, 0.01);
+      // Ele sai. E o galpao e muito maior do que ele pensava.
+      this.fadeTo(() => this.startChapter2(), 1.4, 0.01);
       return;
     }
+    if (it.action === 'goto') {
+      audio.doorCreak(it.sfx === 'heavy' ? 0.5 : 0.9);
+      if (it.sfx === 'heavy') audio.metalCreak(1);
+      this.fadeTo(() => {
+        this.enterLevel(it.to, it.tox, it.tofacing);
+        if (it.isDoor) audio.doorSlam(0.45);
+      }, 0.6, 0.8);
+      return;
+    }
+    if (this.doInteractCh2(it)) return;
     if (it.lines) {
       const arr = LINES[it.lines] || [];
       this.dialogue.start(arr.map((_, i) => ({ name: null, text: L(it.lines, i) })));
@@ -741,6 +850,649 @@ class Game {
     if (this.endT > 5.2) this.toMenu();
   }
 
+  // ===================================================================
+  // CAPITULO 2 — "GENTILEZA"
+  // ===================================================================
+
+  resetChapter2() {
+    this.sanity.enabled = false;
+    this.sanity.reset(100);
+    this.journal.reset();
+    this.inv.reset();
+    this.director.reset();
+    this.director.ligado = false;
+    this.chase.parar();
+    this.cigTentativas = 0;
+    this.escondido = null;
+    this.isqueiroT = 0;
+    for (const id of Object.keys(this.npcs)) this.npcs[id].falado = false;
+  }
+
+  // Preto, "CAPITULO DOIS", e embaixo o nome. Mesma tipografia corroida do
+  // titulo do jogo.
+  startChapter2() {
+    this.state = 'chapcard';
+    this.chapT = 0;
+    this.qte = null;
+    this.scene = null;
+    audio.stopAllLoops();
+    audio.stopDread(0.2);
+    this.flags.cap2 = true;
+    // A sanidade existia desde o Capitulo 1; e aqui que ela comeca a se
+    // mexer o bastante para o jogador perceber que ela existia.
+    this.sanity.enabled = true;
+    this.sanity.reset(100);
+    this.player.hp = 100;
+    this.player.idleMode = 'sit';
+  }
+
+  updateChapCard(dt) {
+    this.chapT += dt;
+    gfx.begin('#000');
+    const a = clamp(this.chapT - 0.5, 0, 1) * clamp(4.6 - this.chapT, 0, 1);
+    text(gfx.s, T('chapter_2'), VW / 2, VH / 2 - 16, {
+      size: 9, font: 'ui', weight: 'bold', color: PAL.uiDim,
+      align: 'center', track: 6, alpha: a,
+    });
+    text(gfx.s, T('chapter_2_name'), VW / 2, VH / 2 - 2, {
+      size: 20, font: 'serif', color: PAL.uiText, align: 'center', track: 2, alpha: a,
+    });
+    // o fio vermelho, do mesmo vermelho que so o sangue e o titulo tem
+    ctxLinha(gfx.s, VW / 2, VH / 2 + 26, 46 * a, a * 0.8);
+    gfx.fade = 0;
+    gfx.present(dt);
+    if (this.chapT > 5.0) {
+      this.state = 'play';
+      this.enterLevel('ch2_corridor', null, 1);
+      this.locCard = 4.5;
+      gfx.fade = 1;
+      this.transition = { t: 0, phase: 'in', outDur: 0.01, inDur: 1.2, action: null };
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // ao entrar num setor do capitulo
+  // -------------------------------------------------------------------
+
+  entrouCh2(lv) {
+    const cap2 = lv.key.slice(0, 4) === 'ch2_';
+    this.director.limpar();
+    this.escondido = null;
+    this.isqueiroT = 0;
+    this.frio = null;
+    if (!cap2) { this.director.ligado = false; return; }
+
+    // Sair do mezanino depois de falar com ela e o gatilho da fuga. As
+    // luzes do galpao inteiro comecam a apagar setor por setor, vindo na
+    // direcao dele, e alguma coisa comeca a arrastar metal no chao.
+    if (this.flags.telefonista && !this.flags.fuga && lv.key === 'ch2_machines') {
+      this.flags.fuga = true;
+      this.chase.comecar(this.levels, 'ch2_mezz', 900);
+      this.player.sayAll(['b2_chase_1', 'b2_chase_2'], true);
+    }
+
+    this.director.ligado = !this.chase.ativo;
+    this.director.reset(lv.safe ? 999 : 12);
+
+    // Pegar uma coisa e sair de uma sala ganham de ler a parede. Sem isso o
+    // cartaz colado do lado da porta rouba o "E" da porta.
+    for (const it of lv.interactables) {
+      if (it.prio !== undefined) continue;
+      if (it.action === 'goto' || it.action === 'sair') it.prio = 1;
+      else if (typeof it.action === 'string' && it.action.slice(0, 5) === 'take_') it.prio = 1;
+    }
+
+    // O primeiro deles aparece SOZINHO, e o jogo deixa o jogador olhar
+    // para ele por uns segundos antes de ele reagir.
+    if (lv.key === 'ch2_shelves' && !this.flags.primeiro) {
+      this.flags.primeiro = true;
+      this.director.forcar('empilhado', 470, lv.groundY);
+      this.director.calma = 50;
+      this.primeiroVisto = false;
+    }
+
+    // O NPC daquele setor entra na lista de coisas com que da para
+    // interagir. Nao ha lista separada: para o jogo, gente e cenario que
+    // responde.
+    for (const id of Object.keys(this.npcs)) {
+      const n = this.npcs[id];
+      if (n.cfg.level !== lv.key) continue;
+      if (!lv.interactables.some(i => i.npc === id)) lv.interactables.push(n.gancho());
+    }
+
+    // Esconderijos: so servem quando ha de quem se esconder.
+    if (lv.esconderijos && !lv._esc) {
+      lv._esc = lv.esconderijos.map(x => ({
+        x: x - 12, y: lv.groundY - 60, w: 24, h: 60,
+        prompt: 'prompt_hide', action: 'hide', range: 26, disabled: true,
+      }));
+      for (const e of lv._esc) lv.interactables.push(e);
+    }
+    if (lv._esc) for (const e of lv._esc) e.disabled = !this.chase.ativo;
+
+    // O portao da doca so abre quando o mapa ja virou armadilha.
+    const doca = lv.interactables.find(i => i.id === 'doca');
+    if (doca) {
+      if (this.chase.ativo) {
+        doca.prompt = 'prompt_open';
+        doca.action = 'goto'; doca.to = 'ch2_dock'; doca.tox = 70; doca.tofacing = 1;
+        doca.lines = null;
+      } else {
+        doca.prompt = 'prompt_look';
+        doca.action = null; doca.lines = 'c2_dockgate';
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // interacoes do capitulo
+  // -------------------------------------------------------------------
+
+  doInteractCh2(it) {
+    const p = this.player;
+    // Objeto pego some do cenario. Sem isto a ripa continuaria encostada na
+    // coluna depois de ele levar a ripa embora.
+    if (it.id && this.level.pego) this.level.pego[it.id] = true;
+    switch (it.action) {
+      case 'take_club':
+        it.disabled = true;
+        this.inv.hand = 'club';
+        p.segurarPorrete(true);
+        audio.leather(0.7);
+        // A PRIMEIRA VEZ que ele percebe a conveniencia. Ele nao entende
+        // ainda — so acha estranho. A partir daqui e um tema.
+        p.sayAll(['b2_club_1', 'b2_club_2'], true);
+        this.anotar('j_conv');
+        return true;
+
+      case 'take_journal':
+        it.disabled = true;
+        this.flags.caderno = true;
+        audio.pageTurn(1);
+        p.sayAll(['b2_diary_1', 'b2_diary_2', 'b2_diary_3'], true);
+        // O caderno chega ja com o que ele carrega desde o Capitulo 1.
+        this.journal.add('j_phone');
+        this.journal.add('j_note');
+        this.journal.add('j_locked');
+        return true;
+
+      case 'take_map':
+        it.disabled = true;
+        this.pegar('map');
+        p.sayAll(['b2_map_1', 'b2_map_2'], true);
+        return true;
+
+      case 'take_ammo':
+        it.disabled = true;
+        this.pegar('ammo');
+        p.reserve = 18;
+        // A jogada mais importante do capitulo: municao ANTES da arma. O
+        // jogador vai carregar isso inutil por vinte minutos.
+        p.sayAll(['b2_ammo_1', 'b2_ammo_2', 'b2_ammo_3'], true);
+        this.anotar('j_ammo');
+        return true;
+
+      case 'take_cigs':
+        it.disabled = true;
+        this.pegar('cigs');
+        this.pegar('lighter');
+        p.sayAll(['b2_cig_1', 'b2_cig_2', 'b2_cig_3'], true);
+        this.anotar('j_cigs');
+        return true;
+
+      case 'take_gun':
+        it.disabled = true;
+        this.pegarPistola();
+        return true;
+
+      case 'mirror':
+        this.tentarEspelho(it);
+        return true;
+
+      case 'talk': {
+        const npc = this.npcs[it.npc];
+        if (!npc) return true;
+        const t = TALKS[npc.cfg.talk];
+        if (!t) return true;
+        this.dialogue.startTalk(t, {
+          onDone: () => {
+            if (!npc.falado) {
+              npc.falado = true;
+              if (it.npc === 'vigia') { this.anotar('j_vigia'); this.player.say('b2_vigia_bye', 3.0); }
+              if (it.npc === 'operadora') {
+                this.anotar('j_oper');
+                this.player.say('b2_mezz_4', 3.0);
+                this.flags.telefonista = true;
+              }
+            }
+          },
+        });
+        return true;
+      }
+
+      case 'hide':
+        this.entrarEsconderijo(it);
+        return true;
+
+      case 'sair':
+        this.fimDoCapitulo2();
+        return true;
+    }
+    return false;
+  }
+
+  pegar(key) {
+    if (this.inv.add(key)) return true;
+    this.player.say('inv_full', 2.2, true);
+    return false;
+  }
+
+  anotar(key) {
+    if (!this.flags.caderno) return false;
+    if (!this.journal.add(key)) return false;
+    // Escrever e organizar a cabeca. Ate o cigarro destravar, la no
+    // Capitulo 3, e a principal forma de se recuperar.
+    this.sanity.restore(7);
+    return true;
+  }
+
+  // O PRECO DA PISTOLA. No instante em que ele encosta nela, as luzes de
+  // emergencia apagam, TODAS as maquinas ligam ao mesmo tempo, e tres
+  // deles entram pela porta por onde ele veio. Toda gentileza cobra na
+  // saida.
+  pegarPistola() {
+    const p = this.player, lv = this.level;
+    this.inv.hand = null;
+    p.segurarPorrete(false);
+    this.pegar('gun');
+    p.hasGun = true;
+    p.ammo = 6;
+    p.reserve = Math.max(p.reserve, 18);
+    p.det.props.gun = 'holstered';
+    p.sayAll(['b2_gun_1', 'b2_gun_2', 'b2_gun_3', 'b2_gun_4'], true);
+    this.anotar('j_gun');
+
+    this.emboscada = 2.6;
+  }
+
+  dispararEmboscada() {
+    const lv = this.level, p = this.player;
+    audio.machineStart(1);
+    audio.stopLoop('hum', 0.2);
+    audio.startLoop('hum', { gain: 0.16, fade: 0.4 });
+    gfx.shake(5, 0.9);
+    gfx.flash = 0.12;
+    for (const f of lv.lightDefs) { if (f.i0 === undefined) f.i0 = f.i; f.i = f.i0 * 0.25; }
+    lv._apagada = true;
+    // pela porta por onde ele entrou
+    const px = lv.portaX === undefined ? lv.minX + 20 : lv.portaX;
+    for (let i = 0; i < 3; i++) this.director.forcar('semrosto', px - 20 - i * 26, lv.groundY);
+    this.director.calma = 24;
+    p.say('b2_ambush', 2.2, true);
+    p.say('b2_ambush2', 2.6);
+  }
+
+  // O ESPELHO. Duas recusas, e na terceira o jogo inteiro muda de camera.
+  tentarEspelho(it) {
+    this.espelhoN = (this.espelhoN || 0) + 1;
+    if (this.espelhoN === 1) { this.player.say('cig_no_1', 2.0, true); return; }
+    if (this.espelhoN === 2) { this.player.say('cig_no_2', 2.2, true); return; }
+    it.disabled = true;
+    this.scene = new MirrorScene(this.player);
+    this.scene.onEnd = () => {
+      // Custa mais do que qualquer outra coisa do capitulo. O teimoso paga
+      // caro — e ganha uma pagina que so existe para quem olhou.
+      this.sanity.drain(30, true);
+      this.journal.add('j_mirror');
+      this.player.say('b2_mirror_after', 3.4, true);
+      this.locCard = 0;
+      // o ambiente do vestiario volta
+      for (const a of (this.level.ambience || [])) audio.startLoop(a.n, { gain: a.g, fade: 2.5 });
+    };
+    this.scene.start();
+  }
+
+  // A ESCADA DO CIGARRO, degrau 1: ele nem tira do maco. A recusa e
+  // automatica, quase reflexo. Ela vai mudar — mas so no Capitulo 3.
+  usarItem(key) {
+    if (key === 'cigs') {
+      const falas = ['cig_no_1', 'cig_no_2', 'cig_no_3', 'cig_no_4'];
+      this.player.say(falas[this.cigTentativas % falas.length], 2.4, true);
+      this.cigTentativas++;
+      return;
+    }
+    if (key === 'lighter') { audio.lighterFlick(); return; }
+    if (key === 'map') { audio.pageTurn(0.8); return; }
+  }
+
+  eventoSanidade(tipo) {
+    if (tipo !== 'worse') return;
+    // As paginas que ele nao escreveu so aparecem quando a cabeca cede.
+    if (!this.flags.caderno) return;
+    const st = this.sanity.state;
+    if (st >= 2 && !this.journal.has('j_x1')) this.journal.add('j_x1');
+    else if (st >= 3 && !this.journal.has('j_x2')) this.journal.add('j_x2');
+  }
+
+  // -------------------------------------------------------------------
+  // combate
+  // -------------------------------------------------------------------
+
+  golpeDePorrete() {
+    const p = this.player;
+    audio.whoosh(1.1);
+    const alvo = this.director.maisPerto(p.x, 34, p.facing);
+    if (!alvo) return;
+    const r = alvo.levarDano(1, p.x);
+    if (r === 'fake') {
+      // Nao estava la. E ele nao comenta.
+      this.fx.burst(14, () => ({
+        x: alvo.x + (Math.random() - 0.5) * 12, y: alvo.y - 20 - Math.random() * 40,
+        vx: (Math.random() - 0.5) * 40, vy: -20 - Math.random() * 30, ay: -10,
+        life: 0.6, size: 1, color: '#2a2430', a: 0.5, fade: 1.4,
+      }));
+      this.sanity.drain(4);
+      return;
+    }
+    audio.clubHit(1);
+    gfx.shake(2.4, 0.22);
+    this.fx.burst(8, () => ({
+      x: alvo.x, y: alvo.y - 30 - Math.random() * 20,
+      vx: (Math.random() - 0.5) * 80, vy: -40 - Math.random() * 40, ay: 240,
+      life: 0.4, size: 1, color: '#6d1a15', a: 0.9, fade: 1.2,
+    }));
+    if (r === 'morreu') {
+      this.director.respirar(40 + Math.random() * 20);
+      this.sanity.restore(2);   // a violencia acalma, e isso e feio
+    }
+    // A ripa e madeira. Ela vai quebrar, e o jogo nunca disse quando.
+    this.inv.clubHp -= 0.11 + Math.random() * 0.06;
+    if (this.inv.clubHp <= 0) {
+      this.inv.clubHp = 0;
+      this.inv.hand = null;
+      p.segurarPorrete(false);
+      audio.clubBreak(1);
+      p.say('b2_club_broke', 2.6, true);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // esconderijo
+  // -------------------------------------------------------------------
+
+  entrarEsconderijo(it) {
+    const p = this.player;
+    this.escondido = it;
+    p.x = it.x + it.w / 2;
+    p.frozen = true;
+    p.controllable = false;
+    p.det.play('hide', { blend: 0.3 });
+    p.det.alpha = 0.55;
+    audio.leather(0.6);
+    this.respiro = 1;
+  }
+
+  sairEsconderijo() {
+    const p = this.player;
+    this.escondido = null;
+    p.frozen = false;
+    p.controllable = true;
+    p.det.alpha = 1;
+    p.det.play('idle', { blend: 0.3 });
+  }
+
+  updateEsconderijo(dt) {
+    const p = this.player;
+    const prendendo = input.isDown('breath') && this.respiro > 0;
+    if (prendendo) {
+      this.respiro = clamp(this.respiro - dt * 0.22, 0, 1);
+      // Ficar parado nao e gratis: escondido a sanidade drena mais rapido.
+      this.sanity.drain(dt * 1.1);
+      gfx.shake(0.5, 0.1);
+    } else {
+      this.respiro = clamp(this.respiro + dt * 0.34, 0, 1);
+      this.respiroT = (this.respiroT || 0) - dt;
+      if (this.respiroT <= 0) { this.respiroT = 1.4; audio.breath(0.7); }
+    }
+    this.batidaT = (this.batidaT || 0) - dt;
+    const k = this.chase.pressao(this.level.key, p.x);
+    if (this.batidaT <= 0) {
+      this.batidaT = lerp(1.1, 0.36, k);
+      audio.heartbeat(0.4 + k * 0.6);
+    }
+    if (input.pressed('interact')) this.sairEsconderijo();
+    return prendendo;
+  }
+
+  // -------------------------------------------------------------------
+  // fim do capitulo
+  // -------------------------------------------------------------------
+
+  fimDoCapitulo2() {
+    const p = this.player;
+    this.chase.parar();
+    this.director.limpar();
+    p.controllable = false;
+    p.frozen = true;
+    p.say('b2_end_1', 2.6, true);
+    p.say('b2_end_2', 2.6);
+    p.say('b2_end_3', 3.0);
+    audio.doorSlam(0.6);
+    // E a ultima coisa que a camera mostra antes do corte e ele parado.
+    const cp = new Enemy('credor', clamp(p.x - 150, this.level.minX, this.level.maxX), this.level.groundY);
+    cp.det.play('idle', { blend: 0 });
+    cp.det.setFacing(1);
+    cp.det.flipT = 1;
+    this.credorParado = { det: cp };
+    setTimeout(() => { if (this.state === 'play') this.fadeTo(() => this.endOfChapter(), 2.2, 0.01); }, 8200);
+  }
+
+  // -------------------------------------------------------------------
+  // o laco do capitulo
+  // -------------------------------------------------------------------
+
+  updateCh2(dt, lv, prendendo) {
+    const p = this.player;
+
+    for (const id of Object.keys(this.npcs)) {
+      const n = this.npcs[id];
+      if (n.cfg.level === lv.key) n.update(dt);
+    }
+
+    // ---- o isqueiro ----
+    if (this.isqueiroT > 0) {
+      this.isqueiroT -= dt;
+      if (this.isqueiroT <= 0) audio.blip(0.3);
+    }
+    if (input.pressed('light') && this.inv.has('lighter') && this.isqueiroT <= 0
+        && !this.escondido && !this.dialogue.active) {
+      this.isqueiroT = 6;
+      audio.lighterFlick();
+      audio.flameWhoosh(0.7);
+    }
+
+    // ---- o Diretor ----
+    this.director.update(dt, { player: p, level: lv, cam: this.cam, sanity: this.sanity });
+    for (const e of this.director.lista) {
+      if (e.state === 'dead') continue;
+      if (e.acertou() && !this.escondido) p.takeDamage(e.cfg.dano, e.x);
+    }
+    // Ver um deles ja custa, mesmo sem encostar.
+    const dInimigo = this.director.distanciaMaisProximo(p.x);
+    if (dInimigo < 170) this.sanity.drain(dt * 0.5);
+
+    // Ele nunca diz o que aquilo e. Nunca. O jogador que se vire.
+    if (this.primeiroVisto === false && dInimigo < 140) {
+      this.primeiroVisto = true;
+      p.say('b2_know', 3.0, true);
+      this.sanity.drain(8, true);
+    }
+
+    // ---- a perseguicao ----
+    if (this.chase.ativo) {
+      this.chase.update(dt, {
+        player: p, level: lv, levelKey: lv.key,
+        escondido: !!this.escondido, prendendo,
+      });
+    }
+
+    // ---- a sanidade ----
+    this.sanity.update(dt, {
+      dark: lv.darkAt(p.x) * (this.isqueiroT > 0 ? 0.3 : 1),
+      safe: !!lv.safe && !this.chase.ativo,
+      chase: this.chase.ativo && !this.escondido,
+    });
+    // A camara fria cobra so por estar la dentro. E ela que ensina o
+    // jogador a temer o proprio medidor.
+    if (lv.frio) this.sanity.drain(dt * (this.isqueiroT > 0 ? 0.35 : 0.9));
+    this.sanity.apply();
+    const jt = this.sanity.jitter();
+    if (jt > 0) gfx.shake(jt, 0.1);
+
+    if (p.hp <= 0) this.derrubado();
+
+    this.updateFrio(dt, lv);
+  }
+
+  // A PRIMEIRA ALUCINACAO GRANDE. Os ganchos comecam a balancar. Todos. No
+  // mesmo ritmo. E nao ha vento aqui dentro.
+  updateFrio(dt, lv) {
+    if (!lv.frio) return;
+    const p = this.player;
+    const f = this.frio || (this.frio = { fase: 0, t: 0 });
+    f.t += dt;
+
+    if (f.fase === 0 && p.x > 460) {
+      f.fase = 1; f.t = 0;
+      lv.balanco = 1;
+      audio.metalCreak(1.2);
+      audio.chainRattle(0.8);
+      p.sayAll(['b2_hook_1', 'b2_hook_2'], true);
+      this.sanity.drain(6, true);
+    } else if (f.fase === 1 && f.t > 5.2) {
+      f.fase = 2; f.t = 0;
+      p.say('b2_hook_3', 2.8, true);
+    } else if (f.fase === 2 && this.isqueiroT > 0 && Math.abs(p.x - 490) < 150) {
+      f.fase = 3; f.t = 0;
+      lv.casaco = 1;
+      p.say('b2_hook_4', 2.8, true);
+      this.sanity.drain(8, true);
+    } else if (f.fase === 3 && this.isqueiroT <= 0) {
+      // A chama apaga. Quando ele acende de novo, nao tem mais nada.
+      f.fase = 4; f.t = 0;
+      lv.casaco = 0;
+    } else if (f.fase === 4 && this.isqueiroT > 0) {
+      f.fase = 5; f.t = 0;
+      p.sayAll(['b2_hook_5', 'b2_hook_6'], true);
+      this.sanity.drain(10, true);
+      this.anotar('j_cold');
+      this.anotar('j_hooks');
+    }
+  }
+
+  // O tiro precisa saber em quem bateu. O jogador dispara; o jogo procura
+  // alguem na frente do cano.
+  tiro(x, facing, ang) {
+    const alvo = this.director.maisPerto(x, 210, facing);
+    if (!alvo) return;
+    // Mira so no eixo vertical: acima de uns 20 graus a bala passa por cima.
+    if (Math.abs(ang) > 22) return;
+    const r = alvo.levarDano(3, x);
+    if (r === 'fake') {
+      // Voce gastou a bala do mesmo jeito.
+      this.sanity.drain(5, true);
+      return;
+    }
+    audio.punchHit(0.6);
+    this.fx.burst(10, () => ({
+      x: alvo.x, y: alvo.y - 34 - Math.random() * 20,
+      vx: facing * (20 + Math.random() * 70), vy: -30 - Math.random() * 40, ay: 250,
+      life: 0.45, size: 1, color: '#6d1a15', a: 0.95, fade: 1.2,
+    }));
+    if (r === 'morreu') { this.director.respirar(45 + Math.random() * 15); this.sanity.restore(2); }
+  }
+
+  // Ele cai. Nao morre: acorda de novo no comeco do setor, com menos
+  // cabeca do que tinha. Num jogo em que tudo e a mente dele, "game over"
+  // seria a unica coisa que quebraria a regra.
+  derrubado() {
+    const p = this.player;
+    p.hp = 100;
+    p.say('b2_down', 3.0, true);
+    this.sanity.drain(14, true);
+    this.director.limpar();
+    this.director.respirar(30);
+    audio.tinnitus(2.5);
+    const key = this.level.key;
+    this.fadeTo(() => {
+      this.enterLevel(key, null, 1);
+      gfx.eyelid = 0.1;
+    }, 1.0, 1.6);
+    setTimeout(() => { gfx.eyelid = 1; }, 2600);
+  }
+
+  // -------------------------------------------------------------------
+  // interface do capitulo
+  // -------------------------------------------------------------------
+
+  drawCh2UI(ctx) {
+    const p = this.player;
+
+    this.journal.drawToast(ctx);
+    this.inv.drawToast(ctx);
+
+    // A vida so aparece quando ele apanha. Barra permanente avisaria o
+    // jogador de que ele e um personagem.
+    if (p.hurtT > 0 || p.hp < 100) {
+      const a = clamp(p.hurtT > 0 ? 1 : (p.hp < 60 ? 0.7 : 0), 0, 1);
+      if (a > 0.02) {
+        ctx.save();
+        ctx.globalAlpha = a * 0.55;
+        ctx.fillStyle = '#0c0a0b';
+        ctx.fillRect(14, VH - 20, 52, 4);
+        ctx.fillStyle = PAL.uiAccent;
+        ctx.fillRect(14, VH - 20, Math.round(52 * (p.hp / 100)), 4);
+        ctx.restore();
+      }
+    }
+
+    // Escondido: o folego, e como sair.
+    if (this.escondido) {
+      const w = 92, x = (VW - w) / 2, y = VH - 46;
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#0c0a0b';
+      ctx.fillRect(x - 1, y - 1, w + 2, 6);
+      ctx.fillStyle = this.respiro > 0.3 ? '#7fa5d8' : PAL.uiAccent;
+      ctx.fillRect(x, y, Math.round(w * this.respiro), 4);
+      ctx.restore();
+      text(ctx, T('hint_hold_breath'), VW / 2, y - 14, {
+        size: 8, font: 'ui', weight: 'bold', color: PAL.uiDim,
+        align: 'center', track: 2, alpha: 0.9, shadow: true,
+      });
+      text(ctx, T('hint_hide'), VW / 2, y + 10, {
+        size: 7, font: 'ui', color: PAL.uiFaint, align: 'center', track: 1, alpha: 0.8,
+      });
+    }
+
+    // Lembrete das teclas novas, so nos primeiros segundos do setor.
+    if (this.locCard > 1.4 && this.flags.caderno && !this.chase.ativo) {
+      text(ctx, T('hint_journal'), VW - 14, 14, {
+        size: 7, font: 'ui', color: PAL.uiFaint, align: 'right', track: 1,
+        alpha: clamp(this.locCard - 1.4, 0, 1) * 0.8,
+      });
+    }
+  }
+
+  // Ele parado, sem perseguir mais. Apenas olhando ele ir embora — como
+  // quem sabe que vai cobrar outro dia.
+  drawCredorParado(ctx, cam) {
+    const c = this.credorParado;
+    if (!c) return;
+    c.det.det.update(1 / 60);
+    c.det.draw(ctx, cam);
+  }
+
   // -------------------------------------------------------------------
   // salvar / carregar
   // -------------------------------------------------------------------
@@ -756,6 +1508,16 @@ class Game {
         x: Math.round(this.player.x),
         facing: this.player.facing,
         flags: this.flags || {},
+        // Capitulo 2: o que ele carrega, o que ele anotou e o quanto de
+        // cabeca ainda sobrou.
+        san: this.sanity.save(),
+        jr: this.journal.save(),
+        inv: this.inv.save(),
+        hp: Math.round(this.player.hp),
+        gun: !!this.player.hasGun,
+        ammo: this.player.ammo, res: this.player.reserve,
+        // As portas e os itens ja pegos nao voltam.
+        usados: (lv.interactables || []).filter(i => i.disabled && i.id).map(i => i.id),
       },
     });
     if (this.menu) this.menu.refresh();
@@ -764,11 +1526,33 @@ class Game {
   loadSlot(i) {
     const d = save.read(i);
     if (!d || !d.state) { this.toMenu(); return; }
+    const s = d.state;
     this.playtime = d.playtime || 0;
-    this.flags = d.state.flags || {};
+    this.flags = s.flags || {};
     audio.stopMusic(0.8);
     this.pause.active = false;
-    this.enterLevel(d.state.level || 'alley', d.state.x, d.state.facing);
+
+    this.resetChapter2();
+    this.sanity.load(s.san);
+    this.journal.load(s.jr);
+    this.inv.load(s.inv);
+    const p = this.player;
+    p.hp = typeof s.hp === 'number' ? s.hp : 100;
+    p.hasGun = !!s.gun;
+    p.ammo = s.ammo === undefined ? 0 : s.ammo;
+    p.reserve = s.res === undefined ? 0 : s.res;
+    p.det.props.gun = p.hasGun ? 'holstered' : 'none';
+    p.segurarPorrete(this.inv.hand === 'club');
+    p.idleMode = this.flags.cap2 ? 'sit' : null;
+
+    this.enterLevel(s.level || 'alley', s.x, s.facing);
+    // itens ja pegos continuam pegos, na lista e no cenario
+    const lv = this.level;
+    for (const id of (s.usados || [])) {
+      if (lv.pego) lv.pego[id] = true;
+      const it = (lv.interactables || []).find(i => i.id === id);
+      if (it) it.disabled = true;
+    }
     this.state = 'play';
   }
 
@@ -913,6 +1697,17 @@ class Game {
 // aba esta em segundo plano e o jogo travaria no meio do boot.
 function frame(ms = 24) { return new Promise(r => setTimeout(r, ms)); }
 
+// O fio vermelho embaixo do nome do capitulo. E o unico vermelho da tela,
+// e e o mesmo do titulo e do sangue — a paleta so deixa essa cor gritar.
+function ctxLinha(ctx, cx, y, largura, alpha) {
+  if (largura <= 0 || alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = PAL.uiAccent;
+  ctx.fillRect(Math.round(cx - largura / 2), Math.round(y), Math.round(largura), 1);
+  ctx.restore();
+}
+
 const game = new Game();
 window.game = game;
 
@@ -921,6 +1716,17 @@ window.game = game;
 // o jogo normal — nada aqui e chamado pelo laco principal.
 window.__dev = {
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) game.tick(dt); return game.state; },
+  gfx,
+  // Pula direto para um setor. Existe so para testar: sem isto e preciso
+  // jogar o capitulo inteiro para olhar a ultima sala.
+  ir(key, x, facing = 1) {
+    game.state = 'play';
+    game.transition = null;
+    gfx.fade = 0; gfx.eyelid = 1; gfx.letterbox = 0;
+    game.scene = null; game.qte = null;
+    game.enterLevel(key, x, facing);
+    return key;
+  },
   key(code, ms = 40) {
     window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })), ms);

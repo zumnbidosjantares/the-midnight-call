@@ -19,6 +19,11 @@ const BINDINGS = {
   menuRight:['ArrowRight', 'KeyD'],
   debug:    ['F1'],
   animLab:  ['F2'],
+  // Capitulo 2
+  journal:  ['KeyQ'],
+  bag:      ['Tab'],
+  light:    ['KeyF'],
+  breath:   ['ShiftLeft', 'ShiftRight'],
 };
 
 class Input {
@@ -63,6 +68,10 @@ class Input {
     });
     window.addEventListener('mousemove', e => {
       this.mouse.dy += e.movementY || 0;
+      // Posicao absoluta na janela. A mira usa so o movimento relativo, mas
+      // o inventario precisa saber ONDE o cursor esta para arrastar item.
+      this.mouse.cx = e.clientX;
+      this.mouse.cy = e.clientY;
     });
     window.addEventListener('blur', () => { this.mouse.right = false; this.mouse.down = false; });
     window.addEventListener('contextmenu', e => e.preventDefault());

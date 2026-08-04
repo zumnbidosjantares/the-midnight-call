@@ -134,6 +134,25 @@ export function silhouettePass(srcCanvas, dstBuf, color) {
   x.globalCompositeOperation = 'source-over';
 }
 
+// Recolorir sem apagar a forma: mantem o desenho e joga uma cor por cima
+// so onde ja havia pixel. Com k < 1 a sombra original ainda aparece por
+// baixo, entao o boneco continua com volume — e o que separa um NPC do
+// detetive sem redesenhar peca nenhuma.
+export function tintPass(srcCanvas, dstBuf, color, k = 0.72) {
+  const x = dstBuf.x, w = dstBuf.c.width, h = dstBuf.c.height;
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalCompositeOperation = 'source-over';
+  x.globalAlpha = 1;
+  x.clearRect(0, 0, w, h);
+  x.drawImage(srcCanvas, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  x.globalAlpha = k;
+  x.fillStyle = color;
+  x.fillRect(0, 0, w, h);
+  x.globalAlpha = 1;
+  x.globalCompositeOperation = 'source-over';
+}
+
 // ---------------------------------------------------------------------------
 // Pinceis para cenario. Tudo desenhado uma vez em canvas de camada, nunca
 // por frame.

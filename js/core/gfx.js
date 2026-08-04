@@ -145,6 +145,18 @@ class Gfx {
     this.out.style.height = Math.round(VH * sc) + 'px';
   }
 
+  // Ponto da janela -> ponto da tela interna de 480x270. O canvas e
+  // ampliado por CSS, entao dividir pela escala nao basta: e preciso o
+  // retangulo real dele na pagina.
+  toVirtual(cx, cy) {
+    if (!this.out) return { x: 0, y: 0 };
+    const r = this.out.getBoundingClientRect();
+    return {
+      x: (cx - r.left) / (r.width || 1) * VW,
+      y: (cy - r.top) / (r.height || 1) * VH,
+    };
+  }
+
   shake(amount, dur = 0.35) {
     this.shakeAmt = Math.max(this.shakeAmt, amount);
     this.shakeTime = Math.max(this.shakeTime, dur);
@@ -307,11 +319,14 @@ class Gfx {
       s.globalCompositeOperation = 'source-over';
     }
 
-    if (this.grainAmount > 0) {
+    // grainExtra e o acrescimo que a sanidade pede. Fica separado do ajuste
+    // do jogador para as opcoes continuarem valendo o que dizem.
+    const grao = this.grainAmount + (this.grainExtra || 0);
+    if (grao > 0) {
       this.grainTimer += dt;
       if (this.grainTimer > 1 / 18) { this.grainTimer = 0; this.grainIdx = (this.grainIdx + 1) % this.grain.length; }
       const img = this.grain[this.grainIdx];
-      this._post('overlay', this.grainAmount, (c) => c.drawImage(img, 0, 0));
+      this._post('overlay', grao, (c) => c.drawImage(img, 0, 0));
     }
 
     if (this.scanlines > 0) {

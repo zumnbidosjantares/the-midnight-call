@@ -38,6 +38,21 @@ export class Player {
     this.barkQueue = [];
     this.barkGap = 0;
 
+    // corpo. So aparece na tela quando ele apanha — barra de vida
+    // permanente num jogo de terror avisa o jogador de que ele e um
+    // personagem, e nao um homem.
+    this.hp = 100;
+    this.hurtT = 0;
+    this.invuln = 0;
+    this.onHurt = null;
+
+    // o porrete. Dois golpes e ele precisa respirar: peso e o que separa
+    // uma ripa de palete de uma espada.
+    this.club = false;
+    this.folego = 2;
+    this.folegoT = 0;
+    this.onClubHit = null;
+
     // arma
     this.gun = 'holstered';   // holstered | drawing | ready | holstering | reloading
     this.gunT = 0;
@@ -84,6 +99,7 @@ export class Player {
       }
       case 'whoosh': audio.whoosh(1); break;
       case 'hit': audio.punchHit(0.7); break;
+      case 'clubhit': if (this.onClubHit) this.onClubHit(); break;
       case 'lighter_flick': audio.lighterFlick(); break;
       case 'flame_on': audio.flameWhoosh(0.8); break;
       case 'say_not_today':
@@ -226,6 +242,10 @@ export class Player {
       vy: (Math.random() - 0.5) * 120, ay: 240, life: 0.3 + Math.random() * 0.25,
       size: 1, color: Math.random() > 0.5 ? '#ffd07a' : '#fff2c8', a: 1, fade: 1.2, glow: true,
     }));
+
+    // Quem decide se a bala acertou alguem e o jogo, nao o jogador: aqui so
+    // se sabe de onde ela saiu e para onde apontava.
+    if (this.onShot) this.onShot(this.x, this.facing, this.aimAngle);
   }
 
   update(dt, level, allow = true) {
@@ -237,6 +257,14 @@ export class Player {
 
     if (this.lockTime > 0) this.lockTime -= dt;
     if (this.comboWindow > 0) this.comboWindow -= dt;
+    if (this.invuln > 0) this.invuln -= dt;
+    if (this.hurtT > 0) this.hurtT -= dt;
+    // O folego volta sozinho, devagar. Nao ha barra: o jogador aprende pelo
+    // "Preciso... de um segundo" que ele diz quando tenta e nao consegue.
+    if (this.folego < 2) {
+      this.folegoT -= dt;
+      if (this.folegoT <= 0) { this.folego++; this.folegoT = 1.5; }
+    }
     this._updateGun(dt, canAct);
 
     const mirando = this.aiming;
@@ -250,7 +278,7 @@ export class Player {
     }
 
     // ---- ataque (soco desativado com a arma na mao) ----
-    if (canAct && !mirando && this.gun === 'holstered' && input.pressed('attack')) {
+    if (canAct && !mirando && this.state !== 'hurt' && this.gun === 'holstered' && input.pressed('attack')) {
       if (this.state === 'punch' && this.comboWindow > 0 && !this.comboNext) {
         this.comboNext = true;
       } else if (this.state !== 'punch') {
@@ -272,7 +300,7 @@ export class Player {
 
     // ---- movimento ----
     if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact'
-        && this.state !== 'sit' && this.state !== 'standing') {
+        && this.state !== 'hurt' && this.state !== 'sit' && this.state !== 'standing') {
       ax = dir * ACC;
       this.facing = dir;
       d.setFacing(dir);
@@ -304,6 +332,8 @@ export class Player {
         this.state = 'idle';
         if (this._pending) { const it = this._pending; this._pending = null; if (this.onInteract) this.onInteract(it); }
       }
+    } else if (this.state === 'hurt') {
+      if (d.done) { this.state = 'idle'; this.lockTime = 0; }
     } else if (this.state === 'smoke') {
       if (d.done) { this.state = 'idle'; this.idleTime = 0; }
     } else if (this.state === 'sit') {
@@ -383,12 +413,56 @@ export class Player {
   }
 
   _startPunch(n) {
+    // Com a ripa na mao o golpe e outro: mais lento, mais pesado, e cobra
+    // folego. Dois e ele precisa parar para respirar — sem isso o porrete
+    // vira metralhadora de madeira e o combate perde o medo.
+    if (this.club) {
+      if (this.folego <= 0) {
+        this.say('b2_swing_tired', 1.8);
+        return;
+      }
+      this.folego--;
+      this.folegoT = 1.5;
+      this.state = 'punch';
+      this.comboNext = false;
+      this.comboWindow = 0.30;
+      this.lockTime = n === 1 ? 0.56 : 0.62;
+      this.vx = this.facing * 20;
+      this.det.play(n === 1 ? 'swing1' : 'swing2', { restart: true, blend: 0.05 });
+      return;
+    }
     this.state = 'punch';
     this.comboNext = false;
     this.comboWindow = n === 1 ? 0.34 : 0;
     this.lockTime = n === 1 ? 0.40 : 0.48;
     this.vx = this.facing * 26;
     this.det.play(n === 1 ? 'punch1' : 'punch2', { restart: true, blend: 0.06 });
+  }
+
+  // -------------------------------------------------------------------
+  // apanhar
+  // -------------------------------------------------------------------
+
+  takeDamage(n, deX) {
+    if (this.invuln > 0 || this.hp <= 0) return false;
+    this.hp = clamp(this.hp - n, 0, 100);
+    this.invuln = 0.9;
+    this.hurtT = 1.4;
+    this.state = 'hurt';
+    this.lockTime = 0.34;
+    this.vx = -Math.sign(deX - this.x || 1) * 70;
+    this.det.play('hurt', { restart: true, blend: 0.04 });
+    audio.punchHit(1);
+    audio.thud(0.5);
+    gfx.shake(3.4, 0.35);
+    if (this.onHurt) this.onHurt(n, this.hp);
+    return true;
+  }
+
+  segurarPorrete(sim) {
+    this.club = !!sim;
+    this.det.props.club = sim ? 'hand' : 'none';
+    if (sim) { this.det.props.gun = 'none'; this.hasGun = false; }
   }
 
   // Faz o personagem caminhar sozinho ate um X. Usado pela cutscene.
