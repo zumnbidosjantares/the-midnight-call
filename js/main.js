@@ -406,10 +406,58 @@ class Game {
       });
     }
 
+    if (!paused) this.drawGunUI(gfx.s, cam);
+
     this.dialogue.draw(gfx.s);
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
+  }
+
+  // Linha de mira e contador de balas.
+  //
+  // A linha existe porque nao ha mira na tela: sem ela o jogador nao tem
+  // como saber para onde o cano esta apontando antes de gastar a bala.
+  // Ela e pontilhada e fraca de proposito — e uma nocao, nao um laser.
+  drawGunUI(ctx, cam) {
+    const p = this.player;
+
+    if (p.aiming) {
+      const rad = p.aimAngle * Math.PI / 180;
+      const ox = p.x - cam.ix + p.facing * 26;
+      const oy = p.y - cam.iy - 48 - Math.sin(rad) * 10;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let d = 6; d < 130; d += 7) {
+        const a = 0.42 * (1 - d / 130);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#d8a860';
+        ctx.fillRect(Math.round(ox + p.facing * d), Math.round(oy - Math.tan(rad) * d), 1, 1);
+      }
+      ctx.restore();
+    }
+
+    if (p.ammoHud > 0 || p.aiming) {
+      const a = p.aiming ? 1 : clamp(p.ammoHud, 0, 1);
+      const x = VW - 16, y = VH - 20;
+      ctx.save();
+      ctx.globalAlpha = a;
+      for (let i = 0; i < p.clipSize; i++) {
+        const bx = x - (p.clipSize - i) * 5;
+        ctx.fillStyle = i < p.ammo ? '#e8c88a' : '#3a332c';
+        ctx.fillRect(bx, y, 3, 6);
+        if (i < p.ammo) { ctx.fillStyle = '#fff0c8'; ctx.fillRect(bx, y, 3, 1); }
+      }
+      text(ctx, String(p.reserve), x - p.clipSize * 5 - 6, y - 2, {
+        size: 9, font: 'ui', weight: 'bold', color: PAL.uiDim, align: 'right', alpha: a,
+      });
+      if (p.gun === 'reloading') {
+        text(ctx, 'R', x - p.clipSize * 5 - 6, y - 2, {
+          size: 9, font: 'ui', weight: 'bold', color: PAL.uiAccent, align: 'right', alpha: a,
+        });
+      }
+      ctx.restore();
+    }
   }
 
   // Falas de passagem: dispara quando o jogador cruza um ponto da fase.

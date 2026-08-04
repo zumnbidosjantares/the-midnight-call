@@ -27,7 +27,10 @@ class Input {
     this.pressedFrame = new Set();
     this.releasedFrame = new Set();
     this.heldTime = new Map();
-    this.mouse = { x: 0, y: 0, down: false, pressed: false };
+    // dy acumula o movimento vertical do mouse desde o quadro anterior.
+    // Movimento horizontal e lido e descartado de proposito: a mira do jogo
+    // so sobe e desce.
+    this.mouse = { x: 0, y: 0, down: false, pressed: false, right: false, rightPressed: false, dy: 0 };
     this.anyPress = false;
     this.lastDevice = 'keyboard';
   }
@@ -49,8 +52,19 @@ class Input {
       this.heldTime.delete(e.code);
     });
     window.addEventListener('blur', () => { this.down.clear(); this.heldTime.clear(); });
-    window.addEventListener('mousedown', () => { this.mouse.down = true; this.mouse.pressed = true; this.anyPress = true; });
-    window.addEventListener('mouseup', () => { this.mouse.down = false; });
+    window.addEventListener('mousedown', e => {
+      this.anyPress = true;
+      if (e.button === 2) { this.mouse.right = true; this.mouse.rightPressed = true; }
+      else { this.mouse.down = true; this.mouse.pressed = true; }
+    });
+    window.addEventListener('mouseup', e => {
+      if (e.button === 2) this.mouse.right = false;
+      else this.mouse.down = false;
+    });
+    window.addEventListener('mousemove', e => {
+      this.mouse.dy += e.movementY || 0;
+    });
+    window.addEventListener('blur', () => { this.mouse.right = false; this.mouse.down = false; });
     window.addEventListener('contextmenu', e => e.preventDefault());
     return this;
   }
@@ -64,6 +78,8 @@ class Input {
     this.pressedFrame.clear();
     this.releasedFrame.clear();
     this.mouse.pressed = false;
+    this.mouse.rightPressed = false;
+    this.mouse.dy = 0;
     this.anyPress = false;
   }
 

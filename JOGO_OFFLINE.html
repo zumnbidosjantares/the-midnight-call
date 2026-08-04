@@ -735,7 +735,10 @@ class Input {
     this.pressedFrame = new Set();
     this.releasedFrame = new Set();
     this.heldTime = new Map();
-    this.mouse = { x: 0, y: 0, down: false, pressed: false };
+    // dy acumula o movimento vertical do mouse desde o quadro anterior.
+    // Movimento horizontal e lido e descartado de proposito: a mira do jogo
+    // so sobe e desce.
+    this.mouse = { x: 0, y: 0, down: false, pressed: false, right: false, rightPressed: false, dy: 0 };
     this.anyPress = false;
     this.lastDevice = 'keyboard';
   }
@@ -757,8 +760,19 @@ class Input {
       this.heldTime.delete(e.code);
     });
     window.addEventListener('blur', () => { this.down.clear(); this.heldTime.clear(); });
-    window.addEventListener('mousedown', () => { this.mouse.down = true; this.mouse.pressed = true; this.anyPress = true; });
-    window.addEventListener('mouseup', () => { this.mouse.down = false; });
+    window.addEventListener('mousedown', e => {
+      this.anyPress = true;
+      if (e.button === 2) { this.mouse.right = true; this.mouse.rightPressed = true; }
+      else { this.mouse.down = true; this.mouse.pressed = true; }
+    });
+    window.addEventListener('mouseup', e => {
+      if (e.button === 2) this.mouse.right = false;
+      else this.mouse.down = false;
+    });
+    window.addEventListener('mousemove', e => {
+      this.mouse.dy += e.movementY || 0;
+    });
+    window.addEventListener('blur', () => { this.mouse.right = false; this.mouse.down = false; });
     window.addEventListener('contextmenu', e => e.preventDefault());
     return this;
   }
@@ -772,6 +786,8 @@ class Input {
     this.pressedFrame.clear();
     this.releasedFrame.clear();
     this.mouse.pressed = false;
+    this.mouse.rightPressed = false;
+    this.mouse.dy = 0;
     this.anyPress = false;
   }
 
@@ -1112,6 +1128,92 @@ class Audio {
     src.connect(f);
     this._env(f, t, 0.5, 1.4, 0.14 * vol);
     src.start(t, Math.random() * 2, 2.2); src.stop(t + 2.2);
+  }
+
+  // Tiro: estalo curto e agudo, corpo grave, e uma cauda de eco jogada no
+  // reverb. Sem a cauda soa a estouro de balao; com ela soa a beco.
+  gunshot(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const estalo = c.createBufferSource();
+    estalo.buffer = this.noiseBuf;
+    estalo.playbackRate.value = 1.6;
+    const hp = c.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 1400;
+    estalo.connect(hp);
+    this._env(hp, t, 0.001, 0.10, 0.55 * vol);
+    estalo.start(t, Math.random() * 3, 0.2); estalo.stop(t + 0.2);
+
+    const corpo = c.createBufferSource();
+    corpo.buffer = this.noiseBuf;
+    corpo.playbackRate.value = 0.5;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(1800, t);
+    lp.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+    corpo.connect(lp);
+    const g1 = this._env(lp, t, 0.001, 0.28, 0.5 * vol);
+    g1.connect(this.verb);
+    corpo.start(t, Math.random() * 3, 0.5); corpo.stop(t + 0.5);
+
+    const soco = c.createOscillator();
+    soco.type = 'sine';
+    soco.frequency.setValueAtTime(220, t);
+    soco.frequency.exponentialRampToValueAtTime(40, t + 0.16);
+    this._env(soco, t, 0.001, 0.2, 0.55 * vol);
+    soco.start(t); soco.stop(t + 0.25);
+
+    // cauda batendo nas paredes
+    const cauda = c.createBufferSource();
+    cauda.buffer = this.noiseBuf;
+    cauda.playbackRate.value = 0.8;
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.value = 900;
+    cauda.connect(bp);
+    const g2 = this._env(bp, t + 0.04, 0.05, 0.9, 0.16 * vol);
+    g2.connect(this.verb);
+    cauda.start(t + 0.04, Math.random() * 2, 1.2); cauda.stop(t + 1.2);
+  }
+
+  dryClick() {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 9; f.frequency.value = 2600;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.035, 0.20);
+    s.start(t, Math.random() * 3, 0.06); s.stop(t + 0.08);
+  }
+
+  // couro e metal: sacar, guardar, recarregar
+  leather(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.9;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 1.4;
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.exponentialRampToValueAtTime(1500, t + 0.14);
+    s.connect(f);
+    this._env(f, t, 0.006, 0.16, 0.13 * vol);
+    s.start(t, Math.random() * 3, 0.3); s.stop(t + 0.3);
+  }
+
+  reloadClick(pitch = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 12; f.frequency.value = 1800 * pitch;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.05, 0.16);
+    s.start(t, Math.random() * 3, 0.08); s.stop(t + 0.1);
   }
 
   uiMove() {
@@ -2058,7 +2160,8 @@ const MAP = {
   n: PAL.brass, e: PAL.eye, E: PAL.sclera, o: PAL.brow,
   C: PAL.coatHi, c: PAL.coat, j: PAL.coatDk, y: PAL.coatEdge,
   i: '#ded6c4', a: '#9d9484', N: '#ff6a2a',   // cigarro: papel, sombra, brasa
-  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama do isqueiro
+  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama e fogo de boca
+  M: '#727880', m: '#4b5158',                 // metal da arma
 };
 
 // Medidas do esqueleto, em pixels, a partir do chao. Proporcao puxada da
@@ -2157,32 +2260,69 @@ function buildParts() {
   // DIREITA do centro, o colete tem uma aba larga atras e uma estreita na
   // frente, e a alca do coldre passa so pelas costas. Antes era simetrico,
   // e simetria em vista lateral le como "de costas".
-  // Tronco: sobretudo aberto. A abertura fica a DIREITA do centro e mostra
-  // camisa e gravata; a aba de tras e larga, a da frente estreita. E a
-  // largura desigual das duas abas que diz para que lado ele esta virado.
+  // Tronco: sobretudo FECHADO.
+  //
+  // A versao anterior mostrava camisa e gravata descendo pelo meio do
+  // peito — que e o que se ve de FRENTE. Num jogo lateral a camera olha o
+  // costado do casaco, e ali nao ha abertura nenhuma: so pano, a lapela
+  // dobrada perto do pescoco e a fileira de botoes na beirada da frente.
+  // A unica camisa visivel e o triangulo do colarinho.
   P.torso = sprite({
     pivot: [9, 20], map: MAP, rows: [
-      '...yjCCCCCCjy.....',
-      '..yjCCCCCCCCjy....',
-      '.yjCCCcWWWWcCjy...',
-      '.yjCCCjWWRRWWjCjy.',
-      '.yjCCCjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRrWWjCjy.',
-      '.yjCCcjWWRrWWjCjy.',
-      '.yjCCcjWWrrWWjCjy.',
-      '.yjCCcnWWrrWWnCjy.',
-      '.yjCCcjWWrrWWjCjy.',
-      '.yjCCcjWWrzWWjCjy.',
-      '.yjCCcnWWrzWWnCjy.',
-      '.yjCCcjWWzzWWjCjy.',
-      '.yjCCcjWWWzWWjCjy.',
-      '.yjCCccjWWWWjcCjy.',
-      '.yjCCCccjWWjccCjy.',
-      '..yjCCCcccccCCjy..',
-      '..yyjCCCCCCCCjyy..',
+      '...yjCCCCCCCjy....',
+      '..yjCCCCCCCCCjy...',
+      '.yjCCCCCCCCCWWjy..',
+      '.yjCCCCCCCCcWCjy..',
+      '.yjCCCCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjLLLLLLLLLLLjy..',
+      '.yjllllllllllljy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '..yjCCcCCCCcjCjy..',
+      '..yjCCCCCCCCCjy...',
+      '...yjCCCCCCCjy....',
+    ]
+  });
+
+  // Coldre no quadril, do lado que a camera ve. Fica POR CIMA do casaco:
+  // debaixo dele seria mais realista e completamente invisivel.
+  P.holster = sprite({
+    pivot: [3, 0], map: MAP, rows: [
+      'lLLLLLl', 'lLLLLLl', 'lLLLLLl', 'lLLLLLl', 'lLLLLLl',
+      'lLLLLLl', '.lLLLl.', '.lLLLl.', '..lLl..', '..lll..',
+    ]
+  });
+
+  // cabo da arma saindo do coldre (some quando ela esta na mao)
+  P.gunButt = sprite({
+    pivot: [2, 5], map: MAP, rows: [
+      '.mmm.', 'mMMmk', 'mMMmk', 'kmmkk', '.kk..',
+    ]
+  });
+
+  P.gun = sprite({
+    pivot: [1, 3], map: MAP, rows: [
+      '...mMMMMMMm',
+      '..mMMMMMMMm',
+      '.mMMMmmmmmm',
+      'mMMMm......',
+      'kMMk.......',
+      '.kk........',
+    ]
+  });
+
+  P.muzzle = sprite({
+    pivot: [0, 3], map: MAP, rows: [
+      '..Y....', '.YFY...', 'YFFFY..', 'YFFFFYf', 'YFFFY..', '.YFY...', '..Y....',
     ]
   });
 
@@ -2495,7 +2635,12 @@ class Detective {
     this.blendDur = 0.14;
     this.done = false;
     this.onEvent = null;
-    this.props = { cig: 'none', lighter: 'none', flame: 0 };
+    this.props = { cig: 'none', lighter: 'none', flame: 0, gun: 'holstered' };
+    // Mira: sobrescreve os angulos do braco da frente depois da animacao.
+    // Nao da para keyframar isto — o angulo vem do mouse do jogador.
+    this.aim = { on: false, angle: 0, recoil: 0 };
+    this.muzzleT = 0;
+    this._muzzleLocal = null;
     this.rimColor = '#7fa5d8';
     this.rimDX = -1; this.rimDY = -1;
     // 0.55 deixava um contorno azul em volta do corpo inteiro e ele parecia
@@ -2568,6 +2713,22 @@ class Detective {
 
     sampleAnim(a, tn, this.pose);
 
+    // A mira entra DEPOIS da animacao e por cima dela: o corpo continua
+    // respirando e andando, so o braco da frente obedece ao mouse.
+    if (this.aim.on) {
+      const ang = this.aim.angle;
+      const kick = this.aim.recoil;
+      this.pose.aFu = 90 + ang - kick * 16;
+      this.pose.aFf = -7 - kick * 10;
+      this.pose.aBu = 20;
+      this.pose.aBf = -34;
+      this.pose.torso = -4 - kick * 5;
+      this.pose.head = clamp(ang * 0.32, -12, 14);
+      this.pose.hx = -kick * 2;
+    }
+    if (this.aim.recoil > 0) this.aim.recoil = Math.max(0, this.aim.recoil - dt * 6);
+    if (this.muzzleT > 0) this.muzzleT -= dt;
+
     if (this.blendFrom && this.blendT < this.blendDur) {
       this.blendT += dt;
       const k = clamp(this.blendT / this.blendDur, 0, 1);
@@ -2603,6 +2764,12 @@ class Detective {
   // ja em mundo, dado o pe em (x,y).
   lights(x, y) {
     const out = [];
+    if (this.muzzleT > 0 && this._muzzleLocal) {
+      const mx = x + (this._muzzleLocal.x - ORX) * this.facing;
+      const my = y + (this._muzzleLocal.y - ORY);
+      out.push({ x: mx, y: my, r: 104, color: '#ffd08a', i: 0.95 });
+      out.push({ x: mx, y: my, r: 26, color: '#fff4d8', i: 1.1 });
+    }
     if (this.props.flame > 0 && this._lightLocal) {
       const fx = x + (this._lightLocal.x - ORX) * this.facing;
       const fy = y + (this._lightLocal.y - ORY);
@@ -2700,6 +2867,13 @@ class Detective {
     stamp(g, P.coatSkirt);
     g.restore();
 
+    // ---- coldre no quadril ----
+    g.save();
+    g.translate(6, HIP_Y + 1);
+    stamp(g, P.holster);
+    if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
+    g.restore();
+
     // ---- tronco ----
     g.save();
     g.translate(0, HIP_Y);
@@ -2756,6 +2930,17 @@ class Detective {
     // objetos presos a mao
     if (front && this.props.cig === 'hand') {
       g.save(); g.translate(1, 2); stamp(g, P.cigOff); g.restore();
+    }
+    if (front && this.props.gun === 'hand') {
+      g.save();
+      g.translate(0, 3);
+      stamp(g, P.gun);
+      // a boca do cano fica 10px a frente do punho
+      g.translate(10, -1);
+      const m = g.getTransform ? g.getTransform() : null;
+      if (m) this._muzzleLocal = { x: m.e, y: m.f };
+      if (this.muzzleT > 0) stamp(g, P.muzzle);
+      g.restore();
     }
     if (!front && this.props.lighter === 'hand') {
       g.save();
@@ -4403,7 +4588,7 @@ __mods["systems/player.js"] = function(__exp){
 // segundo; a animacao do cigarro e cancelada por QUALQUER tecla.
 
 const { Detective } = __req("art/detective.js");
-const { clamp } = __req("core/gfx.js");
+const { clamp, gfx } = __req("core/gfx.js");
 const { input } = __req("core/input.js");
 const { audio } = __req("core/audio.js");
 
@@ -4432,8 +4617,21 @@ class Player {
     this.floatText = null;
     this.barkQueue = [];
     this.barkGap = 0;
+
+    // arma
+    this.gun = 'holstered';   // holstered | drawing | ready | holstering | reloading
+    this.gunT = 0;
+    this.aimAngle = 0;
+    this.ammo = 6;
+    this.clipSize = 6;
+    this.reserve = 18;
+    this.ammoHud = 0;         // quanto tempo o contador ainda fica na tela
+    this.fireCd = 0;
+
     this.det.onEvent = (ev) => this._animEvent(ev);
   }
+
+  get aiming() { return this.det.aim.on; }
 
   spawn(x, facing, y) {
     this.x = x; this.facing = facing || 1;
@@ -4493,23 +4691,135 @@ class Player {
     }
   }
 
+  // -------------------------------------------------------------------
+  // arma
+  // -------------------------------------------------------------------
+
+  _updateGun(dt, canAct) {
+    const d = this.det;
+    if (this.gunT > 0) this.gunT -= dt;
+    if (this.fireCd > 0) this.fireCd -= dt;
+    if (this.ammoHud > 0) this.ammoHud -= dt;
+
+    const querMirar = canAct && input.mouse.right && this.state !== 'punch' && this.state !== 'interact';
+
+    if (this.gun === 'holstered') {
+      if (querMirar) {
+        this.gun = 'drawing'; this.gunT = 0.30;
+        this.aimAngle = 0;
+        audio.leather(1);
+      }
+    } else if (this.gun === 'drawing') {
+      if (this.gunT <= 0) {
+        this.gun = 'ready';
+        d.props.gun = 'hand';
+        this.ammoHud = 3;
+        audio.reloadClick(1.3);
+      }
+      if (!input.mouse.right) { this.gun = 'holstered'; this.gunT = 0; }
+    } else if (this.gun === 'reloading') {
+      if (this.gunT <= 0) {
+        const falta = this.clipSize - this.ammo;
+        const usa = Math.min(falta, this.reserve);
+        this.ammo += usa; this.reserve -= usa;
+        this.gun = 'ready';
+        this.ammoHud = 3;
+        audio.reloadClick(0.8);
+      }
+    } else if (this.gun === 'ready') {
+      if (querMirar) {
+        // Mouse para CIMA levanta a mira. movementY e negativo subindo,
+        // por isso o sinal invertido. Movimento horizontal e ignorado.
+        this.aimAngle = clamp(this.aimAngle - input.mouse.dy * 0.30, -38, 46);
+        d.aim.on = true;
+        d.aim.angle = this.aimAngle;
+        this.vx = 0;                       // mirar prende os pes no chao
+        if (input.mouse.pressed) this._fire();
+        if (input.pressedFrame.has('KeyR') && this.ammo < this.clipSize && this.reserve > 0) {
+          this.gun = 'reloading'; this.gunT = 1.0;
+          d.aim.on = false;
+          audio.reloadClick(0.7);
+          setTimeout(() => audio.reloadClick(1.1), 340);
+        }
+      } else {
+        this.gunT -= dt;
+        if (this.gunT < -0.5) { this.gun = 'holstering'; this.gunT = 0.28; audio.leather(0.8); }
+      }
+    } else if (this.gun === 'holstering') {
+      d.aim.on = false;
+      if (this.gunT <= 0) { this.gun = 'holstered'; d.props.gun = 'holstered'; }
+      if (querMirar) { this.gun = 'ready'; d.props.gun = 'hand'; this.gunT = 0; }
+    }
+
+    if (this.gun !== 'ready' || !input.mouse.right) d.aim.on = this.gun === 'ready' && input.mouse.right;
+  }
+
+  _fire() {
+    if (this.fireCd > 0) return;
+    const d = this.det;
+    this.ammoHud = 4;
+    if (this.ammo <= 0) {
+      this.fireCd = 0.28;
+      audio.dryClick();
+      this.say(this.reserve > 0 ? 'bark_reload' : 'bark_dry', 2.0);
+      return;
+    }
+    this.ammo--;
+    this.fireCd = 0.34;
+    d.aim.recoil = 1;
+    d.muzzleT = 0.055;
+    audio.gunshot(1);
+    gfx.shake(2.6, 0.22);
+    gfx.flash = 0.05;
+
+    const rad = this.aimAngle * Math.PI / 180;
+    const ox = this.x + this.facing * 22;
+    const oy = this.y - 48 - Math.sin(rad) * 10;
+
+    // cartucho saltando
+    this.fx.spawn({
+      x: ox, y: oy - 2, vx: -this.facing * 40 + (Math.random() - 0.5) * 20,
+      vy: -70 - Math.random() * 30, ay: 320, life: 1.2, size: 1,
+      color: '#c8a45a', a: 1, fade: 0.3,
+    });
+    // fumaca da boca do cano
+    this.fx.burst(7, () => ({
+      x: ox + this.facing * 12, y: oy - Math.random() * 3,
+      vx: this.facing * (30 + Math.random() * 50), vy: -8 - Math.random() * 16,
+      ay: -6, drag: 2.2, life: 0.5 + Math.random() * 0.4, size: 1,
+      color: '#8d8779', a: 0.35, fade: 1.4,
+    }));
+    // faisca onde a bala bate
+    const dist = 150 + Math.random() * 70;
+    const hx = this.x + this.facing * dist;
+    const hy = oy - Math.tan(rad) * dist;
+    this.fx.burst(9, () => ({
+      x: hx, y: hy, vx: -this.facing * (30 + Math.random() * 90),
+      vy: (Math.random() - 0.5) * 120, ay: 240, life: 0.3 + Math.random() * 0.25,
+      size: 1, color: Math.random() > 0.5 ? '#ffd07a' : '#fff2c8', a: 1, fade: 1.2, glow: true,
+    }));
+  }
+
   update(dt, level, allow = true) {
     const d = this.det;
     const canAct = allow && this.controllable;
 
     if (this.lockTime > 0) this.lockTime -= dt;
     if (this.comboWindow > 0) this.comboWindow -= dt;
+    this._updateGun(dt, canAct);
 
+    const mirando = this.aiming;
     let ax = 0;
-    const wantRun = input.isDown('run');
-    const dir = canAct && this.lockTime <= 0 ? input.axisX() : 0;
+    const wantRun = input.isDown('run') && !mirando;
+    const dir = (canAct && this.lockTime <= 0 && !mirando) ? input.axisX() : 0;
 
-    if (canAct && (input.axisX() !== 0 || input.pressed('attack') || input.pressed('interact'))) {
+    if (canAct && (input.axisX() !== 0 || input.pressed('attack') || input.pressed('interact')
+                   || input.mouse.right)) {
       this.cancelIdleAnim();
     }
 
-    // ---- ataque ----
-    if (canAct && input.pressed('attack')) {
+    // ---- ataque (soco desativado com a arma na mao) ----
+    if (canAct && !mirando && this.gun === 'holstered' && input.pressed('attack')) {
       if (this.state === 'punch' && this.comboWindow > 0 && !this.comboNext) {
         this.comboNext = true;
       } else if (this.state !== 'punch') {
@@ -4570,7 +4880,9 @@ class Player {
       else if (sp > 3) { if (d.anim !== 'walk') d.play('walk'); d.speed = clamp(sp / SPEED_WALK, 0.6, 1.3); }
       else {
         d.speed = 1;
-        this.idleTime += dt;
+        // com a arma na mao ele nao vai procurar cigarro
+        if (this.gun !== 'holstered') this.idleTime = 0;
+        else this.idleTime += dt;
         if (this.idleTime > IDLE_TO_SMOKE && canAct) {
           this.state = 'smoke';
           d.play('smoke', { restart: true, blend: 0.3 });
@@ -4761,6 +5073,11 @@ const STR = {
                        en: 'If anyone is in here, they have seen me already.' },
   bark_bar_bottles:  { pt: 'Bebida boa, tudo no chão. Que desperdício.',
                        en: 'Good liquor, all over the floor. Waste.' },
+
+  bark_reload:       { pt: 'Vazio. Boa hora.',
+                       en: 'Empty. Great timing.' },
+  bark_dry:          { pt: 'Sem bala. Como sempre.',
+                       en: 'No rounds. Of course.' },
 
   bark_joke_1:       { pt: 'Devia ter trazido uma lanterna. E um emprego.',
                        en: 'Should have brought a flashlight. And a job.' },
@@ -6901,10 +7218,58 @@ class Game {
       });
     }
 
+    if (!paused) this.drawGunUI(gfx.s, cam);
+
     this.dialogue.draw(gfx.s);
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
+  }
+
+  // Linha de mira e contador de balas.
+  //
+  // A linha existe porque nao ha mira na tela: sem ela o jogador nao tem
+  // como saber para onde o cano esta apontando antes de gastar a bala.
+  // Ela e pontilhada e fraca de proposito — e uma nocao, nao um laser.
+  drawGunUI(ctx, cam) {
+    const p = this.player;
+
+    if (p.aiming) {
+      const rad = p.aimAngle * Math.PI / 180;
+      const ox = p.x - cam.ix + p.facing * 26;
+      const oy = p.y - cam.iy - 48 - Math.sin(rad) * 10;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let d = 6; d < 130; d += 7) {
+        const a = 0.42 * (1 - d / 130);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#d8a860';
+        ctx.fillRect(Math.round(ox + p.facing * d), Math.round(oy - Math.tan(rad) * d), 1, 1);
+      }
+      ctx.restore();
+    }
+
+    if (p.ammoHud > 0 || p.aiming) {
+      const a = p.aiming ? 1 : clamp(p.ammoHud, 0, 1);
+      const x = VW - 16, y = VH - 20;
+      ctx.save();
+      ctx.globalAlpha = a;
+      for (let i = 0; i < p.clipSize; i++) {
+        const bx = x - (p.clipSize - i) * 5;
+        ctx.fillStyle = i < p.ammo ? '#e8c88a' : '#3a332c';
+        ctx.fillRect(bx, y, 3, 6);
+        if (i < p.ammo) { ctx.fillStyle = '#fff0c8'; ctx.fillRect(bx, y, 3, 1); }
+      }
+      text(ctx, String(p.reserve), x - p.clipSize * 5 - 6, y - 2, {
+        size: 9, font: 'ui', weight: 'bold', color: PAL.uiDim, align: 'right', alpha: a,
+      });
+      if (p.gun === 'reloading') {
+        text(ctx, 'R', x - p.clipSize * 5 - 6, y - 2, {
+          size: 9, font: 'ui', weight: 'bold', color: PAL.uiAccent, align: 'right', alpha: a,
+        });
+      }
+      ctx.restore();
+    }
   }
 
   // Falas de passagem: dispara quando o jogador cruza um ponto da fase.

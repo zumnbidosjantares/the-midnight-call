@@ -52,10 +52,21 @@ CONTROLES
   SHIFT (segurando)     correr
   E                     interagir / avancar dialogo
   J  ou  ESPACO         socar (aperte de novo para o segundo golpe)
+
+  BOTAO DIREITO         segurar para sacar a arma e mirar
+  MOUSE PARA CIMA/BAIXO enquanto mira, levanta e abaixa o cano
+                        (movimento horizontal e ignorado de proposito)
+  BOTAO ESQUERDO        atirar
+  R                     recarregar
+  soltar o BOTAO DIREITO guarda a arma no coldre
+
   ESC                   pausar (no jogo) / voltar (nos menus)
   ESC ou ENTER segurado pular a cutscene de abertura
   DELETE                apagar o arquivo de save selecionado
   F1                    informacoes de depuracao
+
+Mirando, os pes ficam presos no chao — nao da para andar e atirar ao mesmo
+tempo. E de proposito: e um jogo de terror, nao de acao.
 
 SALA DE TESTE (no menu principal)
   setas esquerda/direita   trocar de animacao

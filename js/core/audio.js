@@ -297,6 +297,92 @@ class Audio {
     src.start(t, Math.random() * 2, 2.2); src.stop(t + 2.2);
   }
 
+  // Tiro: estalo curto e agudo, corpo grave, e uma cauda de eco jogada no
+  // reverb. Sem a cauda soa a estouro de balao; com ela soa a beco.
+  gunshot(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const estalo = c.createBufferSource();
+    estalo.buffer = this.noiseBuf;
+    estalo.playbackRate.value = 1.6;
+    const hp = c.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 1400;
+    estalo.connect(hp);
+    this._env(hp, t, 0.001, 0.10, 0.55 * vol);
+    estalo.start(t, Math.random() * 3, 0.2); estalo.stop(t + 0.2);
+
+    const corpo = c.createBufferSource();
+    corpo.buffer = this.noiseBuf;
+    corpo.playbackRate.value = 0.5;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(1800, t);
+    lp.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+    corpo.connect(lp);
+    const g1 = this._env(lp, t, 0.001, 0.28, 0.5 * vol);
+    g1.connect(this.verb);
+    corpo.start(t, Math.random() * 3, 0.5); corpo.stop(t + 0.5);
+
+    const soco = c.createOscillator();
+    soco.type = 'sine';
+    soco.frequency.setValueAtTime(220, t);
+    soco.frequency.exponentialRampToValueAtTime(40, t + 0.16);
+    this._env(soco, t, 0.001, 0.2, 0.55 * vol);
+    soco.start(t); soco.stop(t + 0.25);
+
+    // cauda batendo nas paredes
+    const cauda = c.createBufferSource();
+    cauda.buffer = this.noiseBuf;
+    cauda.playbackRate.value = 0.8;
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.value = 900;
+    cauda.connect(bp);
+    const g2 = this._env(bp, t + 0.04, 0.05, 0.9, 0.16 * vol);
+    g2.connect(this.verb);
+    cauda.start(t + 0.04, Math.random() * 2, 1.2); cauda.stop(t + 1.2);
+  }
+
+  dryClick() {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 9; f.frequency.value = 2600;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.035, 0.20);
+    s.start(t, Math.random() * 3, 0.06); s.stop(t + 0.08);
+  }
+
+  // couro e metal: sacar, guardar, recarregar
+  leather(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.9;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 1.4;
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.exponentialRampToValueAtTime(1500, t + 0.14);
+    s.connect(f);
+    this._env(f, t, 0.006, 0.16, 0.13 * vol);
+    s.start(t, Math.random() * 3, 0.3); s.stop(t + 0.3);
+  }
+
+  reloadClick(pitch = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 12; f.frequency.value = 1800 * pitch;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.05, 0.16);
+    s.start(t, Math.random() * 3, 0.08); s.stop(t + 0.1);
+  }
+
   uiMove() {
     if (!this.ensure()) return;
     const c = this.ctx, t = c.currentTime;

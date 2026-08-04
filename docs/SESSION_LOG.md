@@ -631,6 +631,56 @@ The detective's name, then NPCs and dialogue choices.
 
 ---
 
+## Session 06 — 2026-08-04
+
+**Duration:** ~40 min (estimate) · **Tokens:** ~80k (estimate)
+
+### The coat is closed now
+
+Caught by the player, and he was right: the coat was drawn open with the
+shirt and tie running down the middle of the chest. That is what you see
+from the **front**. A side-scroller camera looks at the *side* of the coat,
+where there is no opening at all.
+
+Redrawn as solid cloth with a folded lapel near the neck, a row of buttons
+along the front edge, and a belt. The only shirt left visible is the small
+triangle of collar at the throat, which is correct.
+
+### Gun
+
+- **Holster on the hip**, drawn over the coat. Under it would be more
+  realistic and completely invisible.
+- Sprites for the gun, the grip sticking out of the holster, and a muzzle
+  flash.
+- **Aiming overrides the animation** rather than being one. The arm angle
+  comes from the player's mouse, so it cannot be keyframed: after the
+  animation is sampled, the front arm, head tilt and torso lean are
+  overwritten from `aim.angle`. The body keeps breathing underneath.
+- Right mouse draws and aims (0.30s draw), mouse Y sets the angle between
+  −38° and +46°, **horizontal movement is read and discarded**. Left mouse
+  fires, `R` reloads, releasing right mouse holsters after a beat.
+- Aiming roots the feet. You cannot walk and shoot.
+- Six rounds, eighteen in reserve. Dry click and a bark when empty.
+- Firing gives recoil on the arm and torso, screen shake, a muzzle flash
+  that is a **real light source** (it lights the whole alley for one frame),
+  a spinning shell casing, smoke from the barrel, and sparks where the
+  round hits.
+- **Dotted aim line**, because there is no crosshair — without it you cannot
+  tell where the barrel points until you have wasted the bullet. Faint and
+  dashed on purpose: a notion, not a laser.
+- New sounds: gunshot (crack, body, low thump, and a tail thrown into the
+  reverb so it sounds like an alley and not a balloon), dry click, leather
+  for draw and holster, and reload clicks.
+
+Punching is disabled while the gun is out, and he will not reach for a
+cigarette with a weapon in his hand.
+
+### Next session starts with
+
+The detective's name, then NPCs and dialogue choices.
+
+---
+
 ## Template for the next entry
 
 ```

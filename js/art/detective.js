@@ -28,7 +28,8 @@ const MAP = {
   n: PAL.brass, e: PAL.eye, E: PAL.sclera, o: PAL.brow,
   C: PAL.coatHi, c: PAL.coat, j: PAL.coatDk, y: PAL.coatEdge,
   i: '#ded6c4', a: '#9d9484', N: '#ff6a2a',   // cigarro: papel, sombra, brasa
-  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama do isqueiro
+  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama e fogo de boca
+  M: '#727880', m: '#4b5158',                 // metal da arma
 };
 
 // Medidas do esqueleto, em pixels, a partir do chao. Proporcao puxada da
@@ -127,32 +128,69 @@ function buildParts() {
   // DIREITA do centro, o colete tem uma aba larga atras e uma estreita na
   // frente, e a alca do coldre passa so pelas costas. Antes era simetrico,
   // e simetria em vista lateral le como "de costas".
-  // Tronco: sobretudo aberto. A abertura fica a DIREITA do centro e mostra
-  // camisa e gravata; a aba de tras e larga, a da frente estreita. E a
-  // largura desigual das duas abas que diz para que lado ele esta virado.
+  // Tronco: sobretudo FECHADO.
+  //
+  // A versao anterior mostrava camisa e gravata descendo pelo meio do
+  // peito — que e o que se ve de FRENTE. Num jogo lateral a camera olha o
+  // costado do casaco, e ali nao ha abertura nenhuma: so pano, a lapela
+  // dobrada perto do pescoco e a fileira de botoes na beirada da frente.
+  // A unica camisa visivel e o triangulo do colarinho.
   P.torso = sprite({
     pivot: [9, 20], map: MAP, rows: [
-      '...yjCCCCCCjy.....',
-      '..yjCCCCCCCCjy....',
-      '.yjCCCcWWWWcCjy...',
-      '.yjCCCjWWRRWWjCjy.',
-      '.yjCCCjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRRWWjCjy.',
-      '.yjCCcjWWRrWWjCjy.',
-      '.yjCCcjWWRrWWjCjy.',
-      '.yjCCcjWWrrWWjCjy.',
-      '.yjCCcnWWrrWWnCjy.',
-      '.yjCCcjWWrrWWjCjy.',
-      '.yjCCcjWWrzWWjCjy.',
-      '.yjCCcnWWrzWWnCjy.',
-      '.yjCCcjWWzzWWjCjy.',
-      '.yjCCcjWWWzWWjCjy.',
-      '.yjCCccjWWWWjcCjy.',
-      '.yjCCCccjWWjccCjy.',
-      '..yjCCCcccccCCjy..',
-      '..yyjCCCCCCCCjyy..',
+      '...yjCCCCCCCjy....',
+      '..yjCCCCCCCCCjy...',
+      '.yjCCCCCCCCCWWjy..',
+      '.yjCCCCCCCCcWCjy..',
+      '.yjCCCCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjnjy..',
+      '.yjLLLLLLLLLLLjy..',
+      '.yjllllllllllljy..',
+      '.yjCCcCCCCCcjCjy..',
+      '.yjCCcCCCCCcjCjy..',
+      '..yjCCcCCCCcjCjy..',
+      '..yjCCCCCCCCCjy...',
+      '...yjCCCCCCCjy....',
+    ]
+  });
+
+  // Coldre no quadril, do lado que a camera ve. Fica POR CIMA do casaco:
+  // debaixo dele seria mais realista e completamente invisivel.
+  P.holster = sprite({
+    pivot: [3, 0], map: MAP, rows: [
+      'lLLLLLl', 'lLLLLLl', 'lLLLLLl', 'lLLLLLl', 'lLLLLLl',
+      'lLLLLLl', '.lLLLl.', '.lLLLl.', '..lLl..', '..lll..',
+    ]
+  });
+
+  // cabo da arma saindo do coldre (some quando ela esta na mao)
+  P.gunButt = sprite({
+    pivot: [2, 5], map: MAP, rows: [
+      '.mmm.', 'mMMmk', 'mMMmk', 'kmmkk', '.kk..',
+    ]
+  });
+
+  P.gun = sprite({
+    pivot: [1, 3], map: MAP, rows: [
+      '...mMMMMMMm',
+      '..mMMMMMMMm',
+      '.mMMMmmmmmm',
+      'mMMMm......',
+      'kMMk.......',
+      '.kk........',
+    ]
+  });
+
+  P.muzzle = sprite({
+    pivot: [0, 3], map: MAP, rows: [
+      '..Y....', '.YFY...', 'YFFFY..', 'YFFFFYf', 'YFFFY..', '.YFY...', '..Y....',
     ]
   });
 
@@ -465,7 +503,12 @@ export class Detective {
     this.blendDur = 0.14;
     this.done = false;
     this.onEvent = null;
-    this.props = { cig: 'none', lighter: 'none', flame: 0 };
+    this.props = { cig: 'none', lighter: 'none', flame: 0, gun: 'holstered' };
+    // Mira: sobrescreve os angulos do braco da frente depois da animacao.
+    // Nao da para keyframar isto — o angulo vem do mouse do jogador.
+    this.aim = { on: false, angle: 0, recoil: 0 };
+    this.muzzleT = 0;
+    this._muzzleLocal = null;
     this.rimColor = '#7fa5d8';
     this.rimDX = -1; this.rimDY = -1;
     // 0.55 deixava um contorno azul em volta do corpo inteiro e ele parecia
@@ -538,6 +581,22 @@ export class Detective {
 
     sampleAnim(a, tn, this.pose);
 
+    // A mira entra DEPOIS da animacao e por cima dela: o corpo continua
+    // respirando e andando, so o braco da frente obedece ao mouse.
+    if (this.aim.on) {
+      const ang = this.aim.angle;
+      const kick = this.aim.recoil;
+      this.pose.aFu = 90 + ang - kick * 16;
+      this.pose.aFf = -7 - kick * 10;
+      this.pose.aBu = 20;
+      this.pose.aBf = -34;
+      this.pose.torso = -4 - kick * 5;
+      this.pose.head = clamp(ang * 0.32, -12, 14);
+      this.pose.hx = -kick * 2;
+    }
+    if (this.aim.recoil > 0) this.aim.recoil = Math.max(0, this.aim.recoil - dt * 6);
+    if (this.muzzleT > 0) this.muzzleT -= dt;
+
     if (this.blendFrom && this.blendT < this.blendDur) {
       this.blendT += dt;
       const k = clamp(this.blendT / this.blendDur, 0, 1);
@@ -573,6 +632,12 @@ export class Detective {
   // ja em mundo, dado o pe em (x,y).
   lights(x, y) {
     const out = [];
+    if (this.muzzleT > 0 && this._muzzleLocal) {
+      const mx = x + (this._muzzleLocal.x - ORX) * this.facing;
+      const my = y + (this._muzzleLocal.y - ORY);
+      out.push({ x: mx, y: my, r: 104, color: '#ffd08a', i: 0.95 });
+      out.push({ x: mx, y: my, r: 26, color: '#fff4d8', i: 1.1 });
+    }
     if (this.props.flame > 0 && this._lightLocal) {
       const fx = x + (this._lightLocal.x - ORX) * this.facing;
       const fy = y + (this._lightLocal.y - ORY);
@@ -670,6 +735,13 @@ export class Detective {
     stamp(g, P.coatSkirt);
     g.restore();
 
+    // ---- coldre no quadril ----
+    g.save();
+    g.translate(6, HIP_Y + 1);
+    stamp(g, P.holster);
+    if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
+    g.restore();
+
     // ---- tronco ----
     g.save();
     g.translate(0, HIP_Y);
@@ -726,6 +798,17 @@ export class Detective {
     // objetos presos a mao
     if (front && this.props.cig === 'hand') {
       g.save(); g.translate(1, 2); stamp(g, P.cigOff); g.restore();
+    }
+    if (front && this.props.gun === 'hand') {
+      g.save();
+      g.translate(0, 3);
+      stamp(g, P.gun);
+      // a boca do cano fica 10px a frente do punho
+      g.translate(10, -1);
+      const m = g.getTransform ? g.getTransform() : null;
+      if (m) this._muzzleLocal = { x: m.e, y: m.f };
+      if (this.muzzleT > 0) stamp(g, P.muzzle);
+      g.restore();
     }
     if (!front && this.props.lighter === 'hand') {
       g.save();

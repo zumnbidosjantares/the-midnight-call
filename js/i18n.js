@@ -104,6 +104,11 @@ const STR = {
   bark_bar_bottles:  { pt: 'Bebida boa, tudo no chão. Que desperdício.',
                        en: 'Good liquor, all over the floor. Waste.' },
 
+  bark_reload:       { pt: 'Vazio. Boa hora.',
+                       en: 'Empty. Great timing.' },
+  bark_dry:          { pt: 'Sem bala. Como sempre.',
+                       en: 'No rounds. Of course.' },
+
   bark_joke_1:       { pt: 'Devia ter trazido uma lanterna. E um emprego.',
                        en: 'Should have brought a flashlight. And a job.' },
   bark_joke_2:       { pt: 'Já estive em lugares piores. Morei num.',

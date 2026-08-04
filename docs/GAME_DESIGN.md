@@ -139,7 +139,8 @@ Times are main-path estimates for a first-time player.
 | **Sanity** | later | drives the post-processing, not a bar on screen |
 | **Enemies + AI + chases** | later | |
 | **Hiding** | later | |
-| **Weapons** | later | one gun, six bullets, the whole game |
+| **Gun: draw, aim, fire, reload, ammo** | **done** | right mouse aims, mouse Y sets the angle, aiming roots you |
+| **Barks** (short lines above the head) | **done** | `level.barks` / `level.enterBarks` |
 
 ---
 

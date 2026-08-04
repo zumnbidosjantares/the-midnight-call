@@ -41,9 +41,16 @@ If something goes wrong, run `DIAGNOSTICO.bat`.
 | `Shift` (hold) | Run |
 | `E` | Interact / advance dialogue |
 | `J` or `Space` | Punch (press twice for the second hit) |
+| **Right mouse** (hold) | Draw the gun and aim |
+| **Mouse up / down** | Raise and lower the barrel while aiming (horizontal is ignored) |
+| **Left mouse** | Fire |
+| `R` | Reload |
 | `Esc` | Pause / back |
 | `Esc` or `Enter` (hold) | Skip the opening cutscene |
 | `F1` | Debug overlay |
+
+Aiming roots you to the spot — you cannot walk and shoot. That is
+deliberate: this is a horror game, not an action game.
 
 The main menu has a **Test Room** for stepping through every animation.
 
