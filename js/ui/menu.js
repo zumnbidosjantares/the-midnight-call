@@ -153,14 +153,13 @@ export class TitleMenu {
   }
 
   _detEvent(ev) {
-    if (ev === 'lighter_flick') audio.lighterFlick();
-    else if (ev === 'flame_on') { audio.flameWhoosh(0.7); gfx.flash = 0.08; }
+    if (ev === 'say_not_today') this.fala = 0.001;
     else if (ev === 'cig_toss') {
       this.fx.spawn({
-        x: 110, y: 172, vx: 70, vy: -26, ay: 240,
+        x: DET_X + 10, y: 172, vx: 70, vy: -26, ay: 240,
         life: 1.4, size: 1, color: '#ded6c4', a: 0.9, fade: 0.4,
       });
-    }
+    } else if (ev === 'sigh') audio.blip(0.4);
   }
 
   enter() {
@@ -206,6 +205,7 @@ export class TitleMenu {
     }
     if (this.det.anim === 'smoke' && this.det.done) this.det.play('idle', { blend: 0.3 });
     this.det.update(dt);
+    if (this.fala) { this.fala += dt; if (this.fala > 2.6) this.fala = 0; }
 
     // piscada do titulo, como neon com mau contato
     this.flickT -= dt;
@@ -251,6 +251,16 @@ export class TitleMenu {
   }
 
   drawUI(ctx) {
+    // a mesma falinha do jogo, aqui no menu
+    if (this.fala) {
+      const f = this.fala;
+      const a = f < 0.25 ? f / 0.25 : (f > 1.7 ? Math.max(0, (2.6 - f) / 0.9) : 1);
+      text(ctx, T('not_today'), DET_X, this.bd.GY - 78 - Math.min(6, f * 5), {
+        size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
+        alpha: a, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
+      });
+    }
+
     const t = this.title;
     const tx = Math.round(COL_X - t.w / 2);
     const ty = 40;

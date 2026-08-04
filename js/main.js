@@ -28,7 +28,7 @@ import { t as T, setLang, getLang, LINES, line as L } from './i18n.js';
 const settings = {
   lang: 'pt',
   master: 0.8, music: 0.55, sfx: 0.85, voice: 1.0,
-  subs: true, scanlines: 0.10, grain: 0.055,
+  subs: true, scanlines: 0.07, grain: 0.018,
   shake: true, pixelPerfect: false,
 };
 
@@ -368,7 +368,7 @@ class Game {
     // no mundo, existe para o jogador nunca perder o proprio corpo de vista
     // num jogo que e quase todo escuro.
     gfx.addLight(this.player.x - cam.ix, this.player.y - cam.iy - 30, 86,
-      lv.indoor ? '#a88458' : '#7d93bd', 0.34, 1.45);
+      lv.indoor ? '#a88458' : '#8f8d84', 0.26, 1.45);
     for (const L2 of this.player.lights(cam)) gfx.addLight(L2.x, L2.y, L2.r, L2.color, L2.i);
     gfx.endLights(lv.bloom);
 
@@ -386,6 +386,17 @@ class Game {
     if (this.promptA > 0.02 && near) {
       drawPrompt(gfx.s, this.player.x - cam.ix, this.player.y - cam.iy - 70,
         near.prompt, this.promptA, lv.t);
+    }
+
+    // falinha em cima da cabeca ("hoje não...")
+    const fa = this.player.floatAlpha();
+    if (fa > 0) {
+      const ft = this.player.floatText;
+      text(gfx.s, T(ft.key), this.player.x - cam.ix,
+        this.player.y - cam.iy - 78 - Math.min(6, ft.t * 5), {
+        size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
+        alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
+      });
     }
 
     this.dialogue.draw(gfx.s);

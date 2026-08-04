@@ -272,7 +272,7 @@ export function buildAlley() {
     interactables: inter,
     weather: 'rain',
     rainIntensity: 1,
-    reflect: 0.20,
+    reflect: 0.13,
     minX: 24, maxX: W - 40,
     spawn: { x: 90, facing: 1 },
     doorX: DOOR_X + 13,

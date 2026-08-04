@@ -34,6 +34,7 @@ export class Player {
     this.onInteract = null;
     this.onAnimEvent = null;
     this.controllable = true;
+    this.floatText = null;
     this.det.onEvent = (ev) => this._animEvent(ev);
   }
 
@@ -70,6 +71,11 @@ export class Player {
       case 'hit': audio.punchHit(0.7); break;
       case 'lighter_flick': audio.lighterFlick(); break;
       case 'flame_on': audio.flameWhoosh(0.8); break;
+      case 'say_not_today':
+        // A unica fala do jogo que nao passa pela caixa de dialogo: sai
+        // curta, em cima da cabeca, e ninguem responde.
+        this.floatText = { key: 'not_today', t: 0, dur: 2.6 };
+        break;
       case 'cig_toss':
         if (this.fx) {
           this.fx.spawn({
@@ -88,6 +94,7 @@ export class Player {
     if (this.state === 'smoke') {
       this.state = 'idle';
       this.idleTime = 0;
+      this.floatText = null;
       this.det.play('idle', { blend: 0.22 });
     }
   }
@@ -177,7 +184,21 @@ export class Player {
       }
     }
 
+    if (this.floatText) {
+      this.floatText.t += dt;
+      if (this.floatText.t >= this.floatText.dur) this.floatText = null;
+    }
+
     d.update(dt);
+  }
+
+  // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
+  floatAlpha() {
+    if (!this.floatText) return 0;
+    const { t, dur } = this.floatText;
+    if (t < 0.25) return t / 0.25;
+    if (t > dur - 0.9) return Math.max(0, (dur - t) / 0.9);
+    return 1;
   }
 
   _startPunch(n) {

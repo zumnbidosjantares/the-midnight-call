@@ -39,7 +39,11 @@ export const THIGH_LEN = 13;
 export const SHIN_LEN = 11;
 export const UPPER_LEN = 10;
 export const FORE_LEN = 9;
-export const ARM_X = 5;            // afastamento do ombro em relacao ao centro
+// O braco de tras fica mais afastado que o da frente. Com os dois no mesmo
+// deslocamento ele desaparecia dentro da silhueta do tronco — parecia que o
+// personagem so tinha um braco.
+export const ARM_X = 6;
+export const ARM_X_BACK = 7;
 export const LEG_X = 3;
 export const HEIGHT = 62;
 
@@ -50,47 +54,56 @@ export const HEIGHT = 62;
 const P = {};
 
 function buildParts() {
+  // Cabeca em tres-quartos virada para a DIREITA. O que faz a direcao ser
+  // lida sem duvida: um olho so (o de tras fica escondido pelo volume do
+  // rosto), o nariz saindo da silhueta em x12, a orelha marcada em x3 e a
+  // massa de cabelo empurrada para tras. Com dois olhos simetricos ele
+  // parecia estar de frente — ou pior, de costas.
   P.head = sprite({
     pivot: [6, 14], map: MAP, rows: [
-      '....HHHHHH....',
-      '..HHhhhhhhHH..',
-      '.HHhgggggghhH.',
-      '.HHhggggggggh.',
-      '.HHhgSSSSSSt..',
-      '.HHhSSSSSSSt..',
-      '.HhSSeSSSeSt..',
-      '.HhSSSSSSSSt..',
-      '.HhSSSSSSSqt..',
-      '..hSSSSSSSqt..',
-      '..qSSqqqSSst..',
-      '..sSSSSSSSs...',
-      '...sSSSSSs....',
-      '.....SSS......',
+      '...HHHHHHH....',
+      '..HHhhhhhhhH..',
+      '.HHhhgggggghh.',
+      '.HHhgggggggSt.',
+      '.HHhgSSSSSSSt.',
+      '.HHhSSSSSSSSt.',
+      '.HHqSSSSeSSst.',
+      '.HHqSSSSSSStS.',
+      '.HhqSSSSSSSqS.',
+      '.HhSSSSSSSSst.',
+      '..hSSSSqqSSst.',
+      '..sSSSSSSSSs..',
+      '...sSSSSSSs...',
+      '....sSSSs.....',
       '.....sSs......',
     ]
   });
 
+  // Tronco tambem em tres-quartos: o painel de camisa e gravata fica a
+  // DIREITA do centro, o colete tem uma aba larga atras e uma estreita na
+  // frente, e a alca do coldre passa so pelas costas. Antes era simetrico,
+  // e simetria em vista lateral le como "de costas".
   P.torso = sprite({
     pivot: [9, 20], map: MAP, rows: [
-      '...uvVVVVVVVVvu...',
-      '..uvVVVVVVVVVVvu..',
-      '.uvVVVWWWWWWVVVvu.',
-      '.uvVVVWWRRWWVVVvu.',
-      '.uvVVVWWRRWWVVVvu.',
-      '.uvVVLVWWRRWWVVvu.',
-      '.uvVVLVWWRRWWVVvu.',
-      '.uvVLVVWWRRWWVVvu.',
-      '.uvVLVVWWRrWWVVvu.',
-      '.uvLVVVWWRrWWVVvu.',
-      '.uvLVVVWWrrWWVVvu.',
-      '.uvLVVVWWrrWWVVvu.',
-      '.uvVVVnWWrrWWVVvu.',
-      '.uvVVVVWWrzWWVVvu.',
-      '.uvVVVnWWrzWWVVvu.',
-      '.uvVVVVWWzzWWVVvu.',
-      '.uvVVVnWWWzWWVVvu.',
-      '.uvVVVVWWWWWWVVvu.',
-      '..uvVVVVWWWWVVVvu.',
+      '...uvVVVVVVVvu....',
+      '..uvVVVVVVVVVvu...',
+      '.uvVVVVVWWWWWVvu..',
+      '.uvVVVVVWWRRWWVvu.',
+      '.uvVVVVVWWRRWWVvu.',
+      '.uvVVLVVWWRRWWVvu.',
+      '.uvVVLVVWWRRWWVvu.',
+      '.uvVLVVVWWRRWWVvu.',
+      '.uvVLVVVWWRrWWVvu.',
+      '.uvLVVVVWWRrWWVvu.',
+      '.uvLVVVVWWrrWWVvu.',
+      '.uvLVVVVWWrrWWVnu.',
+      '.uvVVVVVWWrrWWVvu.',
+      '.uvVVVVVWWrzWWVnu.',
+      '.uvVVVVVWWrzWWVvu.',
+      '.uvVVVVVWWzzWWVnu.',
+      '.uvVVVVVWWWzWWVvu.',
+      '.uvVVVVVWWWWWWVvu.',
+      '..uvVVVVVWWWWVVvu.',
       '..uuvvVVVVVVvvuu..',
       '...uuvvvvvvvvuu...',
     ]
@@ -152,14 +165,17 @@ function buildParts() {
     ]
   });
 
-  // versoes escuras: membros do lado oposto a camera
-  const K = 0.62, TINT = '#1a2230';
-  P.dUpperArm = darken(P.upperArm, K, TINT);
-  P.dForearm = darken(P.forearm, K, TINT);
-  P.dHand = darken(P.hand, K, TINT);
-  P.dThigh = darken(P.thigh, K, TINT);
-  P.dShin = darken(P.shin, K, TINT);
-  P.dFoot = darken(P.foot, K, TINT);
+  // Membros do lado oposto a camera. O braco de tras precisa ficar CLARO o
+  // bastante para ser visto (antes sumia dentro do tronco), mas a perna de
+  // tras precisa ficar ESCURA o bastante para nao grudar na da frente — as
+  // duas quase se encostam e viravam um bloco so. Por isso dois valores.
+  const K_BRACO = 0.80, K_PERNA = 0.64, TINT = '#22304a';
+  P.dUpperArm = darken(P.upperArm, K_BRACO, TINT);
+  P.dForearm = darken(P.forearm, K_BRACO, TINT);
+  P.dHand = darken(P.hand, K_BRACO, TINT);
+  P.dThigh = darken(P.thigh, K_PERNA, TINT);
+  P.dShin = darken(P.shin, K_PERNA, TINT);
+  P.dFoot = darken(P.foot, K_PERNA, TINT);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,7 +188,8 @@ const FIELDS = ['hx', 'hy', 'torso', 'head', 'aBu', 'aBf', 'aFu', 'aFf',
 const REST = {
   hx: 0, hy: 0, torso: -2, head: 1,
   aBu: 3, aBf: 7, aFu: -4, aFf: 9,
-  lBt: 2, lBs: -3, lBf: 0, lFt: -2, lFs: -2, lFf: 0,
+  // pernas levemente abertas: paradas em paralelo elas viram um bloco so
+  lBt: 4, lBs: -3, lBf: 0, lFt: -4, lFs: -2, lFf: 0,
 };
 
 function pose(o) { return Object.assign({}, REST, o); }
@@ -189,52 +206,60 @@ export const ANIM = {
     ],
   },
 
+  // Andar: o cotovelo quase nao dobra (aXf entre 8 e 14). Braco que dobra
+  // muito enquanto anda parece desarticulado — o balanco tem que vir do
+  // OMBRO, com o antebraco praticamente travado.
   walk: {
-    dur: 0.78, loop: true,
+    dur: 0.76, loop: true, ease: 'linear',
     keys: [
-      { t: 0.00, p: pose({ torso: -5, head: 3, hy: 0, lFt: 24, lFs: -5, lFf: 9, lBt: -22, lBs: -24, lBf: -25, aFu: -22, aFf: 16, aBu: 22, aBf: 20 }) },
-      { t: 0.25, p: pose({ torso: -5, head: 3, hy: -1.6, lFt: 6, lFs: -3, lFf: 0, lBt: 4, lBs: -48, lBf: -14, aFu: -8, aFf: 13, aBu: 9, aBf: 22 }) },
-      { t: 0.50, p: pose({ torso: -5, head: 3, hy: 0, lFt: -22, lFs: -24, lFf: -25, lBt: 24, lBs: -5, lBf: 9, aFu: 22, aFf: 20, aBu: -22, aBf: 16 }) },
-      { t: 0.75, p: pose({ torso: -5, head: 3, hy: -1.6, lFt: 4, lFs: -48, lFf: -14, lBt: 6, lBs: -3, lBf: 0, aFu: 9, aFf: 22, aBu: -8, aBf: 13 }) },
-      { t: 1.00, p: pose({ torso: -5, head: 3, hy: 0, lFt: 24, lFs: -5, lFf: 9, lBt: -22, lBs: -24, lBf: -25, aFu: -22, aFf: 16, aBu: 22, aBf: 20 }) },
+      { t: 0.00, p: pose({ torso: -5, head: 3, hy: 0, lFt: 24, lFs: -5, lFf: 9, lBt: -22, lBs: -24, lBf: -25, aFu: -20, aFf: 10, aBu: 20, aBf: 12 }) },
+      { t: 0.25, p: pose({ torso: -5, head: 3, hy: -1.6, lFt: 6, lFs: -3, lFf: 0, lBt: 4, lBs: -48, lBf: -14, aFu: -7, aFf: 9, aBu: 7, aBf: 13 }) },
+      { t: 0.50, p: pose({ torso: -5, head: 3, hy: 0, lFt: -22, lFs: -24, lFf: -25, lBt: 24, lBs: -5, lBf: 9, aFu: 20, aFf: 12, aBu: -20, aBf: 10 }) },
+      { t: 0.75, p: pose({ torso: -5, head: 3, hy: -1.6, lFt: 4, lFs: -48, lFf: -14, lBt: 6, lBs: -3, lBf: 0, aFu: 7, aFf: 13, aBu: -7, aBf: 9 }) },
+      { t: 1.00, p: pose({ torso: -5, head: 3, hy: 0, lFt: 24, lFs: -5, lFf: 9, lBt: -22, lBs: -24, lBf: -25, aFu: -20, aFf: 10, aBu: 20, aBf: 12 }) },
     ],
     events: [{ t: 0.02, ev: 'step' }, { t: 0.52, ev: 'step' }],
   },
 
+  // Correr: aí sim o cotovelo trava dobrado (~55 graus) e QUASE NAO MUDA.
+  // Quem corre nao abre e fecha o braco, leva ele preso perto do corpo.
   run: {
-    dur: 0.50, loop: true,
+    dur: 0.50, loop: true, ease: 'linear',
     keys: [
-      { t: 0.00, p: pose({ torso: -14, head: 9, hx: 1, hy: -1, lFt: 40, lFs: -22, lFf: 6, lBt: -34, lBs: -52, lBf: -30, aFu: -46, aFf: 74, aBu: 44, aBf: 72 }) },
-      { t: 0.25, p: pose({ torso: -14, head: 9, hx: 1, hy: -3.4, lFt: 10, lFs: -14, lFf: -4, lBt: 12, lBs: -96, lBf: -18, aFu: -16, aFf: 78, aBu: 16, aBf: 80 }) },
-      { t: 0.50, p: pose({ torso: -14, head: 9, hx: 1, hy: -1, lFt: -34, lFs: -52, lFf: -30, lBt: 40, lBs: -22, lBf: 6, aFu: 44, aFf: 72, aBu: -46, aBf: 74 }) },
-      { t: 0.75, p: pose({ torso: -14, head: 9, hx: 1, hy: -3.4, lFt: 12, lFs: -96, lFf: -18, lBt: 10, lBs: -14, lBf: -4, aFu: 16, aFf: 80, aBu: -16, aBf: 78 }) },
-      { t: 1.00, p: pose({ torso: -14, head: 9, hx: 1, hy: -1, lFt: 40, lFs: -22, lFf: 6, lBt: -34, lBs: -52, lBf: -30, aFu: -46, aFf: 74, aBu: 44, aBf: 72 }) },
+      { t: 0.00, p: pose({ torso: -13, head: 9, hx: 1, hy: -1, lFt: 40, lFs: -22, lFf: 6, lBt: -34, lBs: -52, lBf: -30, aFu: -40, aFf: 56, aBu: 38, aBf: 58 }) },
+      { t: 0.25, p: pose({ torso: -13, head: 9, hx: 1, hy: -3.2, lFt: 10, lFs: -14, lFf: -4, lBt: 12, lBs: -92, lBf: -18, aFu: -14, aFf: 58, aBu: 14, aBf: 60 }) },
+      { t: 0.50, p: pose({ torso: -13, head: 9, hx: 1, hy: -1, lFt: -34, lFs: -52, lFf: -30, lBt: 40, lBs: -22, lBf: 6, aFu: 38, aFf: 58, aBu: -40, aBf: 56 }) },
+      { t: 0.75, p: pose({ torso: -13, head: 9, hx: 1, hy: -3.2, lFt: 12, lFs: -92, lFf: -18, lBt: 10, lBs: -14, lBf: -4, aFu: 14, aFf: 60, aBu: -14, aBf: 58 }) },
+      { t: 1.00, p: pose({ torso: -13, head: 9, hx: 1, hy: -1, lFt: 40, lFs: -22, lFf: 6, lBt: -34, lBs: -52, lBf: -30, aFu: -40, aFf: 56, aBu: 38, aBf: 58 }) },
     ],
     events: [{ t: 0.02, ev: 'step' }, { t: 0.52, ev: 'step' }],
   },
 
+  // Soco: recuo curto, extensao rapida, PARADA no impacto e recolhimento.
+  // A pose 0.60 quase igual a 0.52 e o "hold" — sem ele o braco volta
+  // deslizando e o golpe nao tem peso nenhum.
   punch1: {
-    dur: 0.40, loop: false,
+    dur: 0.38, loop: false, ease: 'linear',
     keys: [
       { t: 0.00, p: pose({}) },
-      { t: 0.28, p: pose({ torso: -13, head: 6, hx: -1.5, aFu: -32, aFf: -92, aBu: 12, aBf: -30, lFt: -6, lBt: 6 }) },
-      { t: 0.52, p: pose({ torso: 9, head: 3, hx: 3.5, aFu: 80, aFf: -6, aBu: -18, aBf: -46, lFt: 8, lBt: -8 }) },
-      { t: 0.70, p: pose({ torso: 6, head: 3, hx: 2.5, aFu: 72, aFf: -12, aBu: -14, aBf: -40, lFt: 6, lBt: -6 }) },
+      { t: 0.26, p: pose({ torso: -12, head: 6, hx: -1.5, aFu: -26, aFf: -78, aBu: 10, aBf: -22, lFt: -6, lBt: 6 }) },
+      { t: 0.46, p: pose({ torso: 8, head: 3, hx: 3.5, aFu: 76, aFf: -4, aBu: -16, aBf: -38, lFt: 8, lBt: -8 }) },
+      { t: 0.60, p: pose({ torso: 8, head: 3, hx: 3.2, aFu: 74, aFf: -5, aBu: -15, aBf: -36, lFt: 8, lBt: -8 }) },
       { t: 1.00, p: pose({}) },
     ],
-    events: [{ t: 0.30, ev: 'whoosh' }, { t: 0.52, ev: 'hit' }],
+    events: [{ t: 0.28, ev: 'whoosh' }, { t: 0.46, ev: 'hit' }],
   },
 
   punch2: {
-    dur: 0.48, loop: false,
+    dur: 0.46, loop: false, ease: 'linear',
     keys: [
       { t: 0.00, p: pose({}) },
-      { t: 0.26, p: pose({ torso: 11, head: -5, hx: -2, aBu: -38, aBf: -100, aFu: 16, aFf: -34, lFt: -8, lBt: 8 }) },
-      { t: 0.50, p: pose({ torso: -12, head: 5, hx: 5, aBu: 88, aBf: -4, aFu: -22, aFf: -52, lFt: 12, lBt: -12 }) },
-      { t: 0.72, p: pose({ torso: -9, head: 5, hx: 4, aBu: 78, aBf: -10, aFu: -18, aFf: -46, lFt: 9, lBt: -9 }) },
+      { t: 0.24, p: pose({ torso: 10, head: -5, hx: -2, aBu: -32, aBf: -86, aFu: 14, aFf: -26, lFt: -8, lBt: 8 }) },
+      { t: 0.46, p: pose({ torso: -11, head: 5, hx: 5, aBu: 84, aBf: -2, aFu: -20, aFf: -44, lFt: 12, lBt: -12 }) },
+      { t: 0.62, p: pose({ torso: -11, head: 5, hx: 4.6, aBu: 82, aBf: -3, aFu: -19, aFf: -42, lFt: 11, lBt: -11 }) },
       { t: 1.00, p: pose({}) },
     ],
-    events: [{ t: 0.28, ev: 'whoosh' }, { t: 0.50, ev: 'hit' }],
+    events: [{ t: 0.26, ev: 'whoosh' }, { t: 0.46, ev: 'hit' }],
   },
 
   interact: {
@@ -248,9 +273,40 @@ export const ANIM = {
     events: [{ t: 0.38, ev: 'reach' }],
   },
 
-  // A animacao que da nome ao personagem: ele quer o cigarro, acende, e
-  // desiste. Dez segundos de nada acontecendo — e e o ponto.
+  // A animacao que da nome ao personagem: ele pega o cigarro, olha para
+  // ele, e joga fora. Nao acende.
+  //
+  // Antes ele acendia com a mao de tras enquanto o cigarro estava na mao da
+  // frente — duas maos fazendo coisas que nao combinavam. Agora e uma mao
+  // so, do inicio ao fim, e a decisao esta na pausa em que ele fica
+  // olhando, nao no isqueiro.
   smoke: {
+    dur: 7.2, loop: false,
+    keys: [
+      { t: 0.000, p: pose({}) },
+      { t: 0.100, p: pose({ head: 8, torso: -4, hy: -0.5 }) },
+      { t: 0.220, p: pose({ head: 7, torso: -1, aFu: 30, aFf: -72 }) },
+      { t: 0.300, p: pose({ head: 7, torso: -1, aFu: 27, aFf: -68 }) },
+      { t: 0.420, p: pose({ head: 12, torso: 2, aFu: 22, aFf: -125 }) },
+      { t: 0.560, p: pose({ head: 13, torso: 2, aFu: 21, aFf: -127 }) },
+      { t: 0.660, p: pose({ head: 12, torso: 1, aFu: 22, aFf: -124 }) },
+      { t: 0.760, p: pose({ head: -4, torso: -6, aFu: 20, aFf: -120 }) },
+      { t: 0.820, p: pose({ head: 2, torso: 4, aFu: 50, aFf: 20, hx: 1 }) },
+      { t: 0.880, p: pose({ head: 4, torso: 2, aFu: 30, aFf: 14 }) },
+      { t: 1.000, p: pose({ head: 5 }) },
+    ],
+    events: [
+      { t: 0.300, ev: 'cig_grab' },
+      { t: 0.560, ev: 'hesitate' },
+      { t: 0.700, ev: 'say_not_today' },
+      { t: 0.820, ev: 'cig_toss' },
+      { t: 0.960, ev: 'sigh' },
+    ],
+  },
+
+  // Guardada: a versao com isqueiro, caso volte a ser util mais para a
+  // frente (a chama e uma fonte de luz de verdade).
+  smokeLighter: {
     dur: 10.2, loop: false,
     keys: [
       // Os angulos de "mao no rosto" sao contra-intuitivos: o braco sobe
@@ -289,17 +345,21 @@ export const ANIM = {
     ],
   },
 
-  // sair do carro: comeca dobrado no banco, termina de pe
+  // Sair do carro. Uma subida so, sem contorcao: os angulos caem de forma
+  // monotona do agachado ate de pe. A versao anterior tinha o joelho a 104
+  // graus e o tronco a 26 ao mesmo tempo, e no meio da interpolacao ele
+  // passava por poses que corpo nenhum faz — dava aquele efeito de boneco
+  // se desenrolando.
   getout: {
-    dur: 1.70, loop: false,
+    dur: 1.40, loop: false,
     keys: [
-      { t: 0.00, p: pose({ hy: 19, torso: 26, head: -12, lFt: 74, lFs: -104, lFf: -14, lBt: 58, lBs: -96, lBf: -12, aFu: 34, aFf: -54, aBu: 20, aBf: -40 }) },
-      { t: 0.30, p: pose({ hy: 13, torso: 20, head: -7, lFt: 52, lFs: -74, lFf: -8, lBt: 40, lBs: -70, lBf: -8, aFu: 26, aFf: -44, aBu: 14, aBf: -28 }) },
-      { t: 0.62, p: pose({ hy: 5, torso: 11, head: -2, lFt: 24, lFs: -36, lFf: -4, lBt: 16, lBs: -30, lBf: -3, aFu: 12, aFf: -20, aBu: 8, aBf: -8 }) },
-      { t: 0.85, p: pose({ hy: -1, torso: -5, head: 4, lFt: 2, lFs: -6, lFf: 0, lBt: 2, lBs: -5, lBf: 0, aFu: -6, aFf: 6, aBu: 2, aBf: 6 }) },
+      { t: 0.00, p: pose({ hy: 15, torso: 20, head: -5, lFt: 58, lFs: -74, lFf: -6, lBt: 44, lBs: -70, lBf: -6, aFu: 24, aFf: -36, aBu: 14, aBf: -22 }) },
+      { t: 0.35, p: pose({ hy: 9, torso: 14, head: -2, lFt: 38, lFs: -50, lFf: -4, lBt: 28, lBs: -48, lBf: -4, aFu: 17, aFf: -27, aBu: 10, aBf: -14 }) },
+      { t: 0.70, p: pose({ hy: 2, torso: 6, head: 1, lFt: 16, lFs: -22, lFf: -2, lBt: 10, lBs: -20, lBf: -2, aFu: 7, aFf: -11, aBu: 5, aBf: -3 }) },
+      { t: 0.88, p: pose({ hy: -1, torso: -4, head: 3, lFt: 4, lFs: -7, lFf: 0, lBt: 2, lBs: -6, lBf: 0, aFu: -5, aFf: 7, aBu: 3, aBf: 7 }) },
       { t: 1.00, p: pose({}) },
     ],
-    events: [{ t: 0.66, ev: 'step' }],
+    events: [{ t: 0.62, ev: 'step' }],
   },
 
   // parado olhando para tras — reservado para os sustos
@@ -316,13 +376,21 @@ export const ANIM = {
 
 export const ANIM_NAMES = Object.keys(ANIM);
 
+// Interpolacao entre poses-chave.
+//
+// `ease: 'linear'` importa mais do que parece. Suavizar a entrada E a saida
+// de CADA pose faz o membro desacelerar em todo quadro-chave, e o resultado
+// e aquele balanco mole de boneco de pano. Andar, correr e socar usam
+// interpolacao reta: o movimento tem direcao e para onde o animador mandou,
+// nao onde a curva deixou. So parado e fumando usam curva suave.
 function sampleAnim(anim, tn, out) {
   const keys = anim.keys;
   let i = 0;
   while (i < keys.length - 2 && keys[i + 1].t <= tn) i++;
   const a = keys[i], b = keys[Math.min(i + 1, keys.length - 1)];
   const span = Math.max(1e-6, b.t - a.t);
-  const k = easeInOut(clamp((tn - a.t) / span, 0, 1));
+  let k = clamp((tn - a.t) / span, 0, 1);
+  if (anim.ease !== 'linear') k = easeInOut(k);
   for (const f of FIELDS) out[f] = lerp(a.p[f], b.p[f], k);
   return out;
 }
@@ -352,7 +420,10 @@ export class Detective {
     this.props = { cig: 'none', lighter: 'none', flame: 0 };
     this.rimColor = '#7fa5d8';
     this.rimDX = -1; this.rimDY = -1;
-    this.rimAlpha = 0.55;
+    // 0.55 deixava um contorno azul em volta do corpo inteiro e ele parecia
+    // vestido de neon. O contorno tem que sugerir a luz, nao desenhar o
+    // personagem.
+    this.rimAlpha = 0.30;
     this.reflect = 0;
     this.alpha = 1;
     this._firedIdx = -1;
@@ -577,7 +648,7 @@ export class Detective {
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
-    g.translate(front ? ARM_X : -ARM_X, 2);
+    g.translate(front ? ARM_X : -ARM_X_BACK, 2);
     g.rotate(R(up)); stamp(g, sUp);
     g.translate(0, UPPER_LEN);
     g.rotate(R(fo)); stamp(g, sFo);

@@ -456,6 +456,107 @@ The detective's name, then NPCs and dialogue choices.
 
 ---
 
+## Session 04 — 2026-08-04
+
+**Duration:** ~1h10 (estimate) · **Tokens:** ~120k (estimate)
+
+A correction pass against a list of nine complaints from the player.
+
+### The game not running on other machines — root cause and real fix
+
+**Cause:** the source is written as ES modules. Browsers refuse to load
+modules over `file://`. Anyone who downloaded the repo and double-clicked
+`index.html` got a black screen forever. The local server existed to work
+around that, but a server needs Python, a free port, and a firewall that
+cooperates — three ways to fail on someone else's machine.
+
+**Fix:** `ferramentas/gerar_offline.py` packs every module into a single
+`JOGO_OFFLINE.html` (245 KB) that opens with a double-click anywhere. Each
+module is wrapped in a function registered in a tiny module map, so module
+scope is preserved — plain concatenation would have broken, since
+`pixel.js` and `i18n.js` both export something called `line`. Exports are
+registered as getters so live bindings still work (`i18n` reassigns `lang`).
+
+`findNarration` also needed a `file://` branch: `fetch` is blocked there, so
+it probes candidate filenames with an `<audio>` element instead.
+
+**Verified:** the bundle boots, reaches the menu, plays the cutscene with
+audio and subtitles, and completes the whole opening — tested over http.
+**Not verified:** actual `file://` execution. The sandbox used for testing
+renders local files as static snapshots and cannot run scripts in them. The
+blocker it removes is structural (no modules left), but the player should
+confirm.
+
+### Character
+
+- **Head redrawn as a real three-quarter view.** One eye instead of two, a
+  nose breaking the silhouette at x12, an ear notch at x3, hair mass pushed
+  back. Two symmetric eyes were why he read as facing the camera — or away.
+- **Torso redrawn asymmetric.** Shirt-and-tie panel moved right of centre,
+  wide vest panel behind, narrow one in front, holster strap only on the
+  back. The old symmetric layout read as a back view in a side-scroller.
+- **Back arm no longer vanishes.** Its shoulder now sits 7px out instead of
+  5, and the darkening on back limbs went from 0.62 to 0.80.
+- **Back legs darkened separately (0.64).** Arms need to stay visible, legs
+  need to separate — one constant could not do both, so there are now two.
+- **Rim light cut from 0.55 to 0.30** and the hero light desaturated. He had
+  a blue outline around his whole body and read as wearing neon.
+- **Vest darkened** so the white shirt reads as a separate garment.
+- Legs given a slight stance in the rest pose; parallel legs merged into a
+  single block.
+
+### Animation stiffness
+
+Added `ease: 'linear'` per animation, used by walk, run and both punches.
+Easing in *and* out of every single key made every limb decelerate at every
+keyframe — that is exactly the floppy ragdoll look. Also:
+
+- Walk: elbow amplitude cut roughly in half (the swing belongs to the
+  shoulder; the forearm should stay nearly locked).
+- Run: elbow now holds a near-constant ~57° instead of pumping 72→80°.
+- Punches: added a hold frame right after impact so the hit has weight.
+- `getout` rebuilt as one monotone rise. The old version had the knee at
+  104° and the torso at 26° simultaneously, and interpolation passed
+  through poses no body makes — hence the contorting.
+
+### Cigarette animation reworked
+
+The lighter was in the back hand while the cigarette was in the front hand.
+Now there is no lighter at all: pocket → look at it → hesitate → **"hoje
+não..."** floats above his head → throw it away. One hand throughout. The
+old lighter version is kept as `smokeLighter` (its flame is a real light
+source and may be useful later).
+
+Added a small floating-text system for that line; it also plays on the
+title screen.
+
+### Cutscene and post-processing
+
+- **The car stays parked.** It used to drive off after he got out, which
+  only makes sense for a taxi. Headlights now switch off once he closes the
+  door.
+- **Film grain cut from 0.055 to 0.018**, scanlines from 0.10 to 0.07, and
+  the option sliders' maximums lowered to match. At the old level the noise
+  was eating a face that is only 14px wide.
+- Subtitles rewritten from the updated script, now **respecting the pauses**
+  — each line leaves the screen during silence instead of holding until the
+  next one.
+
+### Still broken, and not fixable from here
+
+The narration audio still does not match the script. Session 03 proved it
+three ways (76.5s script vs 60.76s file; duration correlation 0.149; an
+8-second opening block against a one-word first line). Adding the pauses to
+the subtitles improved the pacing but cannot make the words line up with a
+different recording. **A matching export of the narration is still needed.**
+
+### Next session starts with
+
+Confirmation that `JOGO_OFFLINE.html` runs on another machine, then the
+detective's name and the NPC/dialogue-choice system.
+
+---
+
 ## Template for the next entry
 
 ```

@@ -495,11 +495,29 @@ class Audio {
   // ---------------- narracao gravada ----------------
 
   async findNarration() {
+    // Aberto por file:// (versao JOGO_OFFLINE.html) o fetch e bloqueado
+    // pelo navegador, mas um elemento <audio> ainda consegue carregar o
+    // arquivo. Por isso existem dois caminhos aqui.
+    const porArquivo = typeof location !== 'undefined' && location.protocol === 'file:';
+
     for (const url of CANDIDATE_NARRATION) {
-      try {
-        const r = await fetch(url, { method: 'HEAD' });
-        if (r.ok) { this.narration = url; return url; }
-      } catch (e) { /* arquivo nao existe, segue */ }
+      if (porArquivo) {
+        const achou = await new Promise(resolve => {
+          const el = new window.Audio();
+          const limpar = () => { el.oncanplaythrough = el.onloadedmetadata = el.onerror = null; };
+          const t = setTimeout(() => { limpar(); resolve(false); }, 2500);
+          el.onloadedmetadata = () => { clearTimeout(t); limpar(); resolve(el.duration > 0.5); };
+          el.onerror = () => { clearTimeout(t); limpar(); resolve(false); };
+          el.preload = 'metadata';
+          el.src = url;
+        });
+        if (achou) { this.narration = url; return url; }
+      } else {
+        try {
+          const r = await fetch(url, { method: 'HEAD' });
+          if (r.ok) { this.narration = url; return url; }
+        } catch (e) { /* arquivo nao existe, segue */ }
+      }
     }
     this.narration = null;
     return null;

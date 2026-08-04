@@ -226,16 +226,11 @@ export class Opening {
       case 'closedoor':
         this.doorAngle = lerp(1.15, 0, easeInOut(clamp(this.pt / 0.45, 0, 1)));
         this.player.det.update(dt);
-        if (this.pt > 0.6) { this.phase = 'cardrive'; this.pt = 0; audio.carPassBy(0.55); }
+        // O carro e DELE: fica estacionado na calcada. Antes ele saia
+        // dirigindo sozinho depois que o detetive descia, o que so fazia
+        // sentido se fosse taxi.
+        if (this.pt > 0.9) { this.phase = 'walk'; this.pt = 0; }
         break;
-
-      case 'cardrive': {
-        const k = clamp(this.pt / 2.4, 0, 1);
-        this.carX = CAR_SCREEN_X + easeOut(k) * 520;
-        this.player.det.update(dt);
-        if (k >= 1) { this.phase = 'walk'; this.pt = 0; }
-        break;
-      }
 
       case 'walk': {
         const alleyScreenX = this.destWorldX - this.scroll * PAR_NEAR + R.destAlleyX;
@@ -381,18 +376,21 @@ export class Opening {
       gfx.addCone(dx + R.destLamp2X, R.destLamp2Y + 2, Math.PI / 2, 1.35, 150, PAL.lampWarm, 0.42);
       // o vao do beco fica preto de proposito: nada de luz ali
     }
-    // farois e um pouco de luz de preenchimento no carro, senao ele vira
-    // uma mancha preta em cima do asfalto preto
-    if (this.phase !== 'walk' && this.phase !== 'enter') {
-      const cx = this.carX + 130, cy = R.ROAD_Y - 18;
+    // Farol so enquanto o motor esta ligado. Quando ele desce e fecha a
+    // porta, o carro apaga e fica so a lanterna e o poste.
+    const ligado = this.phase === 'fadein' || this.phase === 'drive' ||
+                   this.phase === 'decel' || this.phase === 'stop';
+    const cy = R.ROAD_Y - 18;
+    if (ligado) {
+      const cx = this.carX + 130;
       gfx.addCone(cx, cy, 0.06, 0.5, 220, '#fff0c8', 0.6);
       gfx.addLight(cx, cy, 34, '#ffe6b0', 0.85);
       gfx.addLight(this.carX + 6, cy, 24, '#ff4a3a', 0.55);
-      // O carro so tem luz propria enquanto anda; parado, quem o ilumina e
-      // o poste da esquina.
-      const moving = this.phase === 'fadein' || this.phase === 'drive' || this.phase === 'decel';
-      gfx.addLight(this.carX + 65, R.ROAD_Y - 22, 150, '#93a8c9', moving ? 0.72 : 0.34, 1.25);
     }
+    // Preenchimento no corpo do carro: forte enquanto anda, fraco parado —
+    // senao ele vira uma mancha preta em cima do asfalto preto.
+    const andando = this.phase === 'fadein' || this.phase === 'drive' || this.phase === 'decel';
+    gfx.addLight(this.carX + 65, R.ROAD_Y - 22, 150, '#93a8c9', andando ? 0.72 : 0.30, 1.25);
   }
 
   drawUI(ctx) {

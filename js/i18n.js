@@ -71,6 +71,7 @@ const STR = {
   loc_street:     { pt: 'RUA HOLLAND, 2h14',    en: 'HOLLAND STREET, 2:14 AM' },
   loc_alley:      { pt: 'BECO DOS FUNDOS',      en: 'BACK ALLEY' },
   loc_bar:        { pt: 'BAR O ULTIMO TROCO',   en: 'THE LAST DIME BAR' },
+  not_today:      { pt: 'hoje não...',          en: 'not tonight...' },
   chapter_1:      { pt: 'CAPITULO UM',          en: 'CHAPTER ONE' },
   chapter_1_name: { pt: 'O homem que atendeu',  en: 'The man who answered' },
 
@@ -108,44 +109,47 @@ export function t(key) {
 // tempo ela fica na tela.
 // ---------------------------------------------------------------------------
 
-export const NARRATION_REF_DUR = 77.0;
+export const NARRATION_REF_DUR = 76.5;
 
+// As pausas do roteiro sao respeitadas: a legenda SAI da tela no silencio
+// em vez de ficar segurando ate a proxima. E o que faz o texto respirar
+// junto com a voz em vez de parecer um bloco parado.
 export const NARRATION = [
-  { t:  0.0, d: 3.0, pt: 'Engraçado...',
+  { t:  0.0, d: 2.5, pt: 'Engraçado...',
                      en: 'Funny...' },
-  { t:  3.0, d: 5.0, pt: 'Passei metade da vida perseguindo monstros.',
+  { t:  3.2, d: 4.0, pt: 'Passei metade da vida perseguindo monstros.',
                      en: 'I spent half my life chasing monsters.' },
-  { t:  8.0, d: 8.0, pt: 'E a outra metade tentando descobrir por que eles nunca saíam do meu caminho.',
+  { t:  8.2, d: 6.8, pt: 'E a outra metade tentando descobrir por que eles nunca saíam do meu caminho.',
                      en: 'And the other half trying to work out why they never got out of my way.' },
-  { t: 16.0, d: 4.0, pt: 'Demorei anos pra entender.',
+  { t: 16.2, d: 2.3, pt: 'Demorei anos pra entender.',
                      en: 'It took me years to understand.' },
-  { t: 20.0, d: 4.0, pt: 'Eles... eles nunca estiveram na minha frente.',
+  { t: 20.0, d: 3.5, pt: 'Eles... eles nunca estiveram na minha frente.',
                      en: 'They... they were never in front of me.' },
-  { t: 24.0, d: 4.0, pt: 'Eles vinham comigo.',
+  { t: 24.2, d: 2.3, pt: 'Eles vinham comigo.',
                      en: 'They were walking with me.' },
-  { t: 28.0, d: 4.6, pt: 'Tem gente que acredita que o tempo cura...',
+  { t: 28.0, d: 4.0, pt: 'Tem gente que acredita que o tempo cura...',
                      en: 'Some people believe time heals...' },
-  { t: 32.6, d: 1.4, pt: 'Mentira.',
+  { t: 32.8, d: 1.0, pt: 'Mentira.',
                      en: 'It does not.' },
-  { t: 34.0, d: 6.0, pt: 'O tempo só aprende a esconder as feridas... até você olhar no espelho.',
+  { t: 34.5, d: 4.7, pt: 'O tempo só aprende a esconder as feridas... até você olhar no espelho.',
                      en: 'Time only learns to hide the wounds... until you look in a mirror.' },
-  { t: 40.0, d: 4.0, pt: 'Tem noites em que eu ainda escuto.',
+  { t: 40.5, d: 3.0, pt: 'Tem noites em que eu ainda escuto.',
                      en: 'There are nights I still hear it.' },
-  { t: 44.0, d: 3.0, pt: 'Não são vozes...',
+  { t: 44.5, d: 1.7, pt: 'Não são vozes...',
                      en: 'Not voices...' },
-  { t: 47.0, d: 2.0, pt: 'Silêncios.',
+  { t: 47.0, d: 1.5, pt: 'Silêncios.',
                      en: 'Silences.' },
-  { t: 49.0, d: 3.5, pt: 'Os silêncios que eu deixei pra trás.',
+  { t: 49.5, d: 2.7, pt: 'Os silêncios que eu deixei pra trás.',
                      en: 'The silences I left behind.' },
-  { t: 52.5, d: 5.5, pt: 'Não... Não existe aposentadoria pra consciência.',
+  { t: 53.0, d: 4.2, pt: 'Não... Não existe aposentadoria pra consciência.',
                      en: 'No... There is no retirement for a conscience.' },
-  { t: 58.0, d: 4.0, pt: 'Ela bate ponto todos os dias.',
+  { t: 58.0, d: 2.5, pt: 'Ela bate ponto todos os dias.',
                      en: 'It clocks in every single day.' },
-  { t: 62.0, d: 7.0, pt: 'Hoje, talvez seja o primeiro dia em muito tempo que eu parei de fugir.',
+  { t: 62.0, d: 6.2, pt: 'Hoje, talvez seja o primeiro dia em muito tempo que eu parei de fugir.',
                      en: 'Tonight might be the first time in a long while that I stopped running.' },
-  { t: 69.0, d: 5.0, pt: 'Se existe uma conta esperando por mim...',
+  { t: 69.2, d: 4.0, pt: 'Se existe uma conta esperando por mim...',
                      en: 'If there is a bill waiting for me...' },
-  { t: 74.0, d: 3.0, pt: 'Já passou da hora de pagar.',
+  { t: 74.2, d: 2.3, pt: 'Já passou da hora de pagar.',
                      en: 'It is long past time I paid it.' },
 ];
 

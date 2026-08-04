@@ -254,8 +254,8 @@ export class OptionsPanel {
       { key: 'opt_sfx', type: 'range', f: 'sfx' },
       { key: 'opt_voice', type: 'range', f: 'voice' },
       { key: 'opt_subs', type: 'bool', f: 'subs' },
-      { key: 'opt_scan', type: 'range', f: 'scanlines', max: 0.3 },
-      { key: 'opt_grain', type: 'range', f: 'grain', max: 0.16 },
+      { key: 'opt_scan', type: 'range', f: 'scanlines', max: 0.18 },
+      { key: 'opt_grain', type: 'range', f: 'grain', max: 0.06 },
       { key: 'opt_shake', type: 'bool', f: 'shake' },
       { key: 'opt_pixel', type: 'bool', f: 'pixelPerfect' },
     ];

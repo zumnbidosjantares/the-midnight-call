@@ -53,9 +53,12 @@ class Gfx {
     this.flash = 0;
     this.flashColor = '#ffffff';
     this.letterbox = 0;       // 0..1 — altura das barras de cinema
-    this.grainAmount = 0.055;
-    this.scanlines = 0.10;
-    this.vignetteAmount = 1;
+    // Grao discreto de proposito. Acima de ~0.03 o ruido comeca a comer os
+    // pixels do rosto do personagem, que tem 14px de largura — o que sobra
+    // e uma cara suja e sem expressao.
+    this.grainAmount = 0.018;
+    this.scanlines = 0.07;
+    this.vignetteAmount = 0.9;
     this.pixelPerfect = false;
     this.time = 0;
   }

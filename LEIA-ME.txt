@@ -4,24 +4,39 @@ versao 0.1 — fatia jogavel de teste
 
 COMO JOGAR
 ----------
+Clique duas vezes em  JOGO_OFFLINE.html
+
+E so. Nao precisa de Python, nao precisa de servidor, nao precisa de
+internet. Funciona em qualquer maquina com um navegador. E este o arquivo
+para mandar para outra pessoa (junto com a pasta assets, se quiser a voz
+do narrador).
+
+
+A OUTRA FORMA (para desenvolver)
+--------------------------------
 Clique duas vezes em  ABRIR_JOGO.bat
 
-Vai abrir uma janela preta (o servidor) e, logo em seguida, o jogo no
-navegador. DEIXE A JANELA PRETA ABERTA enquanto joga. Para fechar o jogo,
-feche ela.
+Sobe um servidor local e abre o index.html. Serve para trabalhar no jogo:
+edita um arquivo em js/, aperta F5, ve o resultado. O JOGO_OFFLINE.html e
+uma foto congelada do codigo e so muda quando for gerado de novo.
 
-O endereco tem que comecar com  http://localhost  — nunca abra o
-index.html com dois cliques direto, o navegador bloqueia os modulos do
-jogo e a tela fica presa em "carregando...".
+Para gerar de novo depois de mexer no codigo:
+
+    python ferramentas/gerar_offline.py
+
+Nunca abra o index.html com dois cliques: ele usa modulos JavaScript, que
+o navegador bloqueia em file://, e a tela fica presa em "carregando...".
+Era exatamente por isso que o jogo nao rodava em outras maquinas. O
+JOGO_OFFLINE.html existe para resolver isso.
 
 
 SE NAO ABRIR
 ------------
-1. Clique duas vezes em  DIAGNOSTICO.bat  e me mande o que aparecer.
-   Ele confere Python, arquivos faltando e portas ocupadas.
+1. Use o JOGO_OFFLINE.html. Ele nao depende de nada.
 
-2. Se a janela preta fechar sozinha na hora, o erro esta escrito nela.
-   Rode ABRIR_JOGO.bat de novo: agora ele para e espera antes de fechar.
+2. Se voce estiver usando o ABRIR_JOGO.bat: clique duas vezes em
+   DIAGNOSTICO.bat e me mande o que aparecer. Ele confere Python,
+   arquivos faltando e portas ocupadas.
 
 3. Se a tela do jogo ficar presa em "carregando..." por 15 segundos, ela
    se transforma sozinha num diagnostico com botao de COPIAR.

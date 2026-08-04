@@ -27,10 +27,12 @@ export const PAL = {
   shirtSh: '#a49d90',
   shirtDk: '#736d63',
 
-  // colete
-  vestHi:  '#4b5567',
-  vest:    '#374050',
-  vestDk:  '#232a36',
+  // Colete. Escuro o bastante para contrastar com a camisa branca — se os
+  // dois ficam claros, o torso vira uma mancha azul so e some a leitura de
+  // "colete por cima de camisa".
+  vestHi:  '#414b5e',
+  vest:    '#2e3644',
+  vestDk:  '#1c222c',
 
   // gravata
   tieHi:   '#a53c33',

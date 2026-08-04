@@ -13,17 +13,25 @@ Built from scratch in HTML5 Canvas. No engine, no build step, no dependencies.
 
 ## Running it
 
-**Windows:** double-click `ABRIR_JOGO.bat`.
-**Linux / macOS:** `./abrir_jogo.sh`
+**Double-click `JOGO_OFFLINE.html`.** No server, no Python, no internet, no
+install. Any browser, any machine.
 
-Both start a small local server and open the game. Needs Python 3 (or
-Node.js as a fallback). Keep the terminal window open while playing.
+That file is the whole game bundled into a single HTML — the source is
+written as ES modules, which browsers refuse to load over `file://`, so a
+tiny build step (`ferramentas/gerar_offline.py`) packs every module into one
+file with a minimal module registry. Each module keeps its own scope, so
+same-named exports in different files do not collide.
 
-The game **must** be served over `http://localhost` — opening `index.html`
-directly with `file://` makes the browser refuse to load the JavaScript
-modules.
+**For development**, run `ABRIR_JOGO.bat` (Windows) or `./abrir_jogo.sh`
+instead. That serves `index.html` over a local server so you can edit a file
+in `js/` and just press F5. Regenerate the bundle afterwards with:
 
-If it does not open, run `DIAGNOSTICO.bat`.
+```
+python ferramentas/gerar_offline.py
+```
+
+Do not open `index.html` directly — it will hang on the loading screen.
+If something goes wrong, run `DIAGNOSTICO.bat`.
 
 ## Controls
 
