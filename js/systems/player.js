@@ -35,6 +35,8 @@ export class Player {
     this.onAnimEvent = null;
     this.controllable = true;
     this.floatText = null;
+    this.barkQueue = [];
+    this.barkGap = 0;
     this.det.onEvent = (ev) => this._animEvent(ev);
   }
 
@@ -72,9 +74,7 @@ export class Player {
       case 'lighter_flick': audio.lighterFlick(); break;
       case 'flame_on': audio.flameWhoosh(0.8); break;
       case 'say_not_today':
-        // A unica fala do jogo que nao passa pela caixa de dialogo: sai
-        // curta, em cima da cabeca, e ninguem responde.
-        this.floatText = { key: 'not_today', t: 0, dur: 2.6 };
+        this.say('not_today', 2.6);
         break;
       case 'cig_toss':
         if (this.fx) {
@@ -94,7 +94,6 @@ export class Player {
     if (this.state === 'smoke') {
       this.state = 'idle';
       this.idleTime = 0;
-      this.floatText = null;
       this.det.play('idle', { blend: 0.22 });
     }
   }
@@ -184,13 +183,33 @@ export class Player {
       }
     }
 
-    if (this.floatText) {
-      this.floatText.t += dt;
-      if (this.floatText.t >= this.floatText.dur) this.floatText = null;
-    }
-
+    this._updateBarks(dt);
     d.update(dt);
   }
+
+  // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
+  // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
+  say(key, dur = 2.6) {
+    if (this.floatText && this.floatText.key === key) return;
+    if (this.barkQueue.some(b => b.key === key)) return;
+    this.barkQueue.push({ key, dur });
+  }
+
+  sayAll(keys) { for (const k of keys) this.say(k); }
+
+  _updateBarks(dt) {
+    if (this.floatText) {
+      this.floatText.t += dt;
+      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
+    } else if (this.barkGap > 0) {
+      this.barkGap -= dt;
+    } else if (this.barkQueue.length) {
+      const b = this.barkQueue.shift();
+      this.floatText = { key: b.key, dur: b.dur, t: 0 };
+    }
+  }
+
+  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
 
   // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
   floatAlpha() {

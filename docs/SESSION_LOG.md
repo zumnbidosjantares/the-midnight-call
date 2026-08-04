@@ -557,6 +557,80 @@ detective's name and the NPC/dialogue-choice system.
 
 ---
 
+## Session 05 — 2026-08-04
+
+**Duration:** ~50 min (estimate) · **Tokens:** ~90k (estimate)
+
+### The overcoat
+
+The waistcoat-and-shirt outfit never resolved into a shape at 62px tall —
+the player's words were "you cannot tell what it is". Replaced with a
+**brown overcoat**, which is the single biggest readability win so far:
+
+- New torso: coat open at the front, shirt and tie showing in the gap. The
+  back panel is wide and the front panel narrow — that width difference is
+  what tells you which way he faces.
+- New part: **coat skirt** hanging from the hip to just below the knee. It
+  lags behind the torso lean and sways with each step. This is the one
+  place on the character where floppy is correct: cloth does not follow
+  bone.
+- Sleeves became coat sleeves with a lighter cuff.
+- Hair pushed down to near-black. Brown hair on a brown coat made the head
+  melt into the body. Contrast beat realism.
+
+### The head connects to the body now
+
+Two additions fixed "the body looks disconnected, like paper":
+
+- **Raised coat collar**, drawn *behind* the head. Previously the head sat
+  on a 2px neck and read as cut out and pasted on. The collar points now
+  frame the neck and stitch the head to the shoulders.
+- **The eye has four pixels with different jobs**: brow, sclera, pupil, and
+  the shadow under it. A single black dot is not an eye, it is a hole —
+  and that is exactly what it looked like.
+
+### Barks
+
+New system for short lines above his head, one at a time with a gap between
+them. Fired by walking past a point (`level.barks`), by entering a level
+(`level.enterBarks`), or by an animation event. Nineteen lines written for
+the alley and the bar — dry observations and a few jokes he tells nobody.
+
+`"hoje não..."` now uses the same system.
+
+### The bar is wrecked, and he notices
+
+It was merely closed: dark, tidy, chairs stacked. Now it is **destroyed** —
+two holes smashed through the panelling, debris and glass across the floor,
+broken chairs, a collapsed bottle shelf, wallpaper hanging in strips. The
+chairs are still stacked neatly in the middle of it, and that contradiction
+is the point; he says so out loud.
+
+Added an examine chain on the broken wall: the splinters point inward, and
+there is no room on the other side.
+
+### Also
+
+- Film grain and scanline defaults were still too strong for a 14px face
+  after the last pass; the option maximums were lowered to match.
+- `enterLevel` now forces `det.visible = true`. The cutscene hides the
+  character and nothing else guaranteed it came back.
+- Barks are positioned higher when an interact prompt is on screen, so the
+  two never overlap.
+- Rebuilt `JOGO_OFFLINE.html` (257 KB).
+
+### Note for next time
+
+Do not launch the dev screenshot server on port 8137 — the player's own
+`ABRIR_JOGO.bat` uses it, and a running game was found holding the port
+mid-session. Use 8140.
+
+### Next session starts with
+
+The detective's name, then NPCs and dialogue choices.
+
+---
+
 ## Template for the next entry
 
 ```

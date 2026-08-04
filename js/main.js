@@ -305,11 +305,15 @@ class Game {
     this.rain.groundY = lv.groundY + 2;
     this.rain.intensity = lv.rainIntensity || 1;
     this.player.det.reflect = lv.reflect;
+    this.player.det.visible = true;   // a cutscene esconde; entrar numa fase sempre mostra
     this.player.wet = lv.weather === 'rain';
     this.fx.clear();
     this.locCard = 4.0;
     this.dialogue.active = false;
     this.dialogue.fade = 0;
+    this.player.clearBarks();
+    if (lv.barks) for (const b of lv.barks) b.done = false;
+    if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
     audio.stopAllLoops();
     if (lv.weather === 'rain') {
@@ -339,6 +343,7 @@ class Game {
       const canControl = !this.dialogue.active && !this.transition;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
+      this.checkBarks(lv);
       this.rain.update(sim, this.cam.x);
       this.fog.update(sim, lv.t);
       this.fx.update(sim);
@@ -388,12 +393,14 @@ class Game {
         near.prompt, this.promptA, lv.t);
     }
 
-    // falinha em cima da cabeca ("hoje não...")
+    // Falinha em cima da cabeca. Sobe mais quando o balao de interagir
+    // esta na tela, senao os dois se sobrepoem e nao se le nenhum.
     const fa = this.player.floatAlpha();
     if (fa > 0) {
       const ft = this.player.floatText;
+      const alto = this.promptA > 0.15 ? 96 : 80;
       text(gfx.s, T(ft.key), this.player.x - cam.ix,
-        this.player.y - cam.iy - 78 - Math.min(6, ft.t * 5), {
+        this.player.y - cam.iy - alto - Math.min(6, ft.t * 5), {
         size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
         alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
       });
@@ -403,6 +410,19 @@ class Game {
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
+  }
+
+  // Falas de passagem: dispara quando o jogador cruza um ponto da fase.
+  // Cada uma so uma vez por visita — repetir piada mata a piada.
+  checkBarks(lv) {
+    if (!lv.barks) return;
+    for (const b of lv.barks) {
+      if (b.done) continue;
+      if (Math.abs(this.player.x - b.x) < (b.range || 40)) {
+        b.done = true;
+        this.player.sayAll(Array.isArray(b.key) ? b.key : [b.key]);
+      }
+    }
   }
 
   doInteract(it) {

@@ -16,10 +16,12 @@ export const PAL = {
   skinSh:  '#a5704f',
   skinDk:  '#7f5339',
 
-  // cabelo
-  hairDk:  '#241a17',
-  hair:    '#382a24',
-  hairHi:  '#503a2d',
+  // Cabelo bem escuro. Com o sobretudo marrom, cabelo castanho claro fazia
+  // a cabeca derreter dentro do casaco — precisa de contraste, nao de
+  // realismo.
+  hairDk:  '#140e0d',
+  hair:    '#221917',
+  hairHi:  '#34251f',
 
   // camisa
   shirtHi: '#ece7da',
@@ -27,12 +29,22 @@ export const PAL = {
   shirtSh: '#a49d90',
   shirtDk: '#736d63',
 
-  // Colete. Escuro o bastante para contrastar com a camisa branca — se os
-  // dois ficam claros, o torso vira uma mancha azul so e some a leitura de
-  // "colete por cima de camisa".
+  // Sobretudo marrom. E ele que da a silhueta do personagem: ombro largo,
+  // gola levantada, aba caindo ate o joelho. Colete e camisa sozinhos nao
+  // formavam forma nenhuma a 62 pixels de altura.
+  coatHi:  '#8a6440',
+  coat:    '#6d4c2e',
+  coatDk:  '#4a3320',
+  coatEdge:'#2b1d12',
+
+  // colete, ainda visivel na abertura do sobretudo
   vestHi:  '#414b5e',
   vest:    '#2e3644',
   vestDk:  '#1c222c',
+
+  // olho: esclera, pupila e sobrancelha separadas
+  sclera:  '#ddd4c6',
+  brow:    '#2a1e1a',
 
   // gravata
   tieHi:   '#a53c33',

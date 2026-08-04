@@ -1720,10 +1720,12 @@ const PAL = {
   skinSh:  '#a5704f',
   skinDk:  '#7f5339',
 
-  // cabelo
-  hairDk:  '#241a17',
-  hair:    '#382a24',
-  hairHi:  '#503a2d',
+  // Cabelo bem escuro. Com o sobretudo marrom, cabelo castanho claro fazia
+  // a cabeca derreter dentro do casaco — precisa de contraste, nao de
+  // realismo.
+  hairDk:  '#140e0d',
+  hair:    '#221917',
+  hairHi:  '#34251f',
 
   // camisa
   shirtHi: '#ece7da',
@@ -1731,12 +1733,22 @@ const PAL = {
   shirtSh: '#a49d90',
   shirtDk: '#736d63',
 
-  // Colete. Escuro o bastante para contrastar com a camisa branca — se os
-  // dois ficam claros, o torso vira uma mancha azul so e some a leitura de
-  // "colete por cima de camisa".
+  // Sobretudo marrom. E ele que da a silhueta do personagem: ombro largo,
+  // gola levantada, aba caindo ate o joelho. Colete e camisa sozinhos nao
+  // formavam forma nenhuma a 62 pixels de altura.
+  coatHi:  '#8a6440',
+  coat:    '#6d4c2e',
+  coatDk:  '#4a3320',
+  coatEdge:'#2b1d12',
+
+  // colete, ainda visivel na abertura do sobretudo
   vestHi:  '#414b5e',
   vest:    '#2e3644',
   vestDk:  '#1c222c',
+
+  // olho: esclera, pupila e sobrancelha separadas
+  sclera:  '#ddd4c6',
+  brow:    '#2a1e1a',
 
   // gravata
   tieHi:   '#a53c33',
@@ -2041,11 +2053,12 @@ const MAP = {
   V: PAL.vestHi, v: PAL.vest, u: PAL.vestDk,
   R: PAL.tieHi, r: PAL.tie, z: PAL.tieDk,
   P: PAL.pantHi, p: PAL.pant, d: PAL.pantDk,
-  B: PAL.bootHi, b: PAL.boot, k: PAL.bootDk,
+  B: PAL.bootHi, b: PAL.boot, k: PAL.coatEdge,
   L: PAL.leather, l: PAL.leathDk,
-  n: PAL.brass, e: PAL.eye,
-  C: '#ded6c4', c: '#9d9484', E: '#ff6a2a',
-  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',
+  n: PAL.brass, e: PAL.eye, E: PAL.sclera, o: PAL.brow,
+  C: PAL.coatHi, c: PAL.coat, j: PAL.coatDk, y: PAL.coatEdge,
+  i: '#ded6c4', a: '#9d9484', N: '#ff6a2a',   // cigarro: papel, sombra, brasa
+  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama do isqueiro
 };
 
 // Medidas do esqueleto, em pixels, a partir do chao. Proporcao puxada da
@@ -2077,6 +2090,9 @@ function buildParts() {
   // rosto), o nariz saindo da silhueta em x12, a orelha marcada em x3 e a
   // massa de cabelo empurrada para tras. Com dois olhos simetricos ele
   // parecia estar de frente — ou pior, de costas.
+  // O olho tem quatro pixels com funcoes diferentes: sobrancelha (o),
+  // esclera (E), pupila (e) e a sombra embaixo (q). Um ponto preto sozinho
+  // nao e olho, e furo — e era exatamente essa a cara que ele tinha.
   P.head = sprite({
     pivot: [6, 14], map: MAP, rows: [
       '...HHHHHHH....',
@@ -2084,16 +2100,56 @@ function buildParts() {
       '.HHhhgggggghh.',
       '.HHhgggggggSt.',
       '.HHhgSSSSSSSt.',
-      '.HHhSSSSSSSSt.',
-      '.HHqSSSSeSSst.',
-      '.HHqSSSSSSStS.',
+      '.HHhSSSooSSSt.',
+      '.HHqSSSEeSSst.',
+      '.HHqSSSqSSStS.',
       '.HhqSSSSSSSqS.',
       '.HhSSSSSSSSst.',
       '..hSSSSqqSSst.',
       '..sSSSSSSSSs..',
       '...sSSSSSSs...',
       '....sSSSs.....',
-      '.....sSs......',
+      '....sSSSs.....',
+    ]
+  });
+
+  // Gola levantada do sobretudo, desenhada ATRAS da cabeca. E ela que
+  // costura o pescoco no corpo: antes a cabeca pousava em cima de um
+  // pescoco de 2px e parecia recortada e colada.
+  P.collar = sprite({
+    pivot: [8, 9], map: MAP, rows: [
+      '..yCy......yCy..',
+      '..yCy......yCy..',
+      '.yCCy......yCCy.',
+      '.yCCy......yCCy.',
+      'yCCCy......yCCCy',
+      'yCCCyy....yyCCCy',
+      'yCCCCy....yCCCCy',
+      'yCCCCCyyyyCCCCCy',
+      'yyCcccccccccCCyy',
+    ]
+  });
+
+  // Aba do sobretudo, presa no quadril. Cai ate um pouco abaixo do joelho,
+  // deixando canela e bota de fora para o ciclo de caminhada continuar
+  // legivel.
+  P.coatSkirt = sprite({
+    pivot: [10, 0], map: MAP, rows: [
+      '...yjCCCCCCjy.......',
+      '..yjCCCCCCCCjy......',
+      '..yjCCCCCCCCjy......',
+      '.yjCCCCCCCCCCjy.....',
+      '.yjCCCCCCCCCCjy.....',
+      '.yjCCCcjCCCCCjy.....',
+      '.yjCCCcjCCCCCjy.....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCcCCcjCcCCCCjy....',
+      'yjCcCCcjCcCCCCjy....',
+      'yjCcCCcjCcCCCjjy....',
+      'yjjcccjjjcccjjy.....',
+      '.yyjjjyyyjjjyy......',
     ]
   });
 
@@ -2101,43 +2157,47 @@ function buildParts() {
   // DIREITA do centro, o colete tem uma aba larga atras e uma estreita na
   // frente, e a alca do coldre passa so pelas costas. Antes era simetrico,
   // e simetria em vista lateral le como "de costas".
+  // Tronco: sobretudo aberto. A abertura fica a DIREITA do centro e mostra
+  // camisa e gravata; a aba de tras e larga, a da frente estreita. E a
+  // largura desigual das duas abas que diz para que lado ele esta virado.
   P.torso = sprite({
     pivot: [9, 20], map: MAP, rows: [
-      '...uvVVVVVVVvu....',
-      '..uvVVVVVVVVVvu...',
-      '.uvVVVVVWWWWWVvu..',
-      '.uvVVVVVWWRRWWVvu.',
-      '.uvVVVVVWWRRWWVvu.',
-      '.uvVVLVVWWRRWWVvu.',
-      '.uvVVLVVWWRRWWVvu.',
-      '.uvVLVVVWWRRWWVvu.',
-      '.uvVLVVVWWRrWWVvu.',
-      '.uvLVVVVWWRrWWVvu.',
-      '.uvLVVVVWWrrWWVvu.',
-      '.uvLVVVVWWrrWWVnu.',
-      '.uvVVVVVWWrrWWVvu.',
-      '.uvVVVVVWWrzWWVnu.',
-      '.uvVVVVVWWrzWWVvu.',
-      '.uvVVVVVWWzzWWVnu.',
-      '.uvVVVVVWWWzWWVvu.',
-      '.uvVVVVVWWWWWWVvu.',
-      '..uvVVVVVWWWWVVvu.',
-      '..uuvvVVVVVVvvuu..',
-      '...uuvvvvvvvvuu...',
+      '...yjCCCCCCjy.....',
+      '..yjCCCCCCCCjy....',
+      '.yjCCCcWWWWcCjy...',
+      '.yjCCCjWWRRWWjCjy.',
+      '.yjCCCjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRrWWjCjy.',
+      '.yjCCcjWWRrWWjCjy.',
+      '.yjCCcjWWrrWWjCjy.',
+      '.yjCCcnWWrrWWnCjy.',
+      '.yjCCcjWWrrWWjCjy.',
+      '.yjCCcjWWrzWWjCjy.',
+      '.yjCCcnWWrzWWnCjy.',
+      '.yjCCcjWWzzWWjCjy.',
+      '.yjCCcjWWWzWWjCjy.',
+      '.yjCCccjWWWWjcCjy.',
+      '.yjCCCccjWWjccCjy.',
+      '..yjCCCcccccCCjy..',
+      '..yyjCCCCCCCCjyy..',
     ]
   });
 
+  // Mangas do sobretudo, com punho mais claro na ponta.
   P.upperArm = sprite({
     pivot: [2, 1], map: MAP, rows: [
-      'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx',
-      'XwWWWx', 'XwWWWx', 'XwWWWx', '.XwWWx', '.XwwWx',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', '.yjCcy', '.yjccy',
     ]
   });
 
   P.forearm = sprite({
     pivot: [2, 1], map: MAP, rows: [
-      'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', '.XwWWx', '.XwWWx',
-      '.XwWWx', '.XwWWx', '.XwwWx', '..Xxx.',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', '.yjCcy', '.yjCcy',
+      '.yjCcy', '.yjCcy', 'yCCCCy', '.yyyy.',
     ]
   });
 
@@ -2170,8 +2230,8 @@ function buildParts() {
     ]
   });
 
-  P.cigLit = sprite({ pivot: [0, 0], map: MAP, rows: ['ECCC'] });
-  P.cigOff = sprite({ pivot: [0, 0], map: MAP, rows: ['cCCC'] });
+  P.cigLit = sprite({ pivot: [0, 0], map: MAP, rows: ['Niii'] });
+  P.cigOff = sprite({ pivot: [0, 0], map: MAP, rows: ['aiii'] });
 
   P.lighter = sprite({
     pivot: [1, 0], map: MAP, rows: ['.nn.', 'nnnn', 'kkkk', 'kBBk', 'kkkk'],
@@ -2444,6 +2504,7 @@ class Detective {
     this.rimAlpha = 0.30;
     this.reflect = 0;
     this.alpha = 1;
+    this.skirt = 0;      // inclinacao da aba do sobretudo (segue o corpo com atraso)
     this._firedIdx = -1;
     this._lightLocal = null;
     this._cigWorld = null;
@@ -2513,6 +2574,14 @@ class Detective {
       for (const f of FIELDS) this.pose[f] = lerp(this.blendFrom[f], this.pose[f], k);
       if (k >= 1) this.blendFrom = null;
     }
+
+    // A aba do sobretudo persegue a inclinacao do corpo com atraso, e
+    // balanca a cada passo. E o unico lugar do personagem onde "mole" e o
+    // efeito certo: pano nao acompanha osso.
+    const andando = this.anim === 'walk' || this.anim === 'run';
+    const alvo = -this.pose.torso * 0.45
+      + (andando ? Math.sin(this.time * (this.anim === 'run' ? 13 : 8)) * (this.anim === 'run' ? 6 : 3.4) : 0);
+    this.skirt = lerp(this.skirt, alvo, 1 - Math.exp(-9 * dt));
 
     if (this.flipT < 1) this.flipT = Math.min(1, this.flipT + dt * 9);
     if (this.props.flame > 0 && this.props.flame < 1) this.props.flame = Math.min(1, this.props.flame + dt * 5);
@@ -2614,13 +2683,6 @@ class Detective {
     // ---- braco de tras (atras do tronco) ----
     if (!backArmFront) this._arm(g, p, false, true);
 
-    // ---- tronco ----
-    g.save();
-    g.translate(0, HIP_Y);
-    g.rotate(R(p.torso));
-    stamp(g, P.torso);
-    g.restore();
-
     // ---- perna da frente ----
     g.save();
     g.translate(LEG_X, HIP_Y);
@@ -2631,11 +2693,29 @@ class Detective {
     g.rotate(R(p.lFf - p.lFt - p.lFs)); stamp(g, P.foot);
     g.restore();
 
-    // ---- cabeca ----
+    // ---- aba do sobretudo (por cima das pernas, por baixo do tronco) ----
+    g.save();
+    g.translate(0, HIP_Y);
+    g.rotate(R(this.skirt));
+    stamp(g, P.coatSkirt);
+    g.restore();
+
+    // ---- tronco ----
+    g.save();
+    g.translate(0, HIP_Y);
+    g.rotate(R(p.torso));
+    stamp(g, P.torso);
+    g.restore();
+
+    // ---- cabeca (com a gola atras dela) ----
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
+    g.save();
+    g.translate(0, 4);
+    stamp(g, P.collar);
+    g.restore();
     g.rotate(R(p.head));
     g.translate(1, -1);
     stamp(g, P.head);
@@ -3377,6 +3457,70 @@ function chair(ctx, x, gy, flip, seed) {
   rect(ctx, bx - (flip ? 2 : 0), y, 4, 2, '#3a2718');
 }
 
+// ---------------------------------------------------------------------------
+// destroco — o bar nao esta fechado, esta arrebentado
+// ---------------------------------------------------------------------------
+
+function brokenChair(ctx, x, gy, seed) {
+  const rnd = mulberry32(seed);
+  // assento caido de lado
+  rect(ctx, x, gy - 7, 15, 4, '#4a3320');
+  rect(ctx, x, gy - 7, 15, 1, '#6b4b2e');
+  rect(ctx, x, gy - 3, 15, 1, '#20140b');
+  // pernas quebradas apontando para fora
+  rect(ctx, x + 2, gy - 16, 2, 9, '#3d2a1a');
+  rect(ctx, x + 11, gy - 13, 2, 6, '#3d2a1a');
+  rect(ctx, x + 16, gy - 5, 7, 2, '#3d2a1a');
+  // encosto solto no chao
+  rect(ctx, x - 9, gy - 2, 11, 2, '#43301e');
+  for (let i = 0; i < 8; i++) {
+    rect(ctx, x - 12 + rnd() * 30, gy - rnd() * 4, 1 + rnd() * 2, 1, '#2a1c11');
+  }
+}
+
+function debris(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  const cores = ['#3d2a1a', '#2a1c11', '#4a3626', '#1c120a', '#514032'];
+  for (let i = 0; i < w * 2.2; i++) {
+    const px = x + rnd() * w;
+    const py = gy - rnd() * 7;
+    rect(ctx, px, py, 1 + rnd() * 3, 1 + rnd() * 1.6, cores[Math.floor(rnd() * cores.length)]);
+  }
+  // algumas ripas maiores atravessadas
+  for (let i = 0; i < 3; i++) {
+    const px = x + rnd() * (w - 12);
+    rect(ctx, px, gy - 2 - rnd() * 3, 9 + rnd() * 8, 2, '#43301e');
+  }
+}
+
+function glassShards(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  for (let i = 0; i < w * 0.9; i++) {
+    const px = x + rnd() * w, py = gy - rnd() * 4;
+    const c = rnd() > 0.55 ? '#5c6f74' : (rnd() > 0.5 ? '#3f5257' : '#7a8f92');
+    rect(ctx, px, py, 1, 1, c);
+    if (rnd() > 0.8) rect(ctx, px + 1, py, 1, 1, '#94a9ab');
+  }
+}
+
+// Buraco no lambri: tabua arrebentada mostrando o escuro atras.
+function wallHole(ctx, x, y, w, h, seed) {
+  const rnd = mulberry32(seed);
+  rect(ctx, x, y, w, h, '#0a0705');
+  for (let i = 0; i < w; i++) {
+    const t = Math.abs(i - w / 2) / (w / 2);
+    const rec = Math.round((1 - t) * h * 0.35 * rnd());
+    rect(ctx, x + i, y, 1, rec, '#2a1c11');
+    rect(ctx, x + i, y + h - rec, 1, rec, '#2a1c11');
+  }
+  // farpas apontando para dentro
+  for (let i = 0; i < 10; i++) {
+    const px = x + rnd() * w, py = y + rnd() * h;
+    rect(ctx, px, py, 1, 2 + rnd() * 4, '#43301e');
+  }
+  rect(ctx, x - 1, y - 1, w + 2, 1, '#5c452c');
+}
+
 function wallPhone(ctx, x, y, seed) {
   rect(ctx, x, y, 12, 18, '#1c1f24');
   rect(ctx, x, y, 12, 1, '#2f343b');
@@ -3482,6 +3626,10 @@ function buildingSilhouette(ctx, x, gy, w, h, color, seed, litWindows) {
   Object.defineProperty(__exp, "table", { get: function(){ return table; }, enumerable: true });
   Object.defineProperty(__exp, "chairStack", { get: function(){ return chairStack; }, enumerable: true });
   Object.defineProperty(__exp, "chair", { get: function(){ return chair; }, enumerable: true });
+  Object.defineProperty(__exp, "brokenChair", { get: function(){ return brokenChair; }, enumerable: true });
+  Object.defineProperty(__exp, "debris", { get: function(){ return debris; }, enumerable: true });
+  Object.defineProperty(__exp, "glassShards", { get: function(){ return glassShards; }, enumerable: true });
+  Object.defineProperty(__exp, "wallHole", { get: function(){ return wallHole; }, enumerable: true });
   Object.defineProperty(__exp, "wallPhone", { get: function(){ return wallPhone; }, enumerable: true });
   Object.defineProperty(__exp, "windowBlinds", { get: function(){ return windowBlinds; }, enumerable: true });
   Object.defineProperty(__exp, "puddle", { get: function(){ return puddle; }, enumerable: true });
@@ -3769,6 +3917,15 @@ function buildAlley() {
     spawn: { x: 90, facing: 1 },
     doorX: DOOR_X + 13,
     bloom: 0.55,
+    enterBarks: ['bark_alley_enter'],
+    barks: [
+      { x: 210, key: 'bark_alley_rain', range: 46 },
+      { x: 470, key: 'bark_joke_3', range: 44 },
+      { x: 600, key: 'bark_alley_window', range: 46 },
+      { x: 830, key: 'bark_alley_lamp', range: 44 },
+      { x: 1000, key: 'bark_joke_1', range: 46 },
+      { x: 1130, key: 'bark_alley_door', range: 44 },
+    ],
   });
 }
 
@@ -3885,6 +4042,34 @@ function buildBar() {
   M.wallPhone(g, 806, 120, 1371);
   inter.push({ x: 800, y: 118, w: 20, h: 26, prompt: 'prompt_look', lines: 'bar_phone', range: 26 });
 
+  // --- o estrago ---
+  // O bar nao esta so fechado: alguem passou por aqui quebrando coisa. E o
+  // detalhe que conta a historia e que as cadeiras continuam empilhadas no
+  // meio disso.
+  M.wallHole(g, 330, 138, 34, 46, 1381);
+  M.wallHole(g, 690, 150, 22, 34, 1391);
+  M.debris(g, 322, GY, 52, 1401);
+  M.debris(g, 676, GY, 44, 1411);
+  M.debris(g, 470, GY, 40, 1421);
+  M.brokenChair(g, 214, GY, 1431);
+  M.brokenChair(g, 500, GY, 1441);
+  M.brokenChair(g, 744, GY, 1451);
+  M.glassShards(g, 520, GY, 240, 1461);
+  M.glassShards(g, 330, GY, 60, 1471);
+  // prateleira de garrafas desabada de um lado
+  rect(g, 540, 158, 68, 3, '#2e2118');
+  for (let i = 0; i < 9; i++) {
+    rect(g, 545 + i * 7, 152 + (i % 3), 3, 6, ['#2b4a3a', '#4a3a1e', '#3a2030'][i % 3]);
+  }
+  M.glassShards(g, 545, 176, 70, 1481);
+  // papel de parede rasgado pendurado
+  for (const [px, ph] of [[262, 22], [612, 18], [842, 26]]) {
+    rect(g, px, 100, 7, ph, '#1d150e');
+    rect(g, px + 1, 100, 5, ph - 3, '#4a3a26');
+    rect(g, px + 2, 100 + ph - 4, 3, 4, '#3a2c1c');
+  }
+  inter.push({ x: 330, y: 138, w: 34, h: 46, prompt: 'prompt_look', lines: 'bar_wreck', range: 32 });
+
   const lampGlow = { x: 430, y: 52, r: 210, color: '#e8b46a', i: 1.15, flick: 'swing', falloff: 0.8 };
   const lampCore = { x: 430, y: 52, r: 30, color: '#ffdca8', i: 1.0, flick: 'swing' };
   lights.push(lampGlow, lampCore);
@@ -3931,6 +4116,15 @@ function buildBar() {
     doorX: 57,
     bloom: 0.42,
     indoor: true,
+    enterBarks: ['bark_bar_enter', 'bark_bar_enter2'],
+    barks: [
+      { x: 200, key: 'bark_bar_dark', range: 44 },
+      { x: 340, key: ['bark_bar_wreck', 'bark_bar_wreck2'], range: 46 },
+      { x: 430, key: 'bark_bar_chairs', range: 40 },
+      { x: 560, key: 'bark_bar_bottles', range: 44 },
+      { x: 700, key: 'bark_bar_chairs2', range: 44 },
+      { x: 900, key: 'bark_joke_2', range: 48 },
+    ],
   });
 
   // lampada balancando: move a luz E o sprite, entao a sombra da sala anda
@@ -4236,6 +4430,8 @@ class Player {
     this.onAnimEvent = null;
     this.controllable = true;
     this.floatText = null;
+    this.barkQueue = [];
+    this.barkGap = 0;
     this.det.onEvent = (ev) => this._animEvent(ev);
   }
 
@@ -4273,9 +4469,7 @@ class Player {
       case 'lighter_flick': audio.lighterFlick(); break;
       case 'flame_on': audio.flameWhoosh(0.8); break;
       case 'say_not_today':
-        // A unica fala do jogo que nao passa pela caixa de dialogo: sai
-        // curta, em cima da cabeca, e ninguem responde.
-        this.floatText = { key: 'not_today', t: 0, dur: 2.6 };
+        this.say('not_today', 2.6);
         break;
       case 'cig_toss':
         if (this.fx) {
@@ -4295,7 +4489,6 @@ class Player {
     if (this.state === 'smoke') {
       this.state = 'idle';
       this.idleTime = 0;
-      this.floatText = null;
       this.det.play('idle', { blend: 0.22 });
     }
   }
@@ -4385,13 +4578,33 @@ class Player {
       }
     }
 
-    if (this.floatText) {
-      this.floatText.t += dt;
-      if (this.floatText.t >= this.floatText.dur) this.floatText = null;
-    }
-
+    this._updateBarks(dt);
     d.update(dt);
   }
+
+  // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
+  // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
+  say(key, dur = 2.6) {
+    if (this.floatText && this.floatText.key === key) return;
+    if (this.barkQueue.some(b => b.key === key)) return;
+    this.barkQueue.push({ key, dur });
+  }
+
+  sayAll(keys) { for (const k of keys) this.say(k); }
+
+  _updateBarks(dt) {
+    if (this.floatText) {
+      this.floatText.t += dt;
+      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
+    } else if (this.barkGap > 0) {
+      this.barkGap -= dt;
+    } else if (this.barkQueue.length) {
+      const b = this.barkQueue.shift();
+      this.floatText = { key: b.key, dur: b.dur, t: 0 };
+    }
+  }
+
+  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
 
   // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
   floatAlpha() {
@@ -4517,6 +4730,44 @@ const STR = {
   loc_alley:      { pt: 'BECO DOS FUNDOS',      en: 'BACK ALLEY' },
   loc_bar:        { pt: 'BAR O ULTIMO TROCO',   en: 'THE LAST DIME BAR' },
   not_today:      { pt: 'hoje não...',          en: 'not tonight...' },
+
+  // ---------- falas soltas em cima da cabeca ----------
+  // Curtas, secas, sem ninguem para responder. Piada quando ele consegue,
+  // constatacao quando nao consegue.
+  bark_alley_enter:  { pt: 'Beco sem saída. Combina.',
+                       en: 'Dead end. Fitting.' },
+  bark_alley_rain:   { pt: 'A chuva não lava nada. Só espalha.',
+                       en: 'Rain never washes anything. It just spreads it around.' },
+  bark_alley_lamp:   { pt: 'Ninguém troca a lâmpada de um beco.',
+                       en: 'Nobody changes the bulb in an alley.' },
+  bark_alley_window: { pt: 'Alguém ainda mora aqui. Coitado.',
+                       en: 'Somebody still lives here. Poor bastard.' },
+  bark_alley_door:   { pt: 'Seis anos fechado. E a porta abre.',
+                       en: 'Six years shut. And the door opens.' },
+
+  bark_bar_enter:    { pt: 'Alguém chegou antes de mim.',
+                       en: 'Somebody got here first.' },
+  bark_bar_enter2:   { pt: 'E não veio conversar.',
+                       en: 'And they did not come to talk.' },
+  bark_bar_wreck:    { pt: 'Isso não foi briga de bar.',
+                       en: 'This was not a bar fight.' },
+  bark_bar_wreck2:   { pt: 'Briga de bar tem dois lados.',
+                       en: 'A bar fight has two sides.' },
+  bark_bar_chairs:   { pt: 'Empilharam as cadeiras no meio do estrago.',
+                       en: 'They stacked the chairs in the middle of the wreckage.' },
+  bark_bar_chairs2:  { pt: 'Quem quebra tudo não arruma depois.',
+                       en: 'People who wreck a room do not tidy it after.' },
+  bark_bar_dark:     { pt: 'Se tem alguém aqui, já me viu.',
+                       en: 'If anyone is in here, they have seen me already.' },
+  bark_bar_bottles:  { pt: 'Bebida boa, tudo no chão. Que desperdício.',
+                       en: 'Good liquor, all over the floor. Waste.' },
+
+  bark_joke_1:       { pt: 'Devia ter trazido uma lanterna. E um emprego.',
+                       en: 'Should have brought a flashlight. And a job.' },
+  bark_joke_2:       { pt: 'Já estive em lugares piores. Morei num.',
+                       en: 'I have been in worse places. I lived in one.' },
+  bark_joke_3:       { pt: 'Duas e meia. Meu horário nobre.',
+                       en: 'Half past two. My prime time.' },
   chapter_1:      { pt: 'CAPITULO UM',          en: 'CHAPTER ONE' },
   chapter_1_name: { pt: 'O homem que atendeu',  en: 'The man who answered' },
 
@@ -4655,6 +4906,14 @@ const LINES = {
       en: 'Cut a long time ago. The cut has rusted over.' },
     { pt: 'Entao de onde veio a ligacao?',
       en: 'So where did the call come from?' },
+  ],
+  bar_wreck: [
+    { pt: 'A parede foi arrebentada de dentro para fora.',
+      en: 'The wall was broken from the inside out.' },
+    { pt: 'As farpas apontam para ca. Alguem bateu daquele lado.',
+      en: 'The splinters point this way. Something struck from the other side.' },
+    { pt: 'E do outro lado nao tem comodo nenhum. So parede.',
+      en: 'And on the other side there is no room. Just wall.' },
   ],
   bar_mirror: [
     { pt: 'O espelho atras das garrafas esta trincado no meio.',
@@ -6541,11 +6800,15 @@ class Game {
     this.rain.groundY = lv.groundY + 2;
     this.rain.intensity = lv.rainIntensity || 1;
     this.player.det.reflect = lv.reflect;
+    this.player.det.visible = true;   // a cutscene esconde; entrar numa fase sempre mostra
     this.player.wet = lv.weather === 'rain';
     this.fx.clear();
     this.locCard = 4.0;
     this.dialogue.active = false;
     this.dialogue.fade = 0;
+    this.player.clearBarks();
+    if (lv.barks) for (const b of lv.barks) b.done = false;
+    if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
     audio.stopAllLoops();
     if (lv.weather === 'rain') {
@@ -6575,6 +6838,7 @@ class Game {
       const canControl = !this.dialogue.active && !this.transition;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
+      this.checkBarks(lv);
       this.rain.update(sim, this.cam.x);
       this.fog.update(sim, lv.t);
       this.fx.update(sim);
@@ -6624,12 +6888,14 @@ class Game {
         near.prompt, this.promptA, lv.t);
     }
 
-    // falinha em cima da cabeca ("hoje não...")
+    // Falinha em cima da cabeca. Sobe mais quando o balao de interagir
+    // esta na tela, senao os dois se sobrepoem e nao se le nenhum.
     const fa = this.player.floatAlpha();
     if (fa > 0) {
       const ft = this.player.floatText;
+      const alto = this.promptA > 0.15 ? 96 : 80;
       text(gfx.s, T(ft.key), this.player.x - cam.ix,
-        this.player.y - cam.iy - 78 - Math.min(6, ft.t * 5), {
+        this.player.y - cam.iy - alto - Math.min(6, ft.t * 5), {
         size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
         alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
       });
@@ -6639,6 +6905,19 @@ class Game {
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
+  }
+
+  // Falas de passagem: dispara quando o jogador cruza um ponto da fase.
+  // Cada uma so uma vez por visita — repetir piada mata a piada.
+  checkBarks(lv) {
+    if (!lv.barks) return;
+    for (const b of lv.barks) {
+      if (b.done) continue;
+      if (Math.abs(this.player.x - b.x) < (b.range || 40)) {
+        b.done = true;
+        this.player.sayAll(Array.isArray(b.key) ? b.key : [b.key]);
+      }
+    }
   }
 
   doInteract(it) {

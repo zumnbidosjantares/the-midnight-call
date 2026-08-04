@@ -382,6 +382,70 @@ export function chair(ctx, x, gy, flip, seed) {
   rect(ctx, bx - (flip ? 2 : 0), y, 4, 2, '#3a2718');
 }
 
+// ---------------------------------------------------------------------------
+// destroco — o bar nao esta fechado, esta arrebentado
+// ---------------------------------------------------------------------------
+
+export function brokenChair(ctx, x, gy, seed) {
+  const rnd = mulberry32(seed);
+  // assento caido de lado
+  rect(ctx, x, gy - 7, 15, 4, '#4a3320');
+  rect(ctx, x, gy - 7, 15, 1, '#6b4b2e');
+  rect(ctx, x, gy - 3, 15, 1, '#20140b');
+  // pernas quebradas apontando para fora
+  rect(ctx, x + 2, gy - 16, 2, 9, '#3d2a1a');
+  rect(ctx, x + 11, gy - 13, 2, 6, '#3d2a1a');
+  rect(ctx, x + 16, gy - 5, 7, 2, '#3d2a1a');
+  // encosto solto no chao
+  rect(ctx, x - 9, gy - 2, 11, 2, '#43301e');
+  for (let i = 0; i < 8; i++) {
+    rect(ctx, x - 12 + rnd() * 30, gy - rnd() * 4, 1 + rnd() * 2, 1, '#2a1c11');
+  }
+}
+
+export function debris(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  const cores = ['#3d2a1a', '#2a1c11', '#4a3626', '#1c120a', '#514032'];
+  for (let i = 0; i < w * 2.2; i++) {
+    const px = x + rnd() * w;
+    const py = gy - rnd() * 7;
+    rect(ctx, px, py, 1 + rnd() * 3, 1 + rnd() * 1.6, cores[Math.floor(rnd() * cores.length)]);
+  }
+  // algumas ripas maiores atravessadas
+  for (let i = 0; i < 3; i++) {
+    const px = x + rnd() * (w - 12);
+    rect(ctx, px, gy - 2 - rnd() * 3, 9 + rnd() * 8, 2, '#43301e');
+  }
+}
+
+export function glassShards(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  for (let i = 0; i < w * 0.9; i++) {
+    const px = x + rnd() * w, py = gy - rnd() * 4;
+    const c = rnd() > 0.55 ? '#5c6f74' : (rnd() > 0.5 ? '#3f5257' : '#7a8f92');
+    rect(ctx, px, py, 1, 1, c);
+    if (rnd() > 0.8) rect(ctx, px + 1, py, 1, 1, '#94a9ab');
+  }
+}
+
+// Buraco no lambri: tabua arrebentada mostrando o escuro atras.
+export function wallHole(ctx, x, y, w, h, seed) {
+  const rnd = mulberry32(seed);
+  rect(ctx, x, y, w, h, '#0a0705');
+  for (let i = 0; i < w; i++) {
+    const t = Math.abs(i - w / 2) / (w / 2);
+    const rec = Math.round((1 - t) * h * 0.35 * rnd());
+    rect(ctx, x + i, y, 1, rec, '#2a1c11');
+    rect(ctx, x + i, y + h - rec, 1, rec, '#2a1c11');
+  }
+  // farpas apontando para dentro
+  for (let i = 0; i < 10; i++) {
+    const px = x + rnd() * w, py = y + rnd() * h;
+    rect(ctx, px, py, 1, 2 + rnd() * 4, '#43301e');
+  }
+  rect(ctx, x - 1, y - 1, w + 2, 1, '#5c452c');
+}
+
 export function wallPhone(ctx, x, y, seed) {
   rect(ctx, x, y, 12, 18, '#1c1f24');
   rect(ctx, x, y, 12, 1, '#2f343b');

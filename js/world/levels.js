@@ -277,6 +277,15 @@ export function buildAlley() {
     spawn: { x: 90, facing: 1 },
     doorX: DOOR_X + 13,
     bloom: 0.55,
+    enterBarks: ['bark_alley_enter'],
+    barks: [
+      { x: 210, key: 'bark_alley_rain', range: 46 },
+      { x: 470, key: 'bark_joke_3', range: 44 },
+      { x: 600, key: 'bark_alley_window', range: 46 },
+      { x: 830, key: 'bark_alley_lamp', range: 44 },
+      { x: 1000, key: 'bark_joke_1', range: 46 },
+      { x: 1130, key: 'bark_alley_door', range: 44 },
+    ],
   });
 }
 
@@ -393,6 +402,34 @@ export function buildBar() {
   M.wallPhone(g, 806, 120, 1371);
   inter.push({ x: 800, y: 118, w: 20, h: 26, prompt: 'prompt_look', lines: 'bar_phone', range: 26 });
 
+  // --- o estrago ---
+  // O bar nao esta so fechado: alguem passou por aqui quebrando coisa. E o
+  // detalhe que conta a historia e que as cadeiras continuam empilhadas no
+  // meio disso.
+  M.wallHole(g, 330, 138, 34, 46, 1381);
+  M.wallHole(g, 690, 150, 22, 34, 1391);
+  M.debris(g, 322, GY, 52, 1401);
+  M.debris(g, 676, GY, 44, 1411);
+  M.debris(g, 470, GY, 40, 1421);
+  M.brokenChair(g, 214, GY, 1431);
+  M.brokenChair(g, 500, GY, 1441);
+  M.brokenChair(g, 744, GY, 1451);
+  M.glassShards(g, 520, GY, 240, 1461);
+  M.glassShards(g, 330, GY, 60, 1471);
+  // prateleira de garrafas desabada de um lado
+  rect(g, 540, 158, 68, 3, '#2e2118');
+  for (let i = 0; i < 9; i++) {
+    rect(g, 545 + i * 7, 152 + (i % 3), 3, 6, ['#2b4a3a', '#4a3a1e', '#3a2030'][i % 3]);
+  }
+  M.glassShards(g, 545, 176, 70, 1481);
+  // papel de parede rasgado pendurado
+  for (const [px, ph] of [[262, 22], [612, 18], [842, 26]]) {
+    rect(g, px, 100, 7, ph, '#1d150e');
+    rect(g, px + 1, 100, 5, ph - 3, '#4a3a26');
+    rect(g, px + 2, 100 + ph - 4, 3, 4, '#3a2c1c');
+  }
+  inter.push({ x: 330, y: 138, w: 34, h: 46, prompt: 'prompt_look', lines: 'bar_wreck', range: 32 });
+
   const lampGlow = { x: 430, y: 52, r: 210, color: '#e8b46a', i: 1.15, flick: 'swing', falloff: 0.8 };
   const lampCore = { x: 430, y: 52, r: 30, color: '#ffdca8', i: 1.0, flick: 'swing' };
   lights.push(lampGlow, lampCore);
@@ -439,6 +476,15 @@ export function buildBar() {
     doorX: 57,
     bloom: 0.42,
     indoor: true,
+    enterBarks: ['bark_bar_enter', 'bark_bar_enter2'],
+    barks: [
+      { x: 200, key: 'bark_bar_dark', range: 44 },
+      { x: 340, key: ['bark_bar_wreck', 'bark_bar_wreck2'], range: 46 },
+      { x: 430, key: 'bark_bar_chairs', range: 40 },
+      { x: 560, key: 'bark_bar_bottles', range: 44 },
+      { x: 700, key: 'bark_bar_chairs2', range: 44 },
+      { x: 900, key: 'bark_joke_2', range: 48 },
+    ],
   });
 
   // lampada balancando: move a luz E o sprite, entao a sombra da sala anda

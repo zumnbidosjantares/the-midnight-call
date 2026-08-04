@@ -23,11 +23,12 @@ const MAP = {
   V: PAL.vestHi, v: PAL.vest, u: PAL.vestDk,
   R: PAL.tieHi, r: PAL.tie, z: PAL.tieDk,
   P: PAL.pantHi, p: PAL.pant, d: PAL.pantDk,
-  B: PAL.bootHi, b: PAL.boot, k: PAL.bootDk,
+  B: PAL.bootHi, b: PAL.boot, k: PAL.coatEdge,
   L: PAL.leather, l: PAL.leathDk,
-  n: PAL.brass, e: PAL.eye,
-  C: '#ded6c4', c: '#9d9484', E: '#ff6a2a',
-  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',
+  n: PAL.brass, e: PAL.eye, E: PAL.sclera, o: PAL.brow,
+  C: PAL.coatHi, c: PAL.coat, j: PAL.coatDk, y: PAL.coatEdge,
+  i: '#ded6c4', a: '#9d9484', N: '#ff6a2a',   // cigarro: papel, sombra, brasa
+  F: '#ffb347', f: '#ff7a1a', Y: '#fff3c0',   // chama do isqueiro
 };
 
 // Medidas do esqueleto, em pixels, a partir do chao. Proporcao puxada da
@@ -59,6 +60,9 @@ function buildParts() {
   // rosto), o nariz saindo da silhueta em x12, a orelha marcada em x3 e a
   // massa de cabelo empurrada para tras. Com dois olhos simetricos ele
   // parecia estar de frente — ou pior, de costas.
+  // O olho tem quatro pixels com funcoes diferentes: sobrancelha (o),
+  // esclera (E), pupila (e) e a sombra embaixo (q). Um ponto preto sozinho
+  // nao e olho, e furo — e era exatamente essa a cara que ele tinha.
   P.head = sprite({
     pivot: [6, 14], map: MAP, rows: [
       '...HHHHHHH....',
@@ -66,16 +70,56 @@ function buildParts() {
       '.HHhhgggggghh.',
       '.HHhgggggggSt.',
       '.HHhgSSSSSSSt.',
-      '.HHhSSSSSSSSt.',
-      '.HHqSSSSeSSst.',
-      '.HHqSSSSSSStS.',
+      '.HHhSSSooSSSt.',
+      '.HHqSSSEeSSst.',
+      '.HHqSSSqSSStS.',
       '.HhqSSSSSSSqS.',
       '.HhSSSSSSSSst.',
       '..hSSSSqqSSst.',
       '..sSSSSSSSSs..',
       '...sSSSSSSs...',
       '....sSSSs.....',
-      '.....sSs......',
+      '....sSSSs.....',
+    ]
+  });
+
+  // Gola levantada do sobretudo, desenhada ATRAS da cabeca. E ela que
+  // costura o pescoco no corpo: antes a cabeca pousava em cima de um
+  // pescoco de 2px e parecia recortada e colada.
+  P.collar = sprite({
+    pivot: [8, 9], map: MAP, rows: [
+      '..yCy......yCy..',
+      '..yCy......yCy..',
+      '.yCCy......yCCy.',
+      '.yCCy......yCCy.',
+      'yCCCy......yCCCy',
+      'yCCCyy....yyCCCy',
+      'yCCCCy....yCCCCy',
+      'yCCCCCyyyyCCCCCy',
+      'yyCcccccccccCCyy',
+    ]
+  });
+
+  // Aba do sobretudo, presa no quadril. Cai ate um pouco abaixo do joelho,
+  // deixando canela e bota de fora para o ciclo de caminhada continuar
+  // legivel.
+  P.coatSkirt = sprite({
+    pivot: [10, 0], map: MAP, rows: [
+      '...yjCCCCCCjy.......',
+      '..yjCCCCCCCCjy......',
+      '..yjCCCCCCCCjy......',
+      '.yjCCCCCCCCCCjy.....',
+      '.yjCCCCCCCCCCjy.....',
+      '.yjCCCcjCCCCCjy.....',
+      '.yjCCCcjCCCCCjy.....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCCCCcjCCCCCCjy....',
+      'yjCcCCcjCcCCCCjy....',
+      'yjCcCCcjCcCCCCjy....',
+      'yjCcCCcjCcCCCjjy....',
+      'yjjcccjjjcccjjy.....',
+      '.yyjjjyyyjjjyy......',
     ]
   });
 
@@ -83,43 +127,47 @@ function buildParts() {
   // DIREITA do centro, o colete tem uma aba larga atras e uma estreita na
   // frente, e a alca do coldre passa so pelas costas. Antes era simetrico,
   // e simetria em vista lateral le como "de costas".
+  // Tronco: sobretudo aberto. A abertura fica a DIREITA do centro e mostra
+  // camisa e gravata; a aba de tras e larga, a da frente estreita. E a
+  // largura desigual das duas abas que diz para que lado ele esta virado.
   P.torso = sprite({
     pivot: [9, 20], map: MAP, rows: [
-      '...uvVVVVVVVvu....',
-      '..uvVVVVVVVVVvu...',
-      '.uvVVVVVWWWWWVvu..',
-      '.uvVVVVVWWRRWWVvu.',
-      '.uvVVVVVWWRRWWVvu.',
-      '.uvVVLVVWWRRWWVvu.',
-      '.uvVVLVVWWRRWWVvu.',
-      '.uvVLVVVWWRRWWVvu.',
-      '.uvVLVVVWWRrWWVvu.',
-      '.uvLVVVVWWRrWWVvu.',
-      '.uvLVVVVWWrrWWVvu.',
-      '.uvLVVVVWWrrWWVnu.',
-      '.uvVVVVVWWrrWWVvu.',
-      '.uvVVVVVWWrzWWVnu.',
-      '.uvVVVVVWWrzWWVvu.',
-      '.uvVVVVVWWzzWWVnu.',
-      '.uvVVVVVWWWzWWVvu.',
-      '.uvVVVVVWWWWWWVvu.',
-      '..uvVVVVVWWWWVVvu.',
-      '..uuvvVVVVVVvvuu..',
-      '...uuvvvvvvvvuu...',
+      '...yjCCCCCCjy.....',
+      '..yjCCCCCCCCjy....',
+      '.yjCCCcWWWWcCjy...',
+      '.yjCCCjWWRRWWjCjy.',
+      '.yjCCCjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRRWWjCjy.',
+      '.yjCCcjWWRrWWjCjy.',
+      '.yjCCcjWWRrWWjCjy.',
+      '.yjCCcjWWrrWWjCjy.',
+      '.yjCCcnWWrrWWnCjy.',
+      '.yjCCcjWWrrWWjCjy.',
+      '.yjCCcjWWrzWWjCjy.',
+      '.yjCCcnWWrzWWnCjy.',
+      '.yjCCcjWWzzWWjCjy.',
+      '.yjCCcjWWWzWWjCjy.',
+      '.yjCCccjWWWWjcCjy.',
+      '.yjCCCccjWWjccCjy.',
+      '..yjCCCcccccCCjy..',
+      '..yyjCCCCCCCCjyy..',
     ]
   });
 
+  // Mangas do sobretudo, com punho mais claro na ponta.
   P.upperArm = sprite({
     pivot: [2, 1], map: MAP, rows: [
-      'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx',
-      'XwWWWx', 'XwWWWx', 'XwWWWx', '.XwWWx', '.XwwWx',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', '.yjCcy', '.yjccy',
     ]
   });
 
   P.forearm = sprite({
     pivot: [2, 1], map: MAP, rows: [
-      'XwWWWx', 'XwWWWx', 'XwWWWx', 'XwWWWx', '.XwWWx', '.XwWWx',
-      '.XwWWx', '.XwWWx', '.XwwWx', '..Xxx.',
+      'yjCCcy', 'yjCCcy', 'yjCCcy', 'yjCCcy', '.yjCcy', '.yjCcy',
+      '.yjCcy', '.yjCcy', 'yCCCCy', '.yyyy.',
     ]
   });
 
@@ -152,8 +200,8 @@ function buildParts() {
     ]
   });
 
-  P.cigLit = sprite({ pivot: [0, 0], map: MAP, rows: ['ECCC'] });
-  P.cigOff = sprite({ pivot: [0, 0], map: MAP, rows: ['cCCC'] });
+  P.cigLit = sprite({ pivot: [0, 0], map: MAP, rows: ['Niii'] });
+  P.cigOff = sprite({ pivot: [0, 0], map: MAP, rows: ['aiii'] });
 
   P.lighter = sprite({
     pivot: [1, 0], map: MAP, rows: ['.nn.', 'nnnn', 'kkkk', 'kBBk', 'kkkk'],
@@ -426,6 +474,7 @@ export class Detective {
     this.rimAlpha = 0.30;
     this.reflect = 0;
     this.alpha = 1;
+    this.skirt = 0;      // inclinacao da aba do sobretudo (segue o corpo com atraso)
     this._firedIdx = -1;
     this._lightLocal = null;
     this._cigWorld = null;
@@ -495,6 +544,14 @@ export class Detective {
       for (const f of FIELDS) this.pose[f] = lerp(this.blendFrom[f], this.pose[f], k);
       if (k >= 1) this.blendFrom = null;
     }
+
+    // A aba do sobretudo persegue a inclinacao do corpo com atraso, e
+    // balanca a cada passo. E o unico lugar do personagem onde "mole" e o
+    // efeito certo: pano nao acompanha osso.
+    const andando = this.anim === 'walk' || this.anim === 'run';
+    const alvo = -this.pose.torso * 0.45
+      + (andando ? Math.sin(this.time * (this.anim === 'run' ? 13 : 8)) * (this.anim === 'run' ? 6 : 3.4) : 0);
+    this.skirt = lerp(this.skirt, alvo, 1 - Math.exp(-9 * dt));
 
     if (this.flipT < 1) this.flipT = Math.min(1, this.flipT + dt * 9);
     if (this.props.flame > 0 && this.props.flame < 1) this.props.flame = Math.min(1, this.props.flame + dt * 5);
@@ -596,13 +653,6 @@ export class Detective {
     // ---- braco de tras (atras do tronco) ----
     if (!backArmFront) this._arm(g, p, false, true);
 
-    // ---- tronco ----
-    g.save();
-    g.translate(0, HIP_Y);
-    g.rotate(R(p.torso));
-    stamp(g, P.torso);
-    g.restore();
-
     // ---- perna da frente ----
     g.save();
     g.translate(LEG_X, HIP_Y);
@@ -613,11 +663,29 @@ export class Detective {
     g.rotate(R(p.lFf - p.lFt - p.lFs)); stamp(g, P.foot);
     g.restore();
 
-    // ---- cabeca ----
+    // ---- aba do sobretudo (por cima das pernas, por baixo do tronco) ----
+    g.save();
+    g.translate(0, HIP_Y);
+    g.rotate(R(this.skirt));
+    stamp(g, P.coatSkirt);
+    g.restore();
+
+    // ---- tronco ----
+    g.save();
+    g.translate(0, HIP_Y);
+    g.rotate(R(p.torso));
+    stamp(g, P.torso);
+    g.restore();
+
+    // ---- cabeca (com a gola atras dela) ----
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
+    g.save();
+    g.translate(0, 4);
+    stamp(g, P.collar);
+    g.restore();
     g.rotate(R(p.head));
     g.translate(1, -1);
     stamp(g, P.head);
