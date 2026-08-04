@@ -1,0 +1,664 @@
+===============================================================================
+
+                          T H E   M I D N I G H T   C A L L
+                            Chamado da Meia-Noite
+
+                                  R O T E I R O
+
+===============================================================================
+
+  Documento de história. Só narrativa — nada de código aqui.
+  A parte técnica fica em CHAMADO_DA_MEIA_NOITE.md.
+
+  Última atualização: 04/08/2026
+  Estado: CAPÍTULO 1 escrito e implementado no jogo.
+          CAPÍTULO 2 em aberto — a ser escrito por Luiz.
+
+  COMO USAR ESTE ARQUIVO
+  ----------------------
+  Abra em qualquer editor de texto (Bloco de Notas serve).
+  Escreva onde estiver marcado [ESCREVER AQUI].
+  Não precisa formatar bonito — eu leio do jeito que estiver.
+
+  MARCAÇÕES USADAS
+  ----------------
+  [JÁ NO JOGO]   ...... isto já está implementado e funcionando
+  [NÃO IMPLEM.]  ...... está escrito aqui mas ainda não existe no jogo
+  [ESCREVER AQUI] ..... espaço reservado para você
+  (nota:)         ..... comentário de produção, não é falado
+
+
+===============================================================================
+PARTE I — A BÍBLIA DO PROJETO
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+1. LOGLINE
+-------------------------------------------------------------------------------
+
+Um detetive falido, sem distintivo e sem nada a perder, atende o telefone às
+2h14 da manhã. Uma voz de mulher dá o endereço de um bar fechado há seis anos.
+Ele vai. E descobre que o lugar estava esperando por ele.
+
+
+-------------------------------------------------------------------------------
+2. O PROTAGONISTA
+-------------------------------------------------------------------------------
+
+NOME ............... [ESCREVER AQUI]
+                     (nota: sem o nome eu não consigo escrever diálogo nenhum,
+                      nem terminar a tela de save. É a primeira coisa que trava.)
+
+IDADE .............. Aparenta 45 a 50. Cansado antes da conta.
+
+O QUE ELE ERA ...... Detetive. Tinha distintivo.
+
+O QUE ELE É ........ Nada disso. Perdeu o distintivo, depois a casa, depois
+                     o resto. Sobrou o telefone — e ele nunca tocava.
+
+APARÊNCIA .......... Sobretudo marrom, fechado. Camisa por baixo, gravata
+                     vinho que só aparece no colarinho. Calça cinza, botas.
+                     Cabelo escuro, barba de dois dias.
+                     Referência visual: Sebastian Castellanos
+                     (The Evil Within).
+
+O QUE ELE CARREGA .. No Capítulo 1: cigarros, isqueiro, arma no coldre,
+                     carteira.
+                     Depois do sequestro: NADA. Só a roupa do corpo.
+
+O VÍCIO ............ O cigarro. E aqui está o detalhe mais importante do
+                     personagem:
+
+                     ELE NÃO FUMA.
+
+                     Ele TIRA o cigarro do bolso. Olha para ele. Hesita.
+                     E joga fora, dizendo "hoje não...".
+
+                     Toda vez. Sempre. É a animação dele parado.
+                     [JÁ NO JOGO]
+
+                     (nota: isso é o personagem inteiro num gesto. Ele quer,
+                      ele quase, e ele desiste. Não é força de vontade — é
+                      alguém que não se permite nem a única coisa que ainda
+                      lhe daria prazer. Quando ele PERDE o cigarro no
+                      sequestro, ele não fica aliviado. Ele fica sem ter o
+                      que recusar. Aí ele só senta no chão e bate o pé.)
+
+O CASO QUE NÃO FECHA  Todo detetive tem um. O dele tem sete anos e um nome
+                      que ele não diz em voz alta.
+                      [NÃO IMPLEM. — precisa ser desenvolvido no Cap. 2]
+
+O QUE ELE DIZ ...... Frases curtas. Secas. Ele fala sozinho o tempo todo
+                     porque não tem mais com quem falar.
+                     Faz piada quando consegue. Constata quando não consegue.
+
+                     Exemplos que já estão no jogo:
+                       "Beco sem saída. Combina."
+                       "A chuva não lava nada. Só espalha."
+                       "Devia ter trazido uma lanterna. E um emprego."
+                       "Já estive em lugares piores. Morei num."
+                       "Nenhum policial troca a lâmpada de um beco."
+                     [JÁ NO JOGO]
+
+
+-------------------------------------------------------------------------------
+3. A REGRA CENTRAL DO JOGO
+-------------------------------------------------------------------------------
+
+O jogo gira em torno da PRÓPRIA MENTE do detetive.
+
+Os inimigos são os pesadelos e os medos mais profundos dele. Não são monstros
+que existem no mundo — são coisas que existem nele e vazaram para fora.
+
+Referências de tom: Silent Hill, The Evil Within.
+
+CONSEQUÊNCIA PARA A ESCRITA:
+  Tudo que ele encontra deve poder ser lido de duas formas.
+  Uma investigação real acontecendo, e uma cabeça se desfazendo.
+  O jogador nunca deve ter certeza de qual das duas está vendo.
+
+  Exemplo já no jogo: o telefone do bar tem o fio cortado, e o corte já
+  enferrujou — foi cortado há muito tempo. Então de onde veio a ligação?
+  Não há resposta. Não deve haver, ainda.
+
+
+-------------------------------------------------------------------------------
+4. TOM E REGRAS DO MUNDO
+-------------------------------------------------------------------------------
+
+- É noite o tempo todo. Chove lá fora.
+- A cidade nunca é nomeada.
+- Ninguém aparece. Até o fim do Capítulo 1 o detetive não vê UMA pessoa viva.
+- O horror é lento. Nada pula na tela.
+- O silêncio é a arma principal. A música só existe para ser cortada.
+- Ele nunca corre de medo. Ele anda. É pior.
+
+
+===============================================================================
+PARTE II — CAPÍTULO 1: "O HOMEM QUE ATENDEU"
+===============================================================================
+
+  STATUS: escrito e implementado por completo.
+  Duração estimada de jogo: 15 a 20 minutos.
+
+
+-------------------------------------------------------------------------------
+CENA 1 — O CARRO
+-------------------------------------------------------------------------------
+LOCAL: ruas da cidade, dentro do carro dele
+HORA:  02h14
+TIPO:  Cutscene em gameplay, câmera lateral acompanhando o carro
+[JÁ NO JOGO]
+
+  Chuva forte. O carro atravessa a cidade da esquerda para a direita. Postes
+  passam. Vitrines apagadas. Uma ou outra janela acesa lá em cima — gente
+  dormindo, gente que tem para onde voltar.
+
+  Ele dirige. Não vemos o rosto dele ainda.
+
+  NARRAÇÃO (voz dele, gravada):
+
+    "Engraçado..."
+
+    "Passei metade da vida perseguindo monstros."
+
+    "E a outra metade tentando descobrir por que eles nunca saíam do meu
+     caminho."
+
+    "Demorei anos pra entender."
+
+    "Eles... eles nunca estiveram na minha frente."
+
+    "Eles vinham comigo."
+
+    "Tem gente que acredita que o tempo cura..."
+
+    "Mentira."
+
+    "O tempo só aprende a esconder as feridas... até você olhar no espelho."
+
+    "Tem noites em que eu ainda escuto."
+
+    "Não são vozes..."
+
+    "Silêncios."
+
+    "Os silêncios que eu deixei pra trás."
+
+    "Não... Não existe aposentadoria pra consciência."
+
+    "Ela bate ponto todos os dias."
+
+    "Hoje, talvez seja o primeiro dia em muito tempo que eu parei de fugir."
+
+    "Se existe uma conta esperando por mim..."
+
+    "Já passou da hora de pagar."
+
+  A narração acaba. SÓ ENTÃO o carro começa a frear.
+
+  (nota de produção: a cena dura exatamente o que durar a fala. Se você
+   regravar mais longo ou mais curto, o carro se ajusta sozinho. Isso é
+   proposital.)
+
+  O carro estaciona na calçada, debaixo de um poste. O farol apaga.
+  A porta abre. Ele desce — devagar, como quem já está cansado antes de
+  começar. Fecha a porta.
+
+  À frente dele, na esquina, a boca de um beco. Preta.
+
+  Ele caminha até lá e entra.
+
+  CORTE PARA:
+
+
+-------------------------------------------------------------------------------
+CENA 2 — O BECO
+-------------------------------------------------------------------------------
+LOCAL: beco dos fundos
+HORA:  02h20 aprox.
+TIPO:  Gameplay. Primeiro controle do jogador.
+[JÁ NO JOGO]
+
+  Chove. O beco é estreito, sem saída. Tijolo encardido dos dois lados, canos
+  de esgoto, escada de incêndio, lixo, poças. Uma lâmpada nua pisca no meio do
+  caminho. No fundo, uma porta de madeira com uma lâmpada fraca em cima e uma
+  placa de neon meio queimada.
+
+  FALAS DELE AO ANDAR:
+
+    (ao entrar)
+    "Beco sem saída. Combina."
+
+    (perto das poças)
+    "A chuva não lava nada. Só espalha."
+
+    (perto da lâmpada que pisca)
+    "Nenhum policial troca a lâmpada de um beco."
+
+    (perto da janela acesa lá em cima)
+    "Alguém ainda mora aqui. Coitado."
+
+    (perto da porta)
+    "Seis anos fechado. E a porta abre."
+
+  COISAS QUE ELE PODE EXAMINAR:
+
+    CARTAZ DE DESAPARECIDA
+      "Um cartaz de desaparecida. A chuva já comeu metade do rosto."
+      "A data é de três semanas atrás. Ninguém arrancou."
+      "Ninguém arranca o que ninguém lê."
+      (nota: primeira pista solta. Não é resolvida no Cap. 1.)
+
+    CAÇAMBA DE LIXO
+      "Lixo de bar. Vidro, guardanapo, nada que preste."
+      "Se tem alguém morando aqui, saiu com pressa."
+
+    POÇA
+      "A poça me devolve uma cara que eu não reconheço mais."
+
+    LÂMPADA
+      "O poste pisca. A cidade inteira pisca, só ninguém repara."
+
+    A PORTA
+      "A porta dos fundos. Sem cadeado."
+      "Um bar fechado há seis anos não devia estar destrancado."
+
+  Ele abre a porta e entra.
+
+  CORTE PARA:
+
+
+-------------------------------------------------------------------------------
+CENA 3 — O BAR "O ÚLTIMO TROCO"
+-------------------------------------------------------------------------------
+LOCAL: salão do bar
+HORA:  02h25 aprox.
+TIPO:  Gameplay
+[JÁ NO JOGO]
+
+  Escuro. Uma lâmpada pendurada balança devagar, sozinha — não há vento aqui
+  dentro. Luar entrando por uma persiana.
+
+  O lugar está DESTRUÍDO. Dois buracos arrebentados no lambri da parede.
+  Entulho e caco de vidro pelo chão. Cadeiras quebradas. Uma prateleira de
+  garrafas desabou. Papel de parede pendurado em tiras.
+
+  E no meio de todo o estrago, as cadeiras estão EMPILHADAS EM CIMA DAS MESAS.
+  Certinho. Uma por uma.
+
+  Essa contradição é o coração da cena.
+
+  FALAS DELE AO ANDAR:
+
+    (ao entrar)
+    "Alguém chegou antes de mim."
+    "E não veio conversar."
+
+    (no escuro)
+    "Se tem alguém aqui, já me viu."
+
+    (perto do buraco na parede)
+    "Isso não foi briga de bar."
+    "Briga de bar tem dois lados."
+
+    (perto das cadeiras)
+    "Empilharam as cadeiras no meio do estrago."
+    "Quem quebra tudo não arruma depois."
+
+    (perto das garrafas quebradas)
+    "Bebida boa, tudo no chão. Que desperdício."
+
+  COISAS QUE ELE PODE EXAMINAR:
+
+    A PAREDE ARREBENTADA
+      "A parede foi arrebentada de dentro para fora."
+      "As farpas apontam para cá. Alguém bateu daquele lado."
+      "E do outro lado não tem cômodo nenhum. Só parede."
+      (nota: esta é a primeira coisa abertamente impossível do jogo.
+       Não tem explicação natural. Não deve ter.)
+
+    O BALCÃO
+      "O balcão está limpo. Sem poeira."
+      "Seis anos de pó não somem sozinhos."
+
+    O TELEFONE DE PAREDE
+      "Um telefone de parede. O fio está cortado."
+      "Cortado há tempo. O corte já enferrujou."
+      "Então de onde veio a ligação?"
+      (nota: A PERGUNTA DO CAPÍTULO. Fica sem resposta.)
+
+    O ESPELHO TRINCADO
+      "O espelho atrás das garrafas está trincado no meio."
+      "Não olho. Hoje não."
+      (nota: ele repete a frase do cigarro. É a mesma recusa.)
+
+  Perto do balcão, ele encontra a primeira gota.
+
+    "Sangue. Fresco."
+    "Vai para os fundos."
+
+  A trilha de sangue começa rala e vai ficando mais junta na direção de uma
+  porta nos fundos. Não há seta na tela — o espaçamento das gotas é que aponta.
+
+    (na porta dos fundos)
+    "A trilha para aqui."
+
+  Ele abre.
+
+  CORTE PARA:
+
+
+-------------------------------------------------------------------------------
+CENA 4 — O DEPÓSITO
+-------------------------------------------------------------------------------
+LOCAL: depósito dos fundos do bar
+HORA:  02h35 aprox.
+TIPO:  Gameplay curta, depois cutscene
+[JÁ NO JOGO]
+
+  Sala pequena. Prateleiras, engradados. Uma lâmpada ruim balançando bem no
+  meio, e é só isso de luz.
+
+  A trilha de sangue atravessa o chão e termina numa POÇA. Pequena. Parada.
+
+  FALA IMEDIATA (assim que ele entra, cortando qualquer outra coisa):
+
+    "Alguém ficou parado sangrando aqui. Tempo demais."
+
+  E depois:
+
+    "Tem um papel no meio da poça."
+
+  Ele se aproxima. Interage.
+
+  ============================= INÍCIO DA CUTSCENE ==========================
+
+  Ele se AGACHA para ler o papel.
+
+  IMPORTANTE: ele fica DE COSTAS PARA A PORTA.
+  O jogador vê a porta. Ele não.
+
+  O papel está dobrado, encharcado num canto. Ele abre.
+
+  Escrito à mão, letras grandes:
+
+        ┌─────────────────────────────────┐
+        │                                 │
+        │   POR QUE VOCÊ VOLTOU AQUI?     │
+        │                                 │
+        └─────────────────────────────────┘
+
+  Ele fica olhando.
+
+    "Quem escreveu isso sabia que eu viria."
+
+  A porta atrás dele range.
+
+  Uma FIGURA entra. Completamente preta. Sem rosto. Sem detalhe nenhum — só
+  um recorte de escuro com forma de gente. Um pouco mais alta que um homem.
+  Um pouco mais estreita.
+
+  Ela começa a caminhar na direção dele. Devagar.
+
+  Ele continua lendo.
+
+    "Sabia exatamente onde eu ia parar pra ler."
+
+  A música de tensão começa. Ela SOBE conforme a figura se aproxima — não com
+  o tempo, com a DISTÂNCIA. Um batimento cardíaco que acelera. A tela começa
+  a tremer de leve.
+
+  A figura está a poucos passos. Ele ainda está agachado, de costas.
+
+    "Essa letra... eu conheço essa letra."
+
+  (nota: ele NUNCA percebe a figura. Isso é regra. No momento em que ele
+   olhar para trás, o jogador deixa de saber mais do que ele, e a cena morre.)
+
+  A figura chega. Levanta o braço.
+
+  GOLPE.
+
+  A MÚSICA PARA NO MEIO. Sem final, sem acorde, sem nada. Silêncio seco.
+
+  Uma pancada surda. Zumbido de ouvido.
+
+  TELA PRETA.
+
+  ============================= FIM DA CUTSCENE =============================
+
+  CORTE PARA:
+
+
+-------------------------------------------------------------------------------
+CENA 5 — ACORDAR
+-------------------------------------------------------------------------------
+LOCAL: um galpão, em algum lugar
+HORA:  desconhecida
+TIPO:  Cutscene curta, depois gameplay
+[JÁ NO JOGO]
+
+  Preto.
+
+  Então: PÁLPEBRAS. A visão abre uma fresta e fecha. Abre um pouco mais.
+  Fecha. E enfim abre de vez. Duas piscadas. Tudo turvo no começo.
+
+  Ele está SENTADO NO CHÃO, encostado na parede, com os punhos ALGEMADOS num
+  cano que corre pela parede na altura do ombro.
+
+  Um galpão grande. Chapa ondulada, alvenaria, vigas lá em cima sumindo no
+  escuro. Uma claraboia quebrada deixando entrar luar. Correntes penduradas.
+  Engradados. Um portão de enrolar fechado. Uma porta lateral pregada por fora.
+
+  Uma lâmpada nua, bem em cima dele. É a única coisa que ele consegue ver
+  direito.
+
+  Não chove aqui dentro. Só ar parado, água pingando em algum canto, e a
+  estrutura cedendo de vez em quando.
+
+  FALAS:
+
+    "Cano. Frio. Sem folga."
+    "Não me mataram. Isso é pior."
+    "Alguém me trouxe até aqui. Carregado."
+
+  ------- O JOGADOR ASSUME O CONTROLE (QTE) -------
+
+  Aparece na tela: A + D ALTERNADO
+
+  Ele começa a puxar contra o cano. Cada puxão treme a tela, faz a corrente
+  chacoalhar, ele range os dentes.
+
+  E o cano — velho, enferrujado por dentro — CEDE.
+
+  Estouro. Ferrugem e água esguichando. Ele cai para frente, livre.
+
+  ------- ELE SE LEVANTA -------
+
+    "Cano velho. Enferrujado por dentro."
+
+  Ele passa a mão nos bolsos. Todos.
+
+    "Levaram tudo. O cigarro, a arma, a carteira."
+    "Deixaram o casaco. Que gentileza."
+
+  A PARTIR DAQUI ELE NÃO TEM MAIS NADA.
+  Sem arma. Sem cigarro.
+
+  (nota importante: a animação dele parado MUDA aqui. Antes, ficar parado
+   fazia ele pegar o cigarro e jogar fora. Agora, sem nada para recusar, ele
+   fica um tempo em pé — e depois SENTA no chão, batendo o pé, impaciente.
+   Não é instantâneo: ele precisa cansar primeiro. Se você mandar andar, ele
+   se levanta.)
+
+
+-------------------------------------------------------------------------------
+CENA 6 — A SAÍDA
+-------------------------------------------------------------------------------
+LOCAL: o mesmo galpão
+TIPO:  Gameplay
+[JÁ NO JOGO]
+
+  Agora ele pode andar pelo galpão.
+
+  COISAS QUE ELE PODE EXAMINAR:
+
+    O PORTÃO DE ENROLAR
+      "Portão de enrolar. Cadeado do lado de fora."
+      "Não fui eu que fechei."
+
+    A CLARABOIA QUEBRADA
+      "Claraboia quebrada. Uns oito metros de altura."
+      "Se eu tivesse vinte anos a menos, talvez."
+
+    A PORTA LATERAL (sem ferramenta)
+      "Pregada por fora. Alguém me trancou aqui."
+
+  No chão, o pedaço de cano que arrebentou quando ele se soltou.
+
+    (ao pegar)
+    "Serve."
+
+  Com o cano na mão, ele força a porta lateral. As tábuas saltam.
+
+  A porta abre.
+
+  Ele sai.
+
+  TELA PRETA.
+
+        C O N T I N U A
+
+  ========================= FIM DO CAPÍTULO 1 =========================
+
+
+-------------------------------------------------------------------------------
+7. O QUE O CAPÍTULO 1 DEIXOU EM ABERTO
+-------------------------------------------------------------------------------
+
+  Perguntas plantadas que ainda NÃO têm resposta. O Capítulo 2 decide quais
+  responder e quais deixar apodrecendo:
+
+  1. De onde veio a ligação, se o fio do telefone está cortado há anos?
+
+  2. Quem é a mulher da ligação? ("O senhor foi o único que atendeu.")
+     (nota: isso está na versão antiga da narração e PODE não ser mais
+      canônico, já que você reescreveu o monólogo de abertura. Decida.)
+
+  3. De quem é a letra do bilhete? Ele reconheceu.
+
+  4. Por que as cadeiras estão empilhadas com cuidado no meio do estrago?
+
+  5. Por que o balcão está sem poeira depois de seis anos?
+
+  6. A parede foi arrebentada de dentro para fora — e do outro lado não há
+     cômodo nenhum. O quê exatamente saiu dali?
+
+  7. Quem é a figura preta? Pessoa? Pesadelo? As duas coisas?
+
+  8. Quem é a desaparecida do cartaz, sumida há três semanas?
+
+  9. Qual é o caso de sete anos atrás que ele não fecha, e o nome que ele não
+     diz em voz alta?
+
+  10. Por que levaram tudo dele mas o deixaram vivo?
+
+
+===============================================================================
+PARTE III — CAPÍTULO 2
+===============================================================================
+
+  STATUS: A ESCREVER — por Luiz.
+
+  Escreva à vontade abaixo. Do jeito que sair. Pode ser em tópicos, pode ser
+  bagunçado, pode ser só ideia solta. Eu organizo depois e transformo em cena.
+
+
+-------------------------------------------------------------------------------
+COISAS QUE EU PRECISO SABER PARA CONSTRUIR
+-------------------------------------------------------------------------------
+
+  (responda só o que já estiver decidido — o resto pode ficar em branco)
+
+  1. O NOME DO DETETIVE
+     [ESCREVER AQUI]
+
+  2. O QUE TEM DO OUTRO LADO DAQUELA PORTA?
+     (o Cap. 1 termina com ele saindo do galpão)
+     [ESCREVER AQUI]
+
+  3. QUEM É O PRIMEIRO NPC?
+     Nome, o que quer, o que esconde:
+     [ESCREVER AQUI]
+
+  4. O QUE ELE DESCOBRE NESTE CAPÍTULO?
+     (a investigação precisa de pista concreta, não só de clima)
+     [ESCREVER AQUI]
+
+  5. QUAIS LUGARES NOVOS APARECEM?
+     [ESCREVER AQUI]
+
+  6. ONDE ENTRA O HORROR DE VERDADE?
+     (o momento em que a cabeça dele começa a vazar para o mundo)
+     [ESCREVER AQUI]
+
+  7. ELE RECUPERA A ARMA?
+     [ESCREVER AQUI]
+
+  8. A FIGURA PRETA VOLTA? ELA FALA?
+     [ESCREVER AQUI]
+
+
+-------------------------------------------------------------------------------
+CAPÍTULO 2 — ROTEIRO
+-------------------------------------------------------------------------------
+
+  [ESCREVER AQUI]
+
+  (modelo, se ajudar:)
+
+  CENA 1 — (nome do lugar)
+  LOCAL:
+  HORA:
+  O QUE ACONTECE:
+
+  FALAS DELE:
+
+  O QUE O JOGADOR FAZ:
+
+
+===============================================================================
+ANEXO — NARRAÇÃO ANTIGA (DESCARTADA)
+===============================================================================
+
+  Este era o monólogo de abertura que eu tinha escrito antes de você mandar
+  o seu. Está aqui só como material morto, caso queira aproveitar alguma
+  ideia. NÃO está mais no jogo.
+
+    "Todo detetive tem um caso que não fecha."
+    "O meu tem sete anos e um nome que eu não digo em voz alta."
+    "Perdi o distintivo. Depois a casa. Depois o resto."
+    "Sobrou o telefone. E ele nunca tocava."
+    "Até hoje, duas e quatorze da manhã."
+    "Uma voz de mulher. Sem nome. Sem pressa."
+    "'O senhor foi o único que atendeu', ela disse."
+    "Deu um endereço. Um bar fechado há seis anos."
+    "Eu devia ter desligado. Todo mundo devia."
+    "Mas quem não tem nada não tem medo de perder."
+
+  Do que foi descartado, três coisas ainda são canônicas porque estão
+  espalhadas pelo jogo:
+
+    - o bar está fechado há SEIS ANOS
+    - a ligação foi às 2h14 da manhã
+    - o caso que ele não fecha tem SETE ANOS
+
+  A "voz de mulher" e a frase "o senhor foi o único que atendeu" ficaram
+  órfãs. Decida se voltam ou se somem.
+
+
+===============================================================================
+                                FIM DO ARQUIVO
+===============================================================================
