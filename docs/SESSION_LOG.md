@@ -312,6 +312,70 @@ NPC + dialogue-choice system.
 
 ---
 
+## Session 02 — 2026-08-04
+
+**Duration:** ~35 min (estimate) · **Tokens:** ~60k (estimate)
+
+### Narration audio wired in and subtitles synced
+
+The player supplied `audio cutscene.mp3` (60.76s, 48kHz stereo). Copied to
+`assets/audio/narrator.mp3`, where the game finds it automatically.
+
+**Syncing the subtitles without being able to hear the file.** I cannot
+transcribe audio, so the timings were derived by measurement instead:
+
+1. Decoded the mp3 in the browser and computed an RMS envelope in 20ms
+   windows.
+2. Ran hysteresis silence detection (enter at 0.0055, leave at 0.0028,
+   minimum 240ms of speech, minimum 360ms of pause) → **17 speech blocks**,
+   36.84s of actual voice inside 60.76s of file.
+3. Checked whether the recording was even *this* script: the script has
+   **exactly 17 sentences**. Estimating each sentence's spoken length from
+   its character count and comparing cumulative boundaries against the
+   detected blocks gave errors of **0.00s, 0.19s, 0.17s, 0.33s, 0.58s,
+   0.59s, 0.68s, 0.00s**. Two independent boundaries landing dead-on is not
+   a coincidence — the recording is the script in `i18n.js`.
+4. Built a piecewise map from "speech time" to "file time" through the
+   blocks, and placed each of the 10 display lines on it, with a 0.25s lead
+   and each cue holding until the next one starts (no flicker between
+   lines).
+
+Verified against the live audio clock: at `currentTime` 1.07 / 4.68 / 11.93
+/ 17.37 the correct cue was on screen each time.
+
+**Bug found while doing it:** the narration started at the same moment as
+the 2-second fade-in, so the first words played over a black screen and the
+first subtitle appeared washed out. The voice now waits for the fade
+(shortened to 1.6s) and starts at 80% opacity. `narrationTime` returns −1
+before that, so no cue can match early.
+
+Re-confirmed the whole chain still works: `drive → decel → stop → exit`
+fires only when the voice ends.
+
+### Pushed to GitHub
+
+`https://github.com/luizhenriquevfernandes2008-ops/the-midnight-call`
+— **private**, branch `main`, one commit.
+
+Added `README.md` and `.gitignore` (excludes dev screenshots and Audacity
+project files).
+
+**Deliberately private.** Public is one command away and cannot be undone
+— anything published can be cached or indexed even after deletion. Also,
+`assets/reference/` holds third-party concept art and screenshots; those
+should be deleted before the repo ever goes public. Noted in the README.
+
+### Still open
+
+Everything from Session 01's open list. The alley's plain stretch between
+x≈550 and x≈1000 remains the most visible art gap.
+
+### Next session starts with
+
+The detective's name, then NPCs and dialogue choices.
+
+---
+
 ## Template for the next entry
 
 ```
