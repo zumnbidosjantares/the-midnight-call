@@ -1,0 +1,90 @@
+THE MIDNIGHT CALL  /  Chamado da Meia-Noite
+versao 0.1 — fatia jogavel de teste
+===========================================
+
+COMO JOGAR
+----------
+Clique duas vezes em  ABRIR_JOGO.bat
+
+Vai abrir uma janela preta (o servidor) e, logo em seguida, o jogo no
+navegador. DEIXE A JANELA PRETA ABERTA enquanto joga. Para fechar o jogo,
+feche ela.
+
+O endereco tem que comecar com  http://localhost  — nunca abra o
+index.html com dois cliques direto, o navegador bloqueia os modulos do
+jogo e a tela fica presa em "carregando...".
+
+
+SE NAO ABRIR
+------------
+1. Clique duas vezes em  DIAGNOSTICO.bat  e me mande o que aparecer.
+   Ele confere Python, arquivos faltando e portas ocupadas.
+
+2. Se a janela preta fechar sozinha na hora, o erro esta escrito nela.
+   Rode ABRIR_JOGO.bat de novo: agora ele para e espera antes de fechar.
+
+3. Se a tela do jogo ficar presa em "carregando..." por 15 segundos, ela
+   se transforma sozinha num diagnostico com botao de COPIAR.
+
+4. Se aparecer "O jogo travou", clique em COPIAR ERRO. E se voce ja fechou
+   essa tela, o texto continua guardado: abra o jogo e clique no link
+   vermelho "ver o ultimo erro" embaixo de PRESSIONE QUALQUER TECLA.
+
+
+CONTROLES
+---------
+  A / D  ou  setas      andar
+  SHIFT (segurando)     correr
+  E                     interagir / avancar dialogo
+  J  ou  ESPACO         socar (aperte de novo para o segundo golpe)
+  ESC                   pausar (no jogo) / voltar (nos menus)
+  ESC ou ENTER segurado pular a cutscene de abertura
+  DELETE                apagar o arquivo de save selecionado
+  F1                    informacoes de depuracao
+
+SALA DE TESTE (no menu principal)
+  setas esquerda/direita   trocar de animacao
+  Z / X                    velocidade da animacao
+  C                        mostrar o esqueleto
+  V                        espelhar o personagem
+  F                        camera livre
+  ESC                      sair
+
+
+O QUE JA EXISTE NESTA VERSAO
+----------------------------
+- Menu com titulo animado, chuva e o detetive parado embaixo do poste
+- Salvamento em 3 arquivos, pelo menu de pausa, com miniatura da tela
+- Opcoes: idioma (portugues/ingles), volumes, legendas, grao, scanlines
+- Cutscene de abertura: o carro anda enquanto o narrador fala; quando a
+  fala acaba, ele chega, desce e entra no beco
+- Andar, correr, socar (dois golpes), interagir
+- Animacao de parado: ele pega o cigarro, acende e desiste
+- Beco chuvoso com objetos para examinar e uma porta
+- O bar escuro e vazio, com as cadeiras empilhadas
+
+
+O AUDIO DO NARRADOR
+-------------------
+Coloque o arquivo em  assets\audio\  com o nome  narrator.mp3
+Leia  assets\audio\LEIA-ME.txt  para os detalhes e para ajustar as
+legendas ao tempo da sua gravacao.
+
+Sem o arquivo o jogo funciona igual — a cutscene roda pelos tempos
+escritos a mao.
+
+
+DOCUMENTACAO
+------------
+  docs\GAME_DESIGN.md    o plano completo do jogo (linha do tempo das
+                         5 horas, sistemas, arquitetura tecnica)
+  docs\SESSION_LOG.md    o que foi feito em cada sessao, o que falta,
+                         bugs corrigidos e bugs em aberto
+
+Os dois estao em ingles, como combinado.
+
+
+PASTA ferramentas\
+------------------
+So serve para desenvolvimento (um servidor que tira capturas de tela do
+jogo rodando). Nao e necessario para jogar e pode ser ignorada.

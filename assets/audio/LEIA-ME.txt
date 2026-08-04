@@ -1,0 +1,41 @@
+AUDIO DA NARRACAO — onde colocar
+================================
+
+Coloque o audio do narrador NESTA PASTA com um destes nomes:
+
+    narrator.mp3      (preferido)
+    narrator.wav
+    narrator.ogg
+    narrator.m4a
+    narracao.mp3
+    narrador.mp3
+    intro.mp3
+
+O jogo procura por eles nessa ordem quando abre. Se achar, a cutscene de
+abertura usa o audio de verdade e as legendas seguem o tempo dele.
+Se NAO achar nenhum, a cutscene roda pelos tempos escritos a mao em
+js/i18n.js (const NARRATION) e continua funcionando normalmente.
+
+AJUSTANDO AS LEGENDAS AO SEU AUDIO
+----------------------------------
+Abra js/i18n.js e procure por  export const NARRATION = [
+
+Cada linha tem:
+    { t: 5.6, d: 4.6, pt: '...', en: '...' }
+
+    t = segundo em que a legenda APARECE
+    d = quantos segundos ela FICA na tela
+
+Depois ajuste tambem:
+    export const NARRATION_END = 54.0
+que e o segundo em que a fala termina. O carro so comeca a frear quando a
+narracao acaba, entao esse numero controla a duracao da cutscene inteira.
+
+(Se o audio existir, o jogo usa a duracao real do arquivo e ignora
+NARRATION_END — mas os tempos t/d das legendas continuam valendo.)
+
+OUTROS SONS
+-----------
+Todo o resto do som do jogo (chuva, vento, passo, soco, porta, isqueiro,
+musica do menu) e sintetizado em tempo real pelo proprio jogo, em
+js/core/audio.js. Nao ha arquivos de audio para esses.

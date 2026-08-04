@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Midnight Call</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="480" height="270"></canvas>
+  </div>
+
+  <div id="boot">
+    <div class="boot-inner">
+      <p class="boot-title">THE MIDNIGHT CALL</p>
+      <p class="boot-hint" id="boot-msg">carregando&#8230;</p>
+      <p class="boot-prev" id="boot-prev" hidden>ver o ultimo erro</p>
+    </div>
+  </div>
+
+  <div id="crash" hidden>
+    <div class="crash-inner">
+      <p class="crash-title">O jogo travou.</p>
+      <pre id="crash-msg"></pre>
+      <div class="crash-actions">
+        <button id="crash-copy" type="button">COPIAR ERRO</button>
+        <button id="crash-reload" type="button">RECARREGAR</button>
+        <span id="crash-copied"></span>
+      </div>
+      <p class="crash-hint">Clique em COPIAR ERRO e cole no chat. E esse texto que diz o que quebrou.</p>
+    </div>
+  </div>
+
+  <script>
+    // Rede de seguranca. Um modulo que explode em silencio deixa a tela preta
+    // e sem pista nenhuma; aqui o erro vira texto que o jogador copia com um
+    // clique. Vale mais que qualquer descricao do que ele viu acontecer.
+    (function () {
+      var LS_KEY = 'tmc.lastError';
+
+      function ambiente() {
+        var g = window.game;
+        var linhas = [
+          'navegador: ' + navigator.userAgent,
+          'tela: ' + window.innerWidth + 'x' + window.innerHeight +
+            ' dpr' + (window.devicePixelRatio || 1),
+          'url: ' + location.href,
+        ];
+        if (g) {
+          linhas.push('estado: ' + g.state +
+            '  fase: ' + (g.level ? g.level.key : '-') +
+            '  fps: ' + (g.fps ? g.fps.toFixed(0) : '-'));
+          if (g.player) {
+            linhas.push('jogador: x=' + Math.round(g.player.x) +
+              ' estado=' + g.player.state +
+              ' anim=' + (g.player.det ? g.player.det.anim : '-'));
+          }
+          if (g.opening) linhas.push('cutscene: ' + g.opening.phase);
+        } else {
+          linhas.push('estado: o jogo nem chegou a carregar');
+          var b = document.getElementById('boot-msg');
+          if (b) linhas.push('boot parou em: "' + b.textContent + '"');
+        }
+        return linhas.join('\n');
+      }
+
+      function mostrar(titulo, detalhe) {
+        var box = document.getElementById('crash');
+        var msg = document.getElementById('crash-msg');
+        if (!box || box.hidden === false) return;
+        var texto = titulo + '\n\n' + detalhe + '\n\n--- ambiente ---\n' + ambiente();
+        box.hidden = false;
+        msg.textContent = texto;
+        try { localStorage.setItem(LS_KEY, texto); } catch (e) { /* sem espaco */ }
+      }
+
+      window.__crash = mostrar;
+
+      window.addEventListener('error', function (e) {
+        mostrar(
+          e.message || 'erro desconhecido',
+          (e.filename || '') + ':' + (e.lineno || 0) + ':' + (e.colno || 0) + '\n\n' +
+          (e.error && e.error.stack ? e.error.stack : '(sem pilha)')
+        );
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        mostrar('Promise rejeitada', (r && r.stack) ? r.stack : String(r));
+      });
+
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('crash-copy').addEventListener('click', function () {
+          var t = document.getElementById('crash-msg').textContent;
+          var aviso = document.getElementById('crash-copied');
+          function ok() { aviso.textContent = 'copiado'; }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t).then(ok, fallback);
+          } else fallback();
+          function fallback() {
+            var ta = document.createElement('textarea');
+            ta.value = t; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); ok(); }
+            catch (e) { aviso.textContent = 'selecione o texto e copie a mao'; }
+            document.body.removeChild(ta);
+          }
+        });
+        document.getElementById('crash-reload').addEventListener('click', function () {
+          location.reload();
+        });
+
+        // O erro fica guardado. Se o jogador fechou a tela ou recarregou, o
+        // texto nao se perde — ele reaparece a um clique na tela de abertura.
+        var anterior = null;
+        try { anterior = localStorage.getItem(LS_KEY); } catch (e) { /* sem acesso */ }
+        if (anterior) {
+          var link = document.getElementById('boot-prev');
+          link.hidden = false;
+          link.addEventListener('click', function () {
+            var box = document.getElementById('crash');
+            box.hidden = false;
+            document.getElementById('crash-msg').textContent = anterior;
+          });
+        }
+
+        // Vigia do carregamento. Um modulo que nao chega (servidor caiu no
+        // meio, arquivo faltando) nao dispara erro nenhum: a tela fica
+        // pulsando "carregando..." para sempre e nao ha nada para copiar.
+        // Depois de 15 segundos isso vira um diagnostico de verdade.
+        setTimeout(function () {
+          var g = window.game;
+          if (g && g.state && g.state !== 'boot') return;
+          var passo = (document.getElementById('boot-msg') || {}).textContent || '?';
+          var causa = g
+            ? 'Os modulos carregaram, mas a construcao das fases nao terminou.\n' +
+              'Parou no passo: "' + passo + '"'
+            : 'Os modulos JavaScript nao carregaram.\n\n' +
+              'Causa quase certa: a pagina foi aberta sem o servidor local, ou o\n' +
+              'servidor caiu. Feche o navegador, feche todas as janelas pretas do\n' +
+              'jogo e rode ABRIR_JOGO.bat de novo. O endereco tem que comecar com\n' +
+              'http://localhost — se comecar com file:// o navegador bloqueia os\n' +
+              'modulos e o jogo nunca sai daqui.';
+          mostrar('O jogo nao terminou de carregar', causa);
+        }, 15000);
+      });
+    })();
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

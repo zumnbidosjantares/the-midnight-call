@@ -1,0 +1,329 @@
+# SESSION LOG — The Midnight Call
+
+Running record of every working session. **Read this file first when
+resuming.** It is the handover note; `GAME_DESIGN.md` is the plan.
+
+> A note on the numbers: token counts and durations below are **honest
+> estimates**, not metered values — I have no access to the billing meter
+> from inside a session. They are recorded to show relative cost between
+> sessions, not to be accurate to the token.
+
+---
+
+## Where the project stands right now
+
+**Version:** 0.1 — vertical slice
+**Playable:** yes, end to end. Menu → opening cutscene → alley → bar →
+save → menu.
+**How to run:** double-click `ABRIR_JOGO.bat` (needs Python; it is already
+installed on this machine). Keep the black window open while playing.
+
+**Next session should start with:** deciding the detective's name, then
+building the NPC + dialogue-choice system (Chapter 2, the landlady).
+
+---
+
+## Session 01 — 2026-08-03
+
+**Duration:** ~2h30 (estimate)
+**Tokens:** ~350k (estimate — heavy on image reads, since every art change
+was verified by screenshotting the running game)
+
+### What we did
+
+Built the entire foundation from an empty folder.
+
+**Engine**
+- 480×270 internal resolution, nearest-neighbour upscale, no blurring at
+  any scale (`gfx.js`).
+- Full lighting pipeline: ambient buffer, additive coloured lights, cone
+  lights, quarter-resolution bloom, film grain, scanlines, vignette,
+  letterbox, fade, flash, integer screen shake.
+- Text renderer that takes a system font, renders it small, and hard-cuts
+  the alpha channel so it comes out looking like a bitmap font — with
+  accents and cedillas intact, which matters for a PT/EN game.
+- Input behind action names, 3-slot versioned save system with WebP
+  thumbnails, settings persistence.
+- Fully synthesised audio: rain, wind, room tone, footsteps (wet/dry),
+  punch whoosh and impact, door creak and slam, lighter flick, flame,
+  thunder, car pass-by, UI blips, and a slow D-minor piano piece with
+  convolution reverb and vinyl crackle for the menu.
+
+**Character**
+- The detective is a skeletal rig, not a sprite sheet: nine hand-drawn
+  pixel parts rotating around joints, driven by interpolated key poses.
+  Runs at true 60 fps instead of stepping through frames.
+- Animations: idle (breathing), walk, run, two-hit punch combo, interact,
+  get-out-of-car, look-back, and the **10-second cigarette animation** —
+  pocket, mouth, lighter flick, flame (which lights the scene for real),
+  hesitation, close the lighter, take it out, throw it away.
+- Per-frame rim light, wet-floor reflection, and a horizontal squash when
+  he turns around.
+
+**World**
+- Materials library: brick, asphalt, wood panelling, sheet metal, plus
+  dumpster, crates, fire escape, drain pipes, posters, graffiti, boarded
+  windows, doors, street lamps, bare bulbs, neon boxes, bar counter, bottle
+  shelf, cracked mirror, tables, stacked chairs, wall phone, blinds,
+  puddles, trash, manholes, building silhouettes.
+- **Back alley** (1300px): wet brick, flickering caged lamp, lit window,
+  neon over the bar door, four examinable props, rain with splashes.
+- **The Last Dime bar** (1000px): pressed-tin ceiling, nicotine-stained
+  plaster, wainscot, two swinging pendant lamps whose light actually
+  swings, moonlight through blinds, stacked chairs, cracked mirror, the
+  wall phone with the cut cord, dust motes.
+- **The drive** (tiling city): six parallax layers, lit windows, fire
+  escapes, wet-asphalt light streaks, a 134px sedan with spinning wheels,
+  a door that opens, headlights and tail lights.
+
+**Presentation**
+- Title screen is a live scene, not an image: it rains, the lamp buzzes,
+  and the detective stands under it going through the cigarette animation
+  every 26 seconds. Title is rendered from Impact and then eroded
+  pixel-by-pixel with drips, revealed by a wipe, and flickers like bad
+  neon.
+- Pause menu → 3 save slots with screenshots, timestamps, playtime.
+- Options: language, four volume sliders, subtitles, scanlines, grain,
+  camera shake, integer scaling. All persisted.
+- **Opening cutscene** as specified: the car drives through the rain while
+  the narrator speaks with subtitles; **when the narration ends the car
+  brakes**, arrives, the door opens, he climbs out, the car leaves, he
+  walks into the alley, control is handed over. Hold Esc to skip.
+- **Test Room** on the main menu: cycle every animation, change playback
+  speed, toggle the skeleton overlay, flip facing, free camera.
+
+### What went right
+
+- The skeletal rig was the correct call. Changing the character's whole
+  proportion took one edit to a table of numbers, not redrawing 40 frames.
+- Building a screenshot endpoint (`ferramentas/servidor_dev.py` + the
+  `window.__dev` hooks) early. Every art decision after that was made by
+  looking at the actual game instead of guessing. That is the single
+  biggest reason the art landed.
+- Driving the cutscene off the narration length instead of a fixed timer.
+  Whatever audio file you drop in, the cutscene ends with the sentence.
+
+### What went wrong (and how it was fixed)
+
+- **Everything was invisible for the first hour.** Ambient light of ~12%
+  turned realistically-coloured assets into black rectangles. Fixed by
+  raising the entire palette ~25% and adding a faint "hero light" that
+  follows the player. Rule recorded in the design doc.
+- **`putImageData` ignores `globalAlpha`.** The dithered gradient helper
+  was being used to darken the top of the alley wall and was erasing the
+  brick instead of shading it. Replaced with alpha-blended rectangles.
+- **The car sat where the detective's feet were**, so he looked like he was
+  standing on the roof. Fixed by pushing the road plane down and drawing
+  him *after* the car — the door that opens is the camera-side door, so he
+  should be in front of it anyway.
+- **The reach-for-the-face poses were completely wrong.** Raising the
+  shoulder pushes the hand *away* from the head. The correct shape is a
+  small shoulder angle with a nearly fully folded elbow.
+- **The browser tab used for testing was hidden**, so `requestAnimationFrame`
+  never fired and the boot sequence hung forever. Boot now yields with
+  `setTimeout` instead of `rAF`.
+
+### Bugs fixed this session
+
+| Bug | Fix |
+|-----|-----|
+| Esc opened and closed the pause menu in the same frame | `justOpened` guard that skips one update |
+| Enter held over from the menu instantly skipped the opening cutscene | skip input ignored for the first 0.6s |
+| Bar interior effectively invisible | restructured the wall into ceiling / plaster / wainscot, brightened wood, added a second pendant lamp and floor bounce light |
+| Interact prompt drew on top of the detective | prompt now floats above his head, not above the object |
+| Save/load screen let the pause menu bleed through | screen dim raised to 90% |
+| Bar's swinging lamp updated the wrong two lights (index drift) | lights held by named reference instead of array index |
+| Typo left a broken colour string in the alley builder | corrected |
+| A `clearRect` on the torn poster punched a hole through to the parallax layer | replaced with a dark fill |
+
+### Known bugs / rough edges still open
+
+1. **The alley is under-decorated between x≈550 and x≈1000.** Long stretch
+   of plain brick. Needs an AC unit, horizontal pipes, a vent, chains, more
+   ground clutter.
+2. **The lighter reads slightly low** — it sits at chin height rather than
+   in front of the mouth. Close enough to ship, worth a 2px pass.
+3. **Dialogue choices are unimplemented.** The data format supports them;
+   the box does not draw them yet.
+4. **No gamepad support.** The input layer is ready for it, nothing is
+   wired.
+5. **The cutscene's tiled street repeats visibly** — three lamps at a fixed
+   190px spacing reads like a metronome on a long drive.
+6. **The bar's back-room parallax layer is nearly pure black** and is doing
+   no work. Either give it depth or delete it.
+7. **Not verified on a real focused browser tab at 60fps.** Everything was
+   tested by stepping the game loop manually from a hidden tab. Frame
+   pacing and audio behaviour under real playback are unconfirmed.
+
+### What is left before this is a game
+
+Immediate (next 1–3 sessions):
+- Decide the detective's name.
+- NPC entity: idle behaviour, facing the player, a talk state.
+- Dialogue choices + a flag system that survives saving.
+- Journal / case board — the deduction verb the whole game hangs on.
+- Chapter 2 (the office) and Chapter 3 (the client's apartment).
+
+Then: sanity, enemies, hiding, chases — see `GAME_DESIGN.md` §5.
+
+### Files that did not exist before this session
+
+Everything. 26 source files, 3 launcher scripts, 2 documents.
+
+---
+
+## Session 01b — 2026-08-04 (short follow-up)
+
+**Duration:** ~20 min (estimate) · **Tokens:** ~40k (estimate)
+
+### Why
+
+Player reported the game showing **"o jogo travou"** — that is the built-in
+crash overlay, so a JavaScript error was thrown somewhere. The actual error
+text was not captured.
+
+### Could not reproduce
+
+Ran the game loop in real time (not stepped) twice: 695 frames through
+menu → load save → gameplay, and 1016 frames through menu → new game →
+opening cutscene with a live AudioContext. No exception either time.
+Audited the source for modern syntax the browser might not support and for
+the usual canvas throwers (`createRadialGradient` / `getImageData` with
+non-finite values) — nothing found. **The cause is still unknown.**
+
+### What was changed instead
+
+Made the next report self-serving rather than guessing:
+
+- Crash overlay now includes a **COPIAR ERRO** button and a **RECARREGAR**
+  button, and appends an environment block: browser UA, window size, DPR,
+  game state, current level, fps, player position and animation, cutscene
+  phase — or, if the game never finished loading, the exact boot step it
+  stopped on.
+- The error text is saved to `localStorage['tmc.lastError']`, and a
+  **"ver o ultimo erro"** link appears on the boot screen when one exists.
+  Closing or reloading no longer loses it.
+- `boot()` failures now land on the crash screen with the failing step
+  instead of becoming a contextless unhandled rejection.
+- **The main loop no longer dies from a single bad frame.** `tick()` is
+  wrapped; one or two failed frames are swallowed and the game keeps
+  running. Three consecutive failures stop the loop and show the overlay.
+- Fixed a real latent bug found while doing this: the first frame's `dt`
+  could be **negative** (the rAF timestamp can predate the
+  `performance.now()` read just before it), and after minimising the tab it
+  could be enormous. Both are now clamped.
+
+### Follow-up: the player reported "nothing to copy"
+
+That reframed the whole thing. **An empty crash panel means the crash
+overlay was probably never what they saw** — the page most likely never
+finished loading, which shows as a black screen pulsing "carregando…" with
+nothing to copy. The player's own guess ("is it the local server?") was
+right.
+
+Two concrete defects found in the launcher:
+
+1. **`ABRIR_JOGO.bat` opened the browser *before* starting the server.**
+   Python takes a few hundred milliseconds to bind, so the browser could
+   hit a dead port and show "can't reach this site". Fixed: `servidor.py`
+   now opens the browser itself, and only after the socket is listening.
+2. **A busy port failed silently.** Windows' `SO_REUSEADDR` semantics let a
+   second server "bind" a port that another process is already serving, so
+   the new one gets no traffic and no error. Fixed: the server probes the
+   port first and walks forward (8137 → 8138 → …) until it finds a free
+   one, printing which it chose.
+
+Aggravating factor worth remembering: **the dev screenshot server was being
+started and killed on port 8137 throughout session 01.** Anyone opening the
+game during that window would have hit a dead or hijacked port. Never leave
+the dev server bound to the same port the player's launcher uses.
+
+Also added:
+- **`DIAGNOSTICO.bat`** — prints Python version, every required file with
+  OK/FALTANDO, ports in use, and whether the narration audio exists. Made
+  for copying into chat.
+- **Boot watchdog** — if the game has not left the loading state after 15
+  seconds, the screen turns itself into a real diagnosis naming the likely
+  cause (no server / opened via `file://` / build step that stalled).
+- `ABRIR_JOGO.bat` now `pause`s at the end, so if Python dies instantly the
+  window stays open with the reason on screen instead of vanishing.
+
+Verified after the fix: the server picks a port, opens the default browser,
+and serves all 22 modules with 200.
+
+`DIAGNOSTICO.bat` output from the player's machine came back **completely
+clean** — Python 3.13.14, all 23 files present, no port conflicts. So the
+install is fine; the launcher race was the whole problem.
+
+One more piece of noise removed: the player saw
+`code 404, message File not found` in the server window and reasonably read
+it as a failure. It was the game probing eight possible filenames for the
+narration audio. `SimpleHTTPRequestHandler` logs that through `log_error`,
+not `log_message`, so the existing 404 filter never caught it. Both are
+filtered now, and the server prints an explicit line at startup saying
+whether narration audio was found and what happens if it was not.
+
+### ROOT CAUSE FOUND — and it was never a crash at all
+
+The player's third report had the detail that cracked it: *"the error screen
+with nothing in it, but there is sound, there is music, and the cursor
+disappears when I move outside the box."*
+
+Sound + music + hidden cursor means **the game was running perfectly the
+whole time.** It was running *behind* a black overlay.
+
+```css
+#crash {
+  display: flex;   /* this line */
+  z-index: 20;
+}
+```
+
+The crash panel is hidden with the HTML `hidden` attribute, which only works
+because browsers ship `[hidden] { display: none }` in the user-agent
+stylesheet. An **ID selector beats that**, so `display: flex` won, and the
+overlay was visible from the first frame of the very first run — showing its
+title ("O jogo travou.") and an empty `<pre>`, because no error had ever
+occurred. Hence: nothing to copy. Ever.
+
+Fix: `#crash[hidden] { display: none !important; }`
+
+Verified: on load `hidden=true` → `display: none`; forced open →
+`display: flex` with the text present; closed again → `display: none`. Swept
+the DOM for any other element whose `hidden` attribute is being overridden
+by one of my own display rules — **none**.
+
+**Lesson worth keeping:** never hide an element with the `hidden` attribute
+if its own selector sets `display`. Either pair every such rule with an
+explicit `[hidden]` guard, or hide with a class. Also: "nothing to copy" on
+an error screen is itself the diagnosis — an error panel with no error in it
+was never triggered by an error.
+
+Everything built during the follow-up (crash copy button, environment dump,
+stored last error, boot watchdog, loop hardening, launcher race fix, port
+fallback, `DIAGNOSTICO.bat`, 404 log suppression) stays. None of it was the
+bug, all of it is worth having, and the launcher race and the negative first
+`dt` were both real defects that would have bitten later.
+
+### Next session starts with
+
+Confirming the player sees the menu. Then: the detective's name, and the
+NPC + dialogue-choice system.
+
+---
+
+## Template for the next entry
+
+```
+## Session NN — YYYY-MM-DD
+
+**Duration:**
+**Tokens:**
+
+### What we did
+### What went right
+### What went wrong
+### Bugs fixed
+### Bugs still open
+### Next session starts with
+```
