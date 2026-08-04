@@ -681,6 +681,60 @@ The detective's name, then NPCs and dialogue choices.
 
 ---
 
+## Session 07 — 2026-08-04
+
+**Duration:** ~45 min (estimate) · **Tokens:** ~90k (estimate)
+
+The blood trail, the note, the figure, and waking up cuffed.
+
+### New content
+
+- **Blood trail across the bar.** Drops start sparse near the counter and
+  get denser toward a new back door at x=930. No arrow on screen — the
+  spacing does the pointing.
+- **`backroom`** — storeroom where the trail ends in a small pool with a
+  folded note in it. One bad bulb directly overhead.
+- **`cell`** — bare concrete, a pipe along the wall at the shoulder height
+  of a man sitting on the floor, a single bulb, a boarded door out of
+  reach. `minX`/`maxX` are two pixels apart: there is nowhere to go.
+
+### The scene (`js/systems/scene-nota.js`)
+
+Crouch → read → approach → strike → black → wake.
+
+- He reads with his **back to the door**, which is where the figure comes
+  from. The player sees it long before he could.
+- **The dread music is driven by distance, not by a clock.** Two detuned
+  sawtooths beating against each other, a filter that opens as it closes
+  in, and a heartbeat whose interval shrinks from 1.15s to 0.34s. That is
+  what makes the player want to turn around.
+- On the hit the music is cut in **10 milliseconds**. The sudden silence
+  is the scare; the thud and the tinnitus are just the aftermath.
+- **The figure is the detective's own rig** rendered through
+  `silhouettePass` in pure black, 1.16× tall and 0.94× wide. It walks with
+  the same skeleton, which is why it reads as a person and still has no
+  face. Since the whole scene is multiplied by the light buffer, black
+  stays black under any lamp.
+- **Eyelids** are a new `gfx.eyelid` (0 closed, 1 open) with a curved inner
+  edge and a haze while nearly shut. The wake-up opens to 0.22, closes to
+  0.03, opens to 0.55, closes to 0.30, then opens fully — two blinks.
+
+### Two bugs found while testing
+
+- The crouch-to-read pose was **undone every frame** by the player's own
+  state machine, which saw no movement and forced `idle`. Scenes now set
+  `player.frozen`, which makes `update()` advance the animation and touch
+  nothing else.
+- The backroom and the cell were lit for a room half their size, so both
+  read as solid black. Ambient raised and the cell's bulb moved to sit
+  directly above where he wakes.
+
+### Next session starts with
+
+What he does about the pipe — and the first NPC.
+
+---
+
 ## Template for the next entry
 
 ```

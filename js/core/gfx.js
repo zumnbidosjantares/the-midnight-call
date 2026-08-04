@@ -53,6 +53,7 @@ class Gfx {
     this.flash = 0;
     this.flashColor = '#ffffff';
     this.letterbox = 0;       // 0..1 — altura das barras de cinema
+    this.eyelid = 1;          // 1 = olhos abertos, 0 = fechados
     // Grao discreto de proposito. Acima de ~0.03 o ruido comeca a comer os
     // pixels do rosto do personagem, que tem 14px de largura — o que sobra
     // e uma cara suja e sem expressao.
@@ -344,6 +345,31 @@ class Gfx {
       s.fillStyle = this.fadeColor;
       s.fillRect(0, 0, VW, VH);
       s.globalAlpha = 1;
+    }
+
+    // Palpebras. 1 = olho aberto, 0 = fechado. As bordas nao sao retas: a
+    // curva por cima e o que faz parecer olho em vez de cortina de teatro.
+    if (this.eyelid < 1) {
+      const k = clamp(this.eyelid, 0, 1);
+      const bar = (VH / 2) * (1 - k);
+      s.fillStyle = '#000';
+      s.fillRect(0, 0, VW, Math.ceil(bar));
+      s.fillRect(0, VH - Math.ceil(bar), VW, Math.ceil(bar) + 1);
+      const curva = 7 * (1 - k);
+      for (let x = 0; x < VW; x++) {
+        const d = Math.round(Math.sin((x / VW) * Math.PI) * curva);
+        if (d > 0) {
+          s.fillRect(x, Math.ceil(bar), 1, d);
+          s.fillRect(x, VH - Math.ceil(bar) - d, 1, d);
+        }
+      }
+      // visao ainda turva perto de fechar
+      if (k < 0.85) {
+        s.globalAlpha = (0.85 - k) * 0.7;
+        s.fillStyle = '#000';
+        s.fillRect(0, 0, VW, VH);
+        s.globalAlpha = 1;
+      }
     }
 
     // shake — deslocamento inteiro, senao o pixel treme entre subpixels

@@ -378,6 +378,7 @@ class Gfx {
     this.flash = 0;
     this.flashColor = '#ffffff';
     this.letterbox = 0;       // 0..1 — altura das barras de cinema
+    this.eyelid = 1;          // 1 = olhos abertos, 0 = fechados
     // Grao discreto de proposito. Acima de ~0.03 o ruido comeca a comer os
     // pixels do rosto do personagem, que tem 14px de largura — o que sobra
     // e uma cara suja e sem expressao.
@@ -669,6 +670,31 @@ class Gfx {
       s.fillStyle = this.fadeColor;
       s.fillRect(0, 0, VW, VH);
       s.globalAlpha = 1;
+    }
+
+    // Palpebras. 1 = olho aberto, 0 = fechado. As bordas nao sao retas: a
+    // curva por cima e o que faz parecer olho em vez de cortina de teatro.
+    if (this.eyelid < 1) {
+      const k = clamp(this.eyelid, 0, 1);
+      const bar = (VH / 2) * (1 - k);
+      s.fillStyle = '#000';
+      s.fillRect(0, 0, VW, Math.ceil(bar));
+      s.fillRect(0, VH - Math.ceil(bar), VW, Math.ceil(bar) + 1);
+      const curva = 7 * (1 - k);
+      for (let x = 0; x < VW; x++) {
+        const d = Math.round(Math.sin((x / VW) * Math.PI) * curva);
+        if (d > 0) {
+          s.fillRect(x, Math.ceil(bar), 1, d);
+          s.fillRect(x, VH - Math.ceil(bar) - d, 1, d);
+        }
+      }
+      // visao ainda turva perto de fechar
+      if (k < 0.85) {
+        s.globalAlpha = (0.85 - k) * 0.7;
+        s.fillStyle = '#000';
+        s.fillRect(0, 0, VW, VH);
+        s.globalAlpha = 1;
+      }
     }
 
     // shake — deslocamento inteiro, senao o pixel treme entre subpixels
@@ -1244,6 +1270,121 @@ class Audio {
     s.connect(f);
     this._env(f, t, 0.001, 0.05, 0.16);
     s.start(t, Math.random() * 3, 0.08); s.stop(t + 0.1);
+  }
+
+  // ---------------- tensao ----------------
+  // Duas serras desafinadas uma contra a outra (o batimento entre elas e o
+  // que incomoda), um sopro agudo por cima e um filtro que vai abrindo.
+  // Tudo controlado por um numero so: 0 = longe, 1 = em cima de voce.
+
+  startDread() {
+    if (!this.ensure()) return;
+    if (this.dread) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const saida = c.createGain();
+    saida.gain.setValueAtTime(0.0001, t);
+    saida.connect(this.busMusic);
+
+    const filtro = c.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.setValueAtTime(240, t);
+    filtro.Q.value = 3;
+    filtro.connect(saida);
+
+    const a = c.createOscillator(); a.type = 'sawtooth'; a.frequency.value = 41.2;
+    const b = c.createOscillator(); b.type = 'sawtooth'; b.frequency.value = 42.1;
+    const ga = c.createGain(); ga.gain.value = 0.5;
+    a.connect(ga); b.connect(ga); ga.connect(filtro);
+    a.start(t); b.start(t);
+
+    // sopro agudo, quase inaudivel no comeco
+    const ar = c.createBufferSource();
+    ar.buffer = this.noiseBuf; ar.loop = true; ar.playbackRate.value = 1.4;
+    const af = c.createBiquadFilter();
+    af.type = 'bandpass'; af.Q.value = 2.2; af.frequency.value = 3200;
+    const ag = c.createGain(); ag.gain.value = 0.0;
+    ar.connect(af); af.connect(ag); ag.connect(saida);
+    ar.start(t);
+
+    this.dread = { saida, filtro, a, b, ar, ag };
+    this.setDread(0);
+  }
+
+  setDread(k) {
+    const d = this.dread;
+    if (!d || !this.ready) return;
+    const t = this.ctx.currentTime, r = 0.25;
+    const ramp = (p, v) => {
+      p.cancelScheduledValues(t); p.setValueAtTime(p.value, t);
+      p.linearRampToValueAtTime(Math.max(0.0001, v), t + r);
+    };
+    ramp(d.saida.gain, 0.05 + k * 0.42);
+    ramp(d.filtro.frequency, 240 + k * k * 1500);
+    ramp(d.ag.gain, k * k * 0.05);
+    // as duas serras se afastam: quanto mais perto, mais aspero o batimento
+    ramp(d.b.frequency, 42.1 + k * 3.4);
+  }
+
+  // corte seco: e o silencio subito que da o susto, nao o barulho
+  stopDread(fade = 0) {
+    const d = this.dread;
+    if (!d) return;
+    const t = this.ctx.currentTime;
+    d.saida.gain.cancelScheduledValues(t);
+    d.saida.gain.setValueAtTime(d.saida.gain.value, t);
+    d.saida.gain.linearRampToValueAtTime(0.0001, t + Math.max(0.008, fade));
+    const stop = t + Math.max(0.02, fade) + 0.05;
+    try { d.a.stop(stop); d.b.stop(stop); d.ar.stop(stop); } catch (e) {}
+    this.dread = null;
+  }
+
+  heartbeat(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    for (let i = 0; i < 2; i++) {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      const t0 = t + i * 0.17;
+      o.frequency.setValueAtTime(64, t0);
+      o.frequency.exponentialRampToValueAtTime(30, t0 + 0.14);
+      this._env(o, t0, 0.006, 0.16, (i ? 0.28 : 0.42) * vol, this.busMusic);
+      o.start(t0); o.stop(t0 + 0.24);
+    }
+  }
+
+  // pancada surda na nuca
+  thud(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(28, t + 0.22);
+    const g = this._env(o, t, 0.001, 0.34, 0.8 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.45);
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 700;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.16, 0.5 * vol);
+    s.start(t, Math.random() * 3, 0.3); s.stop(t + 0.3);
+  }
+
+  // zumbido de ouvido depois da pancada
+  tinnitus(dur = 3) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine'; o.frequency.value = 3100;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 0.15);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.2);
   }
 
   uiMove() {
@@ -2171,7 +2312,7 @@ __mods["art/detective.js"] = function(__exp){
 // de _renderRig(). Todo o resto do jogo so chama play() e draw().
 
 const { PAL } = __req("art/palette.js");
-const { sprite, darken, stamp, rimPass, DEG } = __req("art/pixel.js");
+const { sprite, darken, stamp, rimPass, silhouettePass, DEG } = __req("art/pixel.js");
 const { makeBuffer, lerp, clamp, easeInOut } = __req("core/gfx.js");
 
 // ---------------------------------------------------------------------------
@@ -2610,6 +2751,26 @@ const ANIM = {
     events: [{ t: 0.62, ev: 'step' }],
   },
 
+  // Agachado lendo. Ele fica de costas para a porta — de proposito.
+  read: {
+    dur: 3.4, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 15, torso: 20, head: 16, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 42, aFf: -64, aBu: 30, aBf: -52 }) },
+      { t: 0.50, p: pose({ hy: 15.9, torso: 21.5, head: 17, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 43, aFf: -65, aBu: 31, aBf: -53 }) },
+      { t: 1.00, p: pose({ hy: 15, torso: 20, head: 16, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 42, aFf: -64, aBu: 30, aBf: -52 }) },
+    ],
+  },
+
+  // Sentado no chao, pulsos algemados num cano acima da cabeca.
+  cuffed: {
+    dur: 4.6, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+      { t: 0.50, p: pose({ hy: 20.8, torso: -7.5, head: 11, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -157, aFf: 13, aBu: -162, aBf: 11 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+    ],
+  },
+
   // parado olhando para tras — reservado para os sustos
   lookback: {
     dur: 1.60, loop: false,
@@ -2685,6 +2846,12 @@ class Detective {
     this._cigWorld = null;
     this.visible = true;
     this.showSkeleton = false;
+    // Silhueta: se tiver cor, o corpo inteiro e pintado com ela e a luz de
+    // contorno some. E assim que a figura negra e feita — o mesmo boneco
+    // articulado, sem nenhuma informacao dentro.
+    this.silhouette = null;
+    this.scaleX = 1;
+    this.scaleY = 1;
   }
 
   play(name, opts = {}) {
@@ -2828,29 +2995,34 @@ class Detective {
     // achatamento da virada: o sprite "gira" comprimindo em X
     const sq = 0.3 + 0.7 * Math.sin(clamp(this.flipT, 0, 1) * Math.PI / 2);
 
+    let src = b.c;
+    if (this.silhouette) {
+      silhouettePass(b.c, this.rimBuf, this.silhouette);
+      src = this.rimBuf.c;
+    }
+
     // reflexo no chao molhado
     if (this.reflect > 0) {
       ctx.save();
       ctx.imageSmoothingEnabled = false;
       ctx.globalAlpha = this.reflect * this.alpha;
       ctx.translate(px, py + 1);
-      ctx.scale(this.facing * sq, -0.82);
-      ctx.drawImage(b.c, -ORX, -ORY);
+      ctx.scale(this.facing * sq * this.scaleX, -0.82 * this.scaleY);
+      ctx.drawImage(src, -ORX, -ORY);
       ctx.restore();
     }
 
-    // luz de contorno
-    if (this.rimAlpha > 0) {
-      rimPass(b.c, this.rimBuf, this.rimColor, this.rimDX * this.facing, this.rimDY);
-    }
+    // luz de contorno (silhueta nao tem: ela nao reflete nada)
+    const comRim = this.rimAlpha > 0 && !this.silhouette;
+    if (comRim) rimPass(b.c, this.rimBuf, this.rimColor, this.rimDX * this.facing, this.rimDY);
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = this.alpha;
     ctx.translate(px, py);
-    ctx.scale(this.facing * sq, 1);
-    ctx.drawImage(b.c, -ORX, -ORY);
-    if (this.rimAlpha > 0) {
+    ctx.scale(this.facing * sq * this.scaleX, this.scaleY);
+    ctx.drawImage(src, -ORX, -ORY);
+    if (comRim) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = this.alpha * this.rimAlpha;
       ctx.drawImage(this.rimBuf.c, -ORX, -ORY);
@@ -3749,6 +3921,75 @@ function wallHole(ctx, x, y, w, h, seed) {
   rect(ctx, x - 1, y - 1, w + 2, 1, '#5c452c');
 }
 
+// ---------------------------------------------------------------------------
+// sangue
+// ---------------------------------------------------------------------------
+
+// Pingos espalhados numa faixa. Poucos e pequenos: uma trilha de sangue
+// convence pelo espacamento, nao pela quantidade.
+function bloodDrops(ctx, x, gy, w, n, seed) {
+  const rnd = mulberry32(seed);
+  for (let i = 0; i < n; i++) {
+    const px = x + rnd() * w;
+    const py = gy + 2 + rnd() * 8;
+    const r = rnd();
+    const c = r > 0.6 ? '#8a1c16' : (r > 0.25 ? '#6b1310' : '#4a0d0b');
+    const s = 1 + Math.floor(rnd() * 2);
+    rect(ctx, px, py, s, s, c);
+    if (rnd() > 0.7) rect(ctx, px + 1, py + 1, 1, 1, '#a8241c');
+    // respingo satelite
+    if (rnd() > 0.75) rect(ctx, px + 2 + rnd() * 3, py + rnd() * 2, 1, 1, '#5c110e');
+  }
+}
+
+function bloodPool(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  const h = 7;
+  for (let i = 0; i < w; i++) {
+    const t = i / w;
+    const hh = Math.max(1, Math.round(Math.sin(t * Math.PI) * h * (0.7 + rnd() * 0.5)));
+    rect(ctx, x + i, gy + 8 - hh, 1, hh, '#5e100d');
+  }
+  // miolo mais escuro e brilho da borda molhada
+  for (let i = 2; i < w - 2; i++) {
+    const t = i / w;
+    const hh = Math.max(1, Math.round(Math.sin(t * Math.PI) * (h - 3)));
+    rect(ctx, x + i, gy + 8 - hh, 1, hh, '#430907');
+  }
+  for (let i = 0; i < w; i += 2) {
+    if (rnd() > 0.5) rect(ctx, x + i, gy + 7, 1, 1, '#93211a');
+  }
+  // arrasto saindo da poca
+  for (let i = 0; i < 14; i++) {
+    rect(ctx, x - 4 - rnd() * 12, gy + 4 + rnd() * 5, 1 + rnd() * 2, 1, '#4a0d0b');
+  }
+}
+
+// Papel dobrado caido no chao. Claro de proposito: e o unico ponto claro
+// da sala, e e para onde o olho tem que ir.
+function note(ctx, x, gy) {
+  rect(ctx, x, gy + 2, 11, 7, '#0f0a08');
+  rect(ctx, x, gy + 1, 11, 7, '#c9c2ad');
+  rect(ctx, x, gy + 1, 11, 1, '#e2dcc6');
+  rect(ctx, x + 1, gy + 3, 8, 1, '#8b8471');
+  rect(ctx, x + 1, gy + 5, 6, 1, '#8b8471');
+  rect(ctx, x + 7, gy + 1, 4, 4, '#b3ac97');   // dobra
+  rect(ctx, x + 9, gy + 5, 2, 3, '#7d1712');   // canto encharcado
+  return { x, y: gy + 1, w: 11, h: 8 };
+}
+
+// Cano de parede — o que prende as algemas na sala do fim.
+function wallPipe(ctx, x, y, len, seed) {
+  rect(ctx, x, y, len, 5, '#3c3f45');
+  rect(ctx, x, y, len, 1, '#5a5f68');
+  rect(ctx, x, y + 4, len, 1, '#1e2126');
+  for (let i = 0; i < len; i += 34) {
+    rect(ctx, x + i, y - 1, 4, 7, '#4a4e56');
+    rect(ctx, x + i, y - 1, 4, 1, '#666c76');
+  }
+  grainRect(ctx, x, y, len, 5, [PAL.rust, '#2a2016'], 0.12, seed);
+}
+
 function wallPhone(ctx, x, y, seed) {
   rect(ctx, x, y, 12, 18, '#1c1f24');
   rect(ctx, x, y, 12, 1, '#2f343b');
@@ -3858,6 +4099,10 @@ function buildingSilhouette(ctx, x, gy, w, h, color, seed, litWindows) {
   Object.defineProperty(__exp, "debris", { get: function(){ return debris; }, enumerable: true });
   Object.defineProperty(__exp, "glassShards", { get: function(){ return glassShards; }, enumerable: true });
   Object.defineProperty(__exp, "wallHole", { get: function(){ return wallHole; }, enumerable: true });
+  Object.defineProperty(__exp, "bloodDrops", { get: function(){ return bloodDrops; }, enumerable: true });
+  Object.defineProperty(__exp, "bloodPool", { get: function(){ return bloodPool; }, enumerable: true });
+  Object.defineProperty(__exp, "note", { get: function(){ return note; }, enumerable: true });
+  Object.defineProperty(__exp, "wallPipe", { get: function(){ return wallPipe; }, enumerable: true });
   Object.defineProperty(__exp, "wallPhone", { get: function(){ return wallPhone; }, enumerable: true });
   Object.defineProperty(__exp, "windowBlinds", { get: function(){ return windowBlinds; }, enumerable: true });
   Object.defineProperty(__exp, "puddle", { get: function(){ return puddle; }, enumerable: true });
@@ -4298,6 +4543,23 @@ function buildBar() {
   }
   inter.push({ x: 330, y: 138, w: 34, h: 46, prompt: 'prompt_look', lines: 'bar_wreck', range: 32 });
 
+  // --- a trilha de sangue ---
+  // Comeca fraca perto do balcao e vai ficando mais junta ate a porta dos
+  // fundos. O jogador segue sem precisar de seta na tela.
+  M.bloodDrops(g, 600, GY, 120, 9, 1501);
+  M.bloodDrops(g, 700, GY, 110, 14, 1511);
+  M.bloodDrops(g, 790, GY, 100, 20, 1521);
+  M.bloodDrops(g, 870, GY, 70, 26, 1531);
+
+  const bd = M.doorFrame(g, 930, GY, 1541);
+  inter.push({
+    x: bd.x, y: bd.y, w: bd.w, h: bd.h, prompt: 'prompt_open',
+    action: 'enter_back', range: 30, isDoor: true,
+  });
+  rect(g, 924, GY, 38, 3, '#241811');
+  const bdb = M.bareBulb(g, 943, bd.y - 18, 10);
+  lights.push({ x: bdb.bulbX, y: bdb.bulbY, r: 64, color: '#e8b46a', i: 0.5, flick: 'bulb' });
+
   const lampGlow = { x: 430, y: 52, r: 210, color: '#e8b46a', i: 1.15, flick: 'swing', falloff: 0.8 };
   const lampCore = { x: 430, y: 52, r: 30, color: '#ffdca8', i: 1.0, flick: 'swing' };
   lights.push(lampGlow, lampCore);
@@ -4350,8 +4612,9 @@ function buildBar() {
       { x: 340, key: ['bark_bar_wreck', 'bark_bar_wreck2'], range: 46 },
       { x: 430, key: 'bark_bar_chairs', range: 40 },
       { x: 560, key: 'bark_bar_bottles', range: 44 },
-      { x: 700, key: 'bark_bar_chairs2', range: 44 },
-      { x: 900, key: 'bark_joke_2', range: 48 },
+      { x: 640, key: ['bark_blood', 'bark_blood2'], range: 46 },
+      { x: 780, key: 'bark_bar_chairs2', range: 44 },
+      { x: 900, key: 'bark_back_door', range: 48 },
     ],
   });
 
@@ -4384,6 +4647,172 @@ function buildBar() {
   };
 
   return lvl;
+}
+
+// ---------------------------------------------------------------------------
+// DEPOSITO — onde a trilha de sangue termina
+// ---------------------------------------------------------------------------
+
+function buildBackroom() {
+  const W = 520, GY = 214;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  // paredes de bloco, sem acabamento
+  rect(g, 0, 0, W, GY, '#1a1815');
+  M.brickWall(g, 0, 20, W, GY - 20, 2101, {
+    base: '#3a352e', hi: '#464036', dk: '#2a251f', mortar: '#1e1a16', moss: false,
+  });
+  for (let i = 0; i < 50; i++) {
+    g.globalAlpha = 0.7 * (1 - i / 50);
+    rect(g, 0, 20 + i, W, 1, '#050403');
+  }
+  g.globalAlpha = 1;
+  rect(g, 0, 0, W, 20, '#0a0908');
+
+  // piso de cimento
+  M.asphalt(g, 0, GY, W, VH - GY, 2111, { hi: '#3a352e', mid: '#2b2721', dk: '#1c1915' });
+  rect(g, 0, GY, W, 1, '#0d0b09');
+
+  const inter = [];
+  const lights = [];
+
+  // porta de volta ao bar
+  const ex = M.doorFrame(g, 46, GY, 2121);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'exit_back', range: 30, isDoor: true,
+  });
+
+  // prateleiras e engradados
+  for (const [px, n] of [[130, 3], [250, 2], [430, 3]]) {
+    for (let i = 0; i < n; i++) {
+      rect(g, px, 120 + i * 26, 62, 3, '#3a2a1c');
+      rect(g, px, 120 + i * 26, 62, 1, '#523c28');
+      rect(g, px + 2, 108 + i * 26, 14, 12, '#2c2118');
+      rect(g, px + 22, 110 + i * 26, 12, 10, '#33261a');
+      rect(g, px + 42, 106 + i * 26, 16, 14, '#281e15');
+    }
+    rect(g, px - 2, 118, 3, GY - 118, '#2a2018');
+    rect(g, px + 60, 118, 3, GY - 118, '#2a2018');
+  }
+  M.crate(g, 90, GY, 1, 2131);
+  M.crate(g, 320, GY, 0, 2141);
+  M.crate(g, 340, GY, 1, 2151);
+  M.debris(g, 200, GY, 40, 2161);
+
+  // --- a trilha, cada vez mais junta ate parar ---
+  M.bloodDrops(g, 80, GY, 90, 10, 2171);
+  M.bloodDrops(g, 160, GY, 90, 16, 2181);
+  M.bloodDrops(g, 240, GY, 90, 24, 2191);
+  M.bloodDrops(g, 320, GY, 50, 30, 2201);
+  M.bloodPool(g, 356, GY, 44, 2211);
+  const nt = M.note(g, 378, GY);
+  inter.push({
+    x: nt.x - 6, y: nt.y - 10, w: nt.w + 12, h: 20,
+    prompt: 'prompt_look', action: 'read_note', range: 26,
+  });
+
+  // uma lampada ruim, bem em cima da poca
+  const bulb = M.bareBulb(g, 382, 24, 54);
+  lights.push({ x: bulb.bulbX, y: bulb.bulbY, r: 170, color: '#e0b070', i: 1.0, flick: 'bulb', falloff: 0.85 });
+  lights.push({ x: bulb.bulbX, y: bulb.bulbY, r: 24, color: '#fff0c8', i: 1.0, flick: 'bulb' });
+  lights.push({ x: 378, y: 196, r: 92, color: '#c08a58', i: 0.42, falloff: 1.2 });
+  // resto que escapa da porta do bar
+  lights.push({ x: 58, y: 170, r: 74, color: '#e8b46a', i: 0.34, falloff: 1.2 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.2) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 10, '#040302');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#040302');
+
+  return new Level({
+    key: 'backroom',
+    nameKey: 'loc_back',
+    width: W, groundY: GY,
+    ambient: '#242832',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.2 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.05,
+    minX: 24, maxX: W - 60,
+    spawn: { x: 78, facing: 1 },
+    doorX: 59,
+    bloom: 0.4,
+    indoor: true,
+    enterBarks: ['bark_pool'],
+    barks: [{ x: 330, key: 'bark_note_pre', range: 44 }],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// CATIVEIRO — onde ele acorda
+// ---------------------------------------------------------------------------
+
+function buildCell() {
+  const W = 340, GY = 214;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  rect(g, 0, 0, W, VH, '#100f0e');
+  // concreto cru, manchado
+  M.brickWall(g, 0, 0, W, GY, 3101, {
+    base: '#2e2b27', hi: '#39352f', dk: '#211e1b', mortar: '#171513', moss: false,
+  });
+  M.asphalt(g, 0, GY, W, VH - GY, 3111, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
+  rect(g, 0, GY, W, 1, '#0a0908');
+  grainRect(g, 0, 0, W, GY, ['#191715', '#3d3831'], 0.05, 3121);
+
+  // manchas de umidade descendo
+  for (const px of [40, 120, 250, 300]) {
+    for (let i = 0; i < 60; i++) {
+      g.globalAlpha = 0.1;
+      rect(g, px + Math.sin(i * 0.3) * 2, 20 + i, 2, 1, '#0d0f12');
+      g.globalAlpha = 1;
+    }
+  }
+
+  // O cano. Fica na altura do ombro de quem esta sentado no chao.
+  M.wallPipe(g, 0, 168, W, 3131);
+
+  // porta trancada, do outro lado da sala
+  const d = M.doorFrame(g, 286, GY, 3141);
+  rect(g, d.x + 4, d.y + 20, 18, 4, '#2a2622');   // tabua atravessada
+  rect(g, d.x + 4, d.y + 20, 18, 1, '#403a33');
+
+  // A lampada fica em cima dele: e a unica coisa que ele consegue ver, e
+  // isso e proposital — a sala inteira e uma pergunta sem resposta.
+  const lights = [
+    { x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 },
+    { x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' },
+    { x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 },
+  ];
+  M.bareBulb(g, 196, 12, 30);
+
+  const fore = makeBuffer(VW, VH);
+  rect(fore.x, 0, 0, VW, 12, '#030202');
+  rect(fore.x, 0, VH - 10, VW, 10, '#030202');
+
+  return new Level({
+    key: 'cell',
+    nameKey: 'loc_cell',
+    width: W, groundY: GY,
+    ambient: '#1e222c',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1 }],
+    lightDefs: lights,
+    interactables: [],
+    weather: 'none',
+    reflect: 0.04,
+    minX: 150, maxX: 152,     // preso: nao ha para onde ir
+    spawn: { x: 151, facing: 1 },
+    bloom: 0.35,
+    indoor: true,
+    pipeY: 168,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -4617,398 +5046,10 @@ function buildRoad() {
   Object.defineProperty(__exp, "Level", { get: function(){ return Level; }, enumerable: true });
   Object.defineProperty(__exp, "buildAlley", { get: function(){ return buildAlley; }, enumerable: true });
   Object.defineProperty(__exp, "buildBar", { get: function(){ return buildBar; }, enumerable: true });
+  Object.defineProperty(__exp, "buildBackroom", { get: function(){ return buildBackroom; }, enumerable: true });
+  Object.defineProperty(__exp, "buildCell", { get: function(){ return buildCell; }, enumerable: true });
   Object.defineProperty(__exp, "buildCar", { get: function(){ return buildCar; }, enumerable: true });
   Object.defineProperty(__exp, "buildRoad", { get: function(){ return buildRoad; }, enumerable: true });
-};
-__mods["systems/player.js"] = function(__exp){
-// player.js — o detetive controlavel.
-//
-// So existe eixo X: andar, correr, socar, interagir. E de proposito — o
-// jogo e um corredor lateral e a tensao vem de nao poder desviar.
-//
-// A regra de ouro do controle: o jogador nunca fica preso numa animacao
-// sem saber por que. Soco e interacao travam o movimento por menos de meio
-// segundo; a animacao do cigarro e cancelada por QUALQUER tecla.
-
-const { Detective } = __req("art/detective.js");
-const { clamp, gfx } = __req("core/gfx.js");
-const { input } = __req("core/input.js");
-const { audio } = __req("core/audio.js");
-
-const ACC = 620;
-const FRICTION = 1000;
-const SPEED_WALK = 48;
-const SPEED_RUN = 104;
-const IDLE_TO_SMOKE = 7.0;
-
-class Player {
-  constructor(fx) {
-    this.det = new Detective();
-    this.fx = fx;
-    this.x = 100; this.y = 214;
-    this.vx = 0;
-    this.facing = 1;
-    this.state = 'idle';
-    this.idleTime = 0;
-    this.lockTime = 0;
-    this.comboWindow = 0;
-    this.comboNext = false;
-    this.wet = true;
-    this.onInteract = null;
-    this.onAnimEvent = null;
-    this.controllable = true;
-    this.floatText = null;
-    this.barkQueue = [];
-    this.barkGap = 0;
-
-    // arma
-    this.gun = 'holstered';   // holstered | drawing | ready | holstering | reloading
-    this.gunT = 0;
-    this.aimAngle = 0;
-    this.ammo = 6;
-    this.clipSize = 6;
-    this.reserve = 18;
-    this.ammoHud = 0;         // quanto tempo o contador ainda fica na tela
-    this.fireCd = 0;
-
-    this.det.onEvent = (ev) => this._animEvent(ev);
-  }
-
-  get aiming() { return this.det.aim.on; }
-
-  spawn(x, facing, y) {
-    this.x = x; this.facing = facing || 1;
-    if (y !== undefined) this.y = y;
-    this.vx = 0;
-    this.state = 'idle';
-    this.idleTime = 0;
-    this.lockTime = 0;
-    this.det.facing = this.facing;
-    this.det.flipT = 1;
-    this.det.play('idle', { restart: true, blend: 0 });
-  }
-
-  _animEvent(ev) {
-    switch (ev) {
-      case 'step': {
-        const running = this.state === 'run';
-        audio.step(this.wet, running ? 1.15 : 0.85);
-        if (this.wet && this.fx) {
-          const bx = this.x - this.facing * 4;
-          this.fx.burst(4 + (running ? 4 : 0), () => ({
-            x: bx + (Math.random() - 0.5) * 6, y: this.y - 1,
-            vx: (Math.random() - 0.5) * 46 - this.facing * 18,
-            vy: -24 - Math.random() * 34, ay: 210,
-            life: 0.24 + Math.random() * 0.18, size: 1,
-            color: '#7f9cc4', a: 0.5, fade: 1.4,
-          }));
-        }
-        break;
-      }
-      case 'whoosh': audio.whoosh(1); break;
-      case 'hit': audio.punchHit(0.7); break;
-      case 'lighter_flick': audio.lighterFlick(); break;
-      case 'flame_on': audio.flameWhoosh(0.8); break;
-      case 'say_not_today':
-        this.say('not_today', 2.6);
-        break;
-      case 'cig_toss':
-        if (this.fx) {
-          this.fx.spawn({
-            x: this.x + this.facing * 12, y: this.y - 42,
-            vx: this.facing * 60 + 10, vy: -30, ay: 260,
-            life: 1.6, size: 1, color: '#ded6c4', a: 0.9, fade: 0.4,
-          });
-        }
-        break;
-      case 'sigh': audio.blip(0.4); break;
-    }
-    if (this.onAnimEvent) this.onAnimEvent(ev);
-  }
-
-  cancelIdleAnim() {
-    if (this.state === 'smoke') {
-      this.state = 'idle';
-      this.idleTime = 0;
-      this.det.play('idle', { blend: 0.22 });
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // arma
-  // -------------------------------------------------------------------
-
-  _updateGun(dt, canAct) {
-    const d = this.det;
-    if (this.gunT > 0) this.gunT -= dt;
-    if (this.fireCd > 0) this.fireCd -= dt;
-    if (this.ammoHud > 0) this.ammoHud -= dt;
-
-    const querMirar = canAct && input.mouse.right && this.state !== 'punch' && this.state !== 'interact';
-
-    if (this.gun === 'holstered') {
-      if (querMirar) {
-        this.gun = 'drawing'; this.gunT = 0.30;
-        this.aimAngle = 0;
-        audio.leather(1);
-      }
-    } else if (this.gun === 'drawing') {
-      if (this.gunT <= 0) {
-        this.gun = 'ready';
-        d.props.gun = 'hand';
-        this.ammoHud = 3;
-        audio.reloadClick(1.3);
-      }
-      if (!input.mouse.right) { this.gun = 'holstered'; this.gunT = 0; }
-    } else if (this.gun === 'reloading') {
-      if (this.gunT <= 0) {
-        const falta = this.clipSize - this.ammo;
-        const usa = Math.min(falta, this.reserve);
-        this.ammo += usa; this.reserve -= usa;
-        this.gun = 'ready';
-        this.ammoHud = 3;
-        audio.reloadClick(0.8);
-      }
-    } else if (this.gun === 'ready') {
-      if (querMirar) {
-        // Mouse para CIMA levanta a mira. movementY e negativo subindo,
-        // por isso o sinal invertido. Movimento horizontal e ignorado.
-        this.aimAngle = clamp(this.aimAngle - input.mouse.dy * 0.30, -38, 46);
-        d.aim.on = true;
-        d.aim.angle = this.aimAngle;
-        this.vx = 0;                       // mirar prende os pes no chao
-        if (input.mouse.pressed) this._fire();
-        if (input.pressedFrame.has('KeyR') && this.ammo < this.clipSize && this.reserve > 0) {
-          this.gun = 'reloading'; this.gunT = 1.0;
-          d.aim.on = false;
-          audio.reloadClick(0.7);
-          setTimeout(() => audio.reloadClick(1.1), 340);
-        }
-      } else {
-        this.gunT -= dt;
-        if (this.gunT < -0.5) { this.gun = 'holstering'; this.gunT = 0.28; audio.leather(0.8); }
-      }
-    } else if (this.gun === 'holstering') {
-      d.aim.on = false;
-      if (this.gunT <= 0) { this.gun = 'holstered'; d.props.gun = 'holstered'; }
-      if (querMirar) { this.gun = 'ready'; d.props.gun = 'hand'; this.gunT = 0; }
-    }
-
-    if (this.gun !== 'ready' || !input.mouse.right) d.aim.on = this.gun === 'ready' && input.mouse.right;
-  }
-
-  _fire() {
-    if (this.fireCd > 0) return;
-    const d = this.det;
-    this.ammoHud = 4;
-    if (this.ammo <= 0) {
-      this.fireCd = 0.28;
-      audio.dryClick();
-      this.say(this.reserve > 0 ? 'bark_reload' : 'bark_dry', 2.0);
-      return;
-    }
-    this.ammo--;
-    this.fireCd = 0.34;
-    d.aim.recoil = 1;
-    d.muzzleT = 0.055;
-    audio.gunshot(1);
-    gfx.shake(2.6, 0.22);
-    gfx.flash = 0.05;
-
-    const rad = this.aimAngle * Math.PI / 180;
-    const ox = this.x + this.facing * 22;
-    const oy = this.y - 48 - Math.sin(rad) * 10;
-
-    // cartucho saltando
-    this.fx.spawn({
-      x: ox, y: oy - 2, vx: -this.facing * 40 + (Math.random() - 0.5) * 20,
-      vy: -70 - Math.random() * 30, ay: 320, life: 1.2, size: 1,
-      color: '#c8a45a', a: 1, fade: 0.3,
-    });
-    // fumaca da boca do cano
-    this.fx.burst(7, () => ({
-      x: ox + this.facing * 12, y: oy - Math.random() * 3,
-      vx: this.facing * (30 + Math.random() * 50), vy: -8 - Math.random() * 16,
-      ay: -6, drag: 2.2, life: 0.5 + Math.random() * 0.4, size: 1,
-      color: '#8d8779', a: 0.35, fade: 1.4,
-    }));
-    // faisca onde a bala bate
-    const dist = 150 + Math.random() * 70;
-    const hx = this.x + this.facing * dist;
-    const hy = oy - Math.tan(rad) * dist;
-    this.fx.burst(9, () => ({
-      x: hx, y: hy, vx: -this.facing * (30 + Math.random() * 90),
-      vy: (Math.random() - 0.5) * 120, ay: 240, life: 0.3 + Math.random() * 0.25,
-      size: 1, color: Math.random() > 0.5 ? '#ffd07a' : '#fff2c8', a: 1, fade: 1.2, glow: true,
-    }));
-  }
-
-  update(dt, level, allow = true) {
-    const d = this.det;
-    const canAct = allow && this.controllable;
-
-    if (this.lockTime > 0) this.lockTime -= dt;
-    if (this.comboWindow > 0) this.comboWindow -= dt;
-    this._updateGun(dt, canAct);
-
-    const mirando = this.aiming;
-    let ax = 0;
-    const wantRun = input.isDown('run') && !mirando;
-    const dir = (canAct && this.lockTime <= 0 && !mirando) ? input.axisX() : 0;
-
-    if (canAct && (input.axisX() !== 0 || input.pressed('attack') || input.pressed('interact')
-                   || input.mouse.right)) {
-      this.cancelIdleAnim();
-    }
-
-    // ---- ataque (soco desativado com a arma na mao) ----
-    if (canAct && !mirando && this.gun === 'holstered' && input.pressed('attack')) {
-      if (this.state === 'punch' && this.comboWindow > 0 && !this.comboNext) {
-        this.comboNext = true;
-      } else if (this.state !== 'punch') {
-        this._startPunch(1);
-      }
-    }
-
-    // ---- interagir ----
-    if (canAct && input.pressed('interact') && this.lockTime <= 0 && this.state !== 'punch') {
-      const it = level && level.nearest(this.x);
-      if (it) {
-        this.state = 'interact';
-        this.lockTime = 0.34;
-        this.vx = 0;
-        d.play('interact', { restart: true });
-        this._pending = it;
-      }
-    }
-
-    // ---- movimento ----
-    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact') {
-      ax = dir * ACC;
-      this.facing = dir;
-      d.setFacing(dir);
-      this.state = wantRun ? 'run' : 'walk';
-      this.idleTime = 0;
-    } else if (this.state === 'walk' || this.state === 'run') {
-      this.state = 'idle';
-    }
-
-    const maxV = wantRun ? SPEED_RUN : SPEED_WALK;
-    this.vx += ax * dt;
-    if (ax === 0) {
-      const f = FRICTION * dt;
-      if (Math.abs(this.vx) <= f) this.vx = 0; else this.vx -= Math.sign(this.vx) * f;
-    }
-    this.vx = clamp(this.vx, -maxV, maxV);
-    this.x += this.vx * dt;
-
-    if (level) this.x = clamp(this.x, level.minX, level.maxX);
-
-    // ---- estados de animacao ----
-    if (this.state === 'punch') {
-      if (d.done) {
-        if (this.comboNext) { this.comboNext = false; this._startPunch(2); }
-        else { this.state = 'idle'; this.lockTime = 0; }
-      }
-    } else if (this.state === 'interact') {
-      if (d.done) {
-        this.state = 'idle';
-        if (this._pending) { const it = this._pending; this._pending = null; if (this.onInteract) this.onInteract(it); }
-      }
-    } else if (this.state === 'smoke') {
-      if (d.done) { this.state = 'idle'; this.idleTime = 0; }
-    } else {
-      const sp = Math.abs(this.vx);
-      if (sp > SPEED_WALK + 6) { if (d.anim !== 'run') d.play('run'); d.speed = clamp(sp / SPEED_RUN, 0.72, 1.25); }
-      else if (sp > 3) { if (d.anim !== 'walk') d.play('walk'); d.speed = clamp(sp / SPEED_WALK, 0.6, 1.3); }
-      else {
-        d.speed = 1;
-        // com a arma na mao ele nao vai procurar cigarro
-        if (this.gun !== 'holstered') this.idleTime = 0;
-        else this.idleTime += dt;
-        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
-          this.state = 'smoke';
-          d.play('smoke', { restart: true, blend: 0.3 });
-        } else if (d.anim !== 'idle') d.play('idle');
-      }
-    }
-
-    this._updateBarks(dt);
-    d.update(dt);
-  }
-
-  // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
-  // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
-  say(key, dur = 2.6) {
-    if (this.floatText && this.floatText.key === key) return;
-    if (this.barkQueue.some(b => b.key === key)) return;
-    this.barkQueue.push({ key, dur });
-  }
-
-  sayAll(keys) { for (const k of keys) this.say(k); }
-
-  _updateBarks(dt) {
-    if (this.floatText) {
-      this.floatText.t += dt;
-      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
-    } else if (this.barkGap > 0) {
-      this.barkGap -= dt;
-    } else if (this.barkQueue.length) {
-      const b = this.barkQueue.shift();
-      this.floatText = { key: b.key, dur: b.dur, t: 0 };
-    }
-  }
-
-  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
-
-  // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
-  floatAlpha() {
-    if (!this.floatText) return 0;
-    const { t, dur } = this.floatText;
-    if (t < 0.25) return t / 0.25;
-    if (t > dur - 0.9) return Math.max(0, (dur - t) / 0.9);
-    return 1;
-  }
-
-  _startPunch(n) {
-    this.state = 'punch';
-    this.comboNext = false;
-    this.comboWindow = n === 1 ? 0.34 : 0;
-    this.lockTime = n === 1 ? 0.40 : 0.48;
-    this.vx = this.facing * 26;
-    this.det.play(n === 1 ? 'punch1' : 'punch2', { restart: true, blend: 0.06 });
-  }
-
-  // Faz o personagem caminhar sozinho ate um X. Usado pela cutscene.
-  autoWalk(dt, targetX, run) {
-    const d = this.det;
-    const dir = Math.sign(targetX - this.x);
-    if (Math.abs(targetX - this.x) < 2) {
-      this.vx = 0;
-      if (d.anim !== 'idle') d.play('idle');
-      d.update(dt);
-      return true;
-    }
-    this.facing = dir; d.setFacing(dir);
-    const sp = run ? SPEED_RUN : SPEED_WALK;
-    this.vx = dir * sp;
-    this.x += this.vx * dt;
-    const want = run ? 'run' : 'walk';
-    if (d.anim !== want) d.play(want);
-    d.update(dt);
-    return false;
-  }
-
-  draw(ctx, cam) {
-    this.det.draw(ctx, this.x - cam.ix, this.y - cam.iy);
-  }
-
-  lights(cam) {
-    return this.det.lights(this.x - cam.ix, this.y - cam.iy);
-  }
-}
-
-  Object.defineProperty(__exp, "Player", { get: function(){ return Player; }, enumerable: true });
 };
 __mods["i18n.js"] = function(__exp){
 // i18n.js — TODO texto visivel do jogo mora aqui. Nenhuma string solta
@@ -5084,6 +5125,22 @@ const STR = {
   loc_street:     { pt: 'RUA HOLLAND, 2h14',    en: 'HOLLAND STREET, 2:14 AM' },
   loc_alley:      { pt: 'BECO DOS FUNDOS',      en: 'BACK ALLEY' },
   loc_bar:        { pt: 'BAR O ULTIMO TROCO',   en: 'THE LAST DIME BAR' },
+  loc_back:       { pt: 'DEPOSITO DOS FUNDOS',  en: 'BACK STOREROOM' },
+  loc_cell:       { pt: 'EM ALGUM LUGAR',       en: 'SOMEWHERE' },
+  note_text:      { pt: 'POR QUE VOCÊ VOLTOU AQUI?',
+                    en: 'WHY DID YOU COME BACK HERE?' },
+
+  bark_blood:     { pt: 'Sangue. Fresco.',              en: 'Blood. Fresh.' },
+  bark_blood2:    { pt: 'Vai para os fundos.',          en: 'It leads to the back.' },
+  bark_back_door: { pt: 'A trilha para aqui.',          en: 'The trail stops here.' },
+  bark_pool:      { pt: 'Alguem ficou parado sangrando aqui. Tempo demais.',
+                    en: 'Someone stood here bleeding. For too long.' },
+  bark_note_pre:  { pt: 'Tem um papel no meio da poça.',
+                    en: 'There is a piece of paper in the middle of it.' },
+  bark_cell_1:    { pt: 'Cano. Frio. Sem folga.',       en: 'Pipe. Cold. No slack.' },
+  bark_cell_2:    { pt: 'Nao me mataram. Isso e pior.', en: 'They did not kill me. That is worse.' },
+  bark_cell_3:    { pt: 'Alguem me trouxe ate aqui. Carregado.',
+                    en: 'Somebody carried me here.' },
   not_today:      { pt: 'hoje não...',          en: 'not tonight...' },
 
   // ---------- falas soltas em cima da cabeca ----------
@@ -5316,6 +5373,593 @@ function speaker(id) {
   Object.defineProperty(__exp, "lineCount", { get: function(){ return lineCount; }, enumerable: true });
   Object.defineProperty(__exp, "SPEAKER", { get: function(){ return SPEAKER; }, enumerable: true });
   Object.defineProperty(__exp, "speaker", { get: function(){ return speaker; }, enumerable: true });
+};
+__mods["systems/scene-nota.js"] = function(__exp){
+// scene-nota.js — a cena da nota, e o que vem atras dela.
+//
+// Sequencia: ele se agacha para ler, de costas para a porta. A nota
+// pergunta por que ele voltou. Enquanto ele le, uma figura preta entra pela
+// porta e vem andando. A musica sobe com a distancia — nao com o relogio,
+// com a DISTANCIA, e e isso que faz o jogador olhar para tras. Quando ela
+// chega, o som para no meio e a tela apaga.
+//
+// Depois: palpebras abrindo devagar, com duas piscadas, e ele acorda
+// algemado num cano.
+
+const { VW, VH, gfx, clamp, lerp, easeOut } = __req("core/gfx.js");
+const { audio } = __req("core/audio.js");
+const { input } = __req("core/input.js");
+const { PAL } = __req("art/palette.js");
+const { text } = __req("core/text.js");
+const { Detective } = __req("art/detective.js");
+const { t: T } = __req("i18n.js");
+
+// A figura para de andar a esta distancia do detetive e da o golpe.
+const ALCANCE = 26;
+// Distancia em que a tensao ja esta no maximo.
+const PERTO = 40;
+const LONGE = 230;
+
+class NoteScene {
+  constructor(player, fx) {
+    this.player = player;
+    this.fx = fx;
+    this.finished = false;
+    this.figura = new Detective();
+    this.figura.silhouette = '#000000';
+    this.figura.rimAlpha = 0;
+    this.figura.reflect = 0;
+    this.figura.scaleY = 1.16;    // mais alta que um homem, so um pouco
+    this.figura.scaleX = 0.94;    // e mais estreita
+  }
+
+  start(level) {
+    this.level = level;
+    this.phase = 'crouch';
+    this.pt = 0;
+    this.finished = false;
+    this.noteAlpha = 0;
+    this.batida = 0;
+    this.figuraX = this.player.x - 300;
+    this.figura.facing = 1;
+    this.figura.visible = false;
+    this.figura.play('walk', { blend: 0 });
+    this.figura.speed = 0.55;
+
+    // Congelar e obrigatorio, nao so cosmetico: sem isso a maquina de
+    // estados do jogador volta para 'idle' no quadro seguinte e desfaz o
+    // agachamento no meio da cena.
+    this.player.frozen = true;
+    this.player.controllable = false;
+    this.player.clearBarks();
+    this.player.det.setFacing(1);
+    this.player.det.play('read', { blend: 0.45 });
+    gfx.letterbox = 1;
+    audio.stopLoop('roomtone', 1.5);
+  }
+
+  get dist() { return Math.abs(this.player.x - this.figuraX); }
+
+  update(dt) {
+    this.pt += dt;
+    const p = this.player;
+
+    switch (this.phase) {
+      case 'crouch':
+        if (this.pt > 1.1) { this.phase = 'read'; this.pt = 0; }
+        break;
+
+      case 'read':
+        this.noteAlpha = clamp(this.noteAlpha + dt * 1.6, 0, 1);
+        if (this.pt > 2.6) {
+          this.phase = 'approach'; this.pt = 0;
+          this.figura.visible = true;
+          audio.startDread();
+          audio.doorCreak(0.5);
+        }
+        break;
+
+      case 'approach': {
+        // anda devagar, e desacelera de leve chegando perto: a ultima parte
+        // demora mais do que o jogador espera
+        const d = this.dist;
+        const vel = 15 + 9 * clamp((d - ALCANCE) / 180, 0, 1);
+        this.figuraX += vel * dt;
+        this.figura.update(dt);
+
+        const k = clamp(1 - (d - PERTO) / (LONGE - PERTO), 0, 1);
+        audio.setDread(k);
+
+        // batimento acelera junto
+        this.batida -= dt;
+        if (this.batida <= 0) {
+          this.batida = lerp(1.15, 0.34, k);
+          audio.heartbeat(0.35 + k * 0.65);
+        }
+        if (k > 0.55) gfx.shake(k * 0.7, 0.2);
+
+        if (d <= ALCANCE) { this.phase = 'strike'; this.pt = 0; }
+        break;
+      }
+
+      case 'strike':
+        this.figura.play('punch1', { restart: this.pt < dt * 2, blend: 0.05 });
+        this.figura.speed = 1.1;
+        this.figura.update(dt);
+        if (this.pt > 0.30 && !this._bateu) {
+          this._bateu = true;
+          audio.stopDread(0.01);     // corta no meio, sem despedida
+          audio.thud(1);
+          audio.tinnitus(4);
+          gfx.shake(5, 0.5);
+          gfx.fade = 1;
+          gfx.eyelid = 0;
+        }
+        if (this.pt > 0.55) { this.phase = 'black'; this.pt = 0; }
+        break;
+
+      case 'black':
+        gfx.fade = 1;
+        gfx.eyelid = 0;
+        if (this.pt > 2.4) {
+          this.phase = 'wake'; this.pt = 0;
+          if (this.onWake) this.onWake();       // troca para a cela
+          gfx.fade = 0;
+          audio.startLoop('roomtone', { gain: 0.09, fade: 3 });
+        }
+        break;
+
+      case 'wake': {
+        // duas piscadas antes de abrir de vez
+        const t = this.pt;
+        let k;
+        if (t < 1.2) k = (t / 1.2) * 0.22;
+        else if (t < 1.7) k = lerp(0.22, 0.03, (t - 1.2) / 0.5);
+        else if (t < 3.0) k = lerp(0.03, 0.55, (t - 1.7) / 1.3);
+        else if (t < 3.4) k = lerp(0.55, 0.30, (t - 3.0) / 0.4);
+        else k = lerp(0.30, 1, easeOut(clamp((t - 3.4) / 2.2, 0, 1)));
+        gfx.eyelid = k;
+        if (t > 5.8) {
+          gfx.eyelid = 1;
+          gfx.letterbox = 0;
+          this.finished = true;
+        }
+        break;
+      }
+    }
+
+    if (this.phase !== 'strike' && this.phase !== 'approach') this.figura.update(dt);
+    p.det.update(dt);
+  }
+
+  // desenhado junto com a fase, depois do jogador
+  draw(ctx, cam) {
+    if (!this.figura.visible) return;
+    this.figura.draw(ctx, this.figuraX - cam.ix, this.player.y - cam.iy);
+  }
+
+  // A figura nao emite nem consome luz — ela e desenhada preta e pronto.
+  // Como a cena inteira e multiplicada pela luz, preto continua preto sob
+  // qualquer lampada, e e exatamente esse o efeito.
+  addLights() {}
+
+  drawUI(ctx) {
+    if (this.noteAlpha <= 0 || this.phase === 'black' || this.phase === 'wake') return;
+    const a = this.noteAlpha * (this.phase === 'strike' ? 0.4 : 1);
+    const w = 196, h = 44;
+    const x = (VW - w) / 2, y = 52;
+    ctx.save();
+    ctx.globalAlpha = a;
+    // papel amassado
+    ctx.fillStyle = '#0a0806';
+    ctx.fillRect(x + 2, y + 2, w, h);
+    ctx.fillStyle = '#c9c2ad';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#b3ac97';
+    ctx.fillRect(x, y + h - 4, w, 4);
+    ctx.fillStyle = '#8b1a14';
+    ctx.fillRect(x + w - 14, y + h - 9, 9, 9);
+    ctx.restore();
+    text(ctx, T('note_text'), VW / 2, y + 17, {
+      size: 11, font: 'serif', color: '#2a211c', align: 'center', track: 1, alpha: a,
+    });
+  }
+}
+
+  Object.defineProperty(__exp, "NoteScene", { get: function(){ return NoteScene; }, enumerable: true });
+};
+__mods["systems/player.js"] = function(__exp){
+// player.js — o detetive controlavel.
+//
+// So existe eixo X: andar, correr, socar, interagir. E de proposito — o
+// jogo e um corredor lateral e a tensao vem de nao poder desviar.
+//
+// A regra de ouro do controle: o jogador nunca fica preso numa animacao
+// sem saber por que. Soco e interacao travam o movimento por menos de meio
+// segundo; a animacao do cigarro e cancelada por QUALQUER tecla.
+
+const { Detective } = __req("art/detective.js");
+const { clamp, gfx } = __req("core/gfx.js");
+const { input } = __req("core/input.js");
+const { audio } = __req("core/audio.js");
+
+const ACC = 620;
+const FRICTION = 1000;
+const SPEED_WALK = 48;
+const SPEED_RUN = 104;
+const IDLE_TO_SMOKE = 7.0;
+
+class Player {
+  constructor(fx) {
+    this.det = new Detective();
+    this.fx = fx;
+    this.x = 100; this.y = 214;
+    this.vx = 0;
+    this.facing = 1;
+    this.state = 'idle';
+    this.idleTime = 0;
+    this.lockTime = 0;
+    this.comboWindow = 0;
+    this.comboNext = false;
+    this.wet = true;
+    this.onInteract = null;
+    this.onAnimEvent = null;
+    this.controllable = true;
+    this.floatText = null;
+    this.barkQueue = [];
+    this.barkGap = 0;
+
+    // arma
+    this.gun = 'holstered';   // holstered | drawing | ready | holstering | reloading
+    this.gunT = 0;
+    this.aimAngle = 0;
+    this.ammo = 6;
+    this.clipSize = 6;
+    this.reserve = 18;
+    this.ammoHud = 0;         // quanto tempo o contador ainda fica na tela
+    this.fireCd = 0;
+
+    this.det.onEvent = (ev) => this._animEvent(ev);
+  }
+
+  get aiming() { return this.det.aim.on; }
+
+  spawn(x, facing, y) {
+    this.x = x; this.facing = facing || 1;
+    if (y !== undefined) this.y = y;
+    this.vx = 0;
+    this.state = 'idle';
+    this.idleTime = 0;
+    this.lockTime = 0;
+    this.det.facing = this.facing;
+    this.det.flipT = 1;
+    this.det.play('idle', { restart: true, blend: 0 });
+  }
+
+  _animEvent(ev) {
+    switch (ev) {
+      case 'step': {
+        const running = this.state === 'run';
+        audio.step(this.wet, running ? 1.15 : 0.85);
+        if (this.wet && this.fx) {
+          const bx = this.x - this.facing * 4;
+          this.fx.burst(4 + (running ? 4 : 0), () => ({
+            x: bx + (Math.random() - 0.5) * 6, y: this.y - 1,
+            vx: (Math.random() - 0.5) * 46 - this.facing * 18,
+            vy: -24 - Math.random() * 34, ay: 210,
+            life: 0.24 + Math.random() * 0.18, size: 1,
+            color: '#7f9cc4', a: 0.5, fade: 1.4,
+          }));
+        }
+        break;
+      }
+      case 'whoosh': audio.whoosh(1); break;
+      case 'hit': audio.punchHit(0.7); break;
+      case 'lighter_flick': audio.lighterFlick(); break;
+      case 'flame_on': audio.flameWhoosh(0.8); break;
+      case 'say_not_today':
+        this.say('not_today', 2.6);
+        break;
+      case 'cig_toss':
+        if (this.fx) {
+          this.fx.spawn({
+            x: this.x + this.facing * 12, y: this.y - 42,
+            vx: this.facing * 60 + 10, vy: -30, ay: 260,
+            life: 1.6, size: 1, color: '#ded6c4', a: 0.9, fade: 0.4,
+          });
+        }
+        break;
+      case 'sigh': audio.blip(0.4); break;
+    }
+    if (this.onAnimEvent) this.onAnimEvent(ev);
+  }
+
+  cancelIdleAnim() {
+    if (this.state === 'smoke') {
+      this.state = 'idle';
+      this.idleTime = 0;
+      this.det.play('idle', { blend: 0.22 });
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // arma
+  // -------------------------------------------------------------------
+
+  _updateGun(dt, canAct) {
+    const d = this.det;
+    if (this.gunT > 0) this.gunT -= dt;
+    if (this.fireCd > 0) this.fireCd -= dt;
+    if (this.ammoHud > 0) this.ammoHud -= dt;
+
+    const querMirar = canAct && input.mouse.right && this.state !== 'punch' && this.state !== 'interact';
+
+    if (this.gun === 'holstered') {
+      if (querMirar) {
+        this.gun = 'drawing'; this.gunT = 0.30;
+        this.aimAngle = 0;
+        audio.leather(1);
+      }
+    } else if (this.gun === 'drawing') {
+      if (this.gunT <= 0) {
+        this.gun = 'ready';
+        d.props.gun = 'hand';
+        this.ammoHud = 3;
+        audio.reloadClick(1.3);
+      }
+      if (!input.mouse.right) { this.gun = 'holstered'; this.gunT = 0; }
+    } else if (this.gun === 'reloading') {
+      if (this.gunT <= 0) {
+        const falta = this.clipSize - this.ammo;
+        const usa = Math.min(falta, this.reserve);
+        this.ammo += usa; this.reserve -= usa;
+        this.gun = 'ready';
+        this.ammoHud = 3;
+        audio.reloadClick(0.8);
+      }
+    } else if (this.gun === 'ready') {
+      if (querMirar) {
+        // Mouse para CIMA levanta a mira. movementY e negativo subindo,
+        // por isso o sinal invertido. Movimento horizontal e ignorado.
+        this.aimAngle = clamp(this.aimAngle - input.mouse.dy * 0.30, -38, 46);
+        d.aim.on = true;
+        d.aim.angle = this.aimAngle;
+        this.vx = 0;                       // mirar prende os pes no chao
+        if (input.mouse.pressed) this._fire();
+        if (input.pressedFrame.has('KeyR') && this.ammo < this.clipSize && this.reserve > 0) {
+          this.gun = 'reloading'; this.gunT = 1.0;
+          d.aim.on = false;
+          audio.reloadClick(0.7);
+          setTimeout(() => audio.reloadClick(1.1), 340);
+        }
+      } else {
+        this.gunT -= dt;
+        if (this.gunT < -0.5) { this.gun = 'holstering'; this.gunT = 0.28; audio.leather(0.8); }
+      }
+    } else if (this.gun === 'holstering') {
+      d.aim.on = false;
+      if (this.gunT <= 0) { this.gun = 'holstered'; d.props.gun = 'holstered'; }
+      if (querMirar) { this.gun = 'ready'; d.props.gun = 'hand'; this.gunT = 0; }
+    }
+
+    if (this.gun !== 'ready' || !input.mouse.right) d.aim.on = this.gun === 'ready' && input.mouse.right;
+  }
+
+  _fire() {
+    if (this.fireCd > 0) return;
+    const d = this.det;
+    this.ammoHud = 4;
+    if (this.ammo <= 0) {
+      this.fireCd = 0.28;
+      audio.dryClick();
+      this.say(this.reserve > 0 ? 'bark_reload' : 'bark_dry', 2.0);
+      return;
+    }
+    this.ammo--;
+    this.fireCd = 0.34;
+    d.aim.recoil = 1;
+    d.muzzleT = 0.055;
+    audio.gunshot(1);
+    gfx.shake(2.6, 0.22);
+    gfx.flash = 0.05;
+
+    const rad = this.aimAngle * Math.PI / 180;
+    const ox = this.x + this.facing * 22;
+    const oy = this.y - 48 - Math.sin(rad) * 10;
+
+    // cartucho saltando
+    this.fx.spawn({
+      x: ox, y: oy - 2, vx: -this.facing * 40 + (Math.random() - 0.5) * 20,
+      vy: -70 - Math.random() * 30, ay: 320, life: 1.2, size: 1,
+      color: '#c8a45a', a: 1, fade: 0.3,
+    });
+    // fumaca da boca do cano
+    this.fx.burst(7, () => ({
+      x: ox + this.facing * 12, y: oy - Math.random() * 3,
+      vx: this.facing * (30 + Math.random() * 50), vy: -8 - Math.random() * 16,
+      ay: -6, drag: 2.2, life: 0.5 + Math.random() * 0.4, size: 1,
+      color: '#8d8779', a: 0.35, fade: 1.4,
+    }));
+    // faisca onde a bala bate
+    const dist = 150 + Math.random() * 70;
+    const hx = this.x + this.facing * dist;
+    const hy = oy - Math.tan(rad) * dist;
+    this.fx.burst(9, () => ({
+      x: hx, y: hy, vx: -this.facing * (30 + Math.random() * 90),
+      vy: (Math.random() - 0.5) * 120, ay: 240, life: 0.3 + Math.random() * 0.25,
+      size: 1, color: Math.random() > 0.5 ? '#ffd07a' : '#fff2c8', a: 1, fade: 1.2, glow: true,
+    }));
+  }
+
+  update(dt, level, allow = true) {
+    const d = this.det;
+    // Congelado: preso, amarrado, numa cena. A animacao continua rodando,
+    // o resto da maquina de estados nao encosta nela.
+    if (this.frozen) { this.vx = 0; this._updateBarks(dt); d.update(dt); return; }
+    const canAct = allow && this.controllable;
+
+    if (this.lockTime > 0) this.lockTime -= dt;
+    if (this.comboWindow > 0) this.comboWindow -= dt;
+    this._updateGun(dt, canAct);
+
+    const mirando = this.aiming;
+    let ax = 0;
+    const wantRun = input.isDown('run') && !mirando;
+    const dir = (canAct && this.lockTime <= 0 && !mirando) ? input.axisX() : 0;
+
+    if (canAct && (input.axisX() !== 0 || input.pressed('attack') || input.pressed('interact')
+                   || input.mouse.right)) {
+      this.cancelIdleAnim();
+    }
+
+    // ---- ataque (soco desativado com a arma na mao) ----
+    if (canAct && !mirando && this.gun === 'holstered' && input.pressed('attack')) {
+      if (this.state === 'punch' && this.comboWindow > 0 && !this.comboNext) {
+        this.comboNext = true;
+      } else if (this.state !== 'punch') {
+        this._startPunch(1);
+      }
+    }
+
+    // ---- interagir ----
+    if (canAct && input.pressed('interact') && this.lockTime <= 0 && this.state !== 'punch') {
+      const it = level && level.nearest(this.x);
+      if (it) {
+        this.state = 'interact';
+        this.lockTime = 0.34;
+        this.vx = 0;
+        d.play('interact', { restart: true });
+        this._pending = it;
+      }
+    }
+
+    // ---- movimento ----
+    if (dir !== 0 && this.state !== 'punch' && this.state !== 'interact') {
+      ax = dir * ACC;
+      this.facing = dir;
+      d.setFacing(dir);
+      this.state = wantRun ? 'run' : 'walk';
+      this.idleTime = 0;
+    } else if (this.state === 'walk' || this.state === 'run') {
+      this.state = 'idle';
+    }
+
+    const maxV = wantRun ? SPEED_RUN : SPEED_WALK;
+    this.vx += ax * dt;
+    if (ax === 0) {
+      const f = FRICTION * dt;
+      if (Math.abs(this.vx) <= f) this.vx = 0; else this.vx -= Math.sign(this.vx) * f;
+    }
+    this.vx = clamp(this.vx, -maxV, maxV);
+    this.x += this.vx * dt;
+
+    if (level) this.x = clamp(this.x, level.minX, level.maxX);
+
+    // ---- estados de animacao ----
+    if (this.state === 'punch') {
+      if (d.done) {
+        if (this.comboNext) { this.comboNext = false; this._startPunch(2); }
+        else { this.state = 'idle'; this.lockTime = 0; }
+      }
+    } else if (this.state === 'interact') {
+      if (d.done) {
+        this.state = 'idle';
+        if (this._pending) { const it = this._pending; this._pending = null; if (this.onInteract) this.onInteract(it); }
+      }
+    } else if (this.state === 'smoke') {
+      if (d.done) { this.state = 'idle'; this.idleTime = 0; }
+    } else {
+      const sp = Math.abs(this.vx);
+      if (sp > SPEED_WALK + 6) { if (d.anim !== 'run') d.play('run'); d.speed = clamp(sp / SPEED_RUN, 0.72, 1.25); }
+      else if (sp > 3) { if (d.anim !== 'walk') d.play('walk'); d.speed = clamp(sp / SPEED_WALK, 0.6, 1.3); }
+      else {
+        d.speed = 1;
+        // com a arma na mao ele nao vai procurar cigarro
+        if (this.gun !== 'holstered') this.idleTime = 0;
+        else this.idleTime += dt;
+        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
+          this.state = 'smoke';
+          d.play('smoke', { restart: true, blend: 0.3 });
+        } else if (d.anim !== 'idle') d.play('idle');
+      }
+    }
+
+    this._updateBarks(dt);
+    d.update(dt);
+  }
+
+  // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
+  // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
+  say(key, dur = 2.6) {
+    if (this.floatText && this.floatText.key === key) return;
+    if (this.barkQueue.some(b => b.key === key)) return;
+    this.barkQueue.push({ key, dur });
+  }
+
+  sayAll(keys) { for (const k of keys) this.say(k); }
+
+  _updateBarks(dt) {
+    if (this.floatText) {
+      this.floatText.t += dt;
+      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
+    } else if (this.barkGap > 0) {
+      this.barkGap -= dt;
+    } else if (this.barkQueue.length) {
+      const b = this.barkQueue.shift();
+      this.floatText = { key: b.key, dur: b.dur, t: 0 };
+    }
+  }
+
+  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
+
+  // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
+  floatAlpha() {
+    if (!this.floatText) return 0;
+    const { t, dur } = this.floatText;
+    if (t < 0.25) return t / 0.25;
+    if (t > dur - 0.9) return Math.max(0, (dur - t) / 0.9);
+    return 1;
+  }
+
+  _startPunch(n) {
+    this.state = 'punch';
+    this.comboNext = false;
+    this.comboWindow = n === 1 ? 0.34 : 0;
+    this.lockTime = n === 1 ? 0.40 : 0.48;
+    this.vx = this.facing * 26;
+    this.det.play(n === 1 ? 'punch1' : 'punch2', { restart: true, blend: 0.06 });
+  }
+
+  // Faz o personagem caminhar sozinho ate um X. Usado pela cutscene.
+  autoWalk(dt, targetX, run) {
+    const d = this.det;
+    const dir = Math.sign(targetX - this.x);
+    if (Math.abs(targetX - this.x) < 2) {
+      this.vx = 0;
+      if (d.anim !== 'idle') d.play('idle');
+      d.update(dt);
+      return true;
+    }
+    this.facing = dir; d.setFacing(dir);
+    const sp = run ? SPEED_RUN : SPEED_WALK;
+    this.vx = dir * sp;
+    this.x += this.vx * dt;
+    const want = run ? 'run' : 'walk';
+    if (d.anim !== want) d.play(want);
+    d.update(dt);
+    return false;
+  }
+
+  draw(ctx, cam) {
+    this.det.draw(ctx, this.x - cam.ix, this.y - cam.iy);
+  }
+
+  lights(cam) {
+    return this.det.lights(this.x - cam.ix, this.y - cam.iy);
+  }
+}
+
+  Object.defineProperty(__exp, "Player", { get: function(){ return Player; }, enumerable: true });
 };
 __mods["systems/dialogue.js"] = function(__exp){
 // dialogue.js — caixa de dialogo, legendas e o balaozinho de interagir.
@@ -6871,7 +7515,8 @@ const { PAL } = __req("art/palette.js");
 const { ANIM_NAMES } = __req("art/detective.js");
 const { Camera } = __req("world/camera.js");
 const { Rain, Fog, Particles, DustMotes } = __req("world/fx.js");
-const { buildAlley, buildBar, buildRoad, buildCar } = __req("world/levels.js");
+const { buildAlley, buildBar, buildBackroom, buildCell, buildRoad, buildCar } = __req("world/levels.js");
+const { NoteScene } = __req("systems/scene-nota.js");
 const { Player } = __req("systems/player.js");
 const { Dialogue, drawPrompt, drawLocationCard } = __req("systems/dialogue.js");
 const { Opening } = __req("systems/cutscene.js");
@@ -6921,6 +7566,11 @@ class Game {
     set('acendendo o bar...');
     await frame();
     this.levels.bar = buildBar();
+
+    set('abrindo os fundos...');
+    await frame();
+    this.levels.backroom = buildBackroom();
+    this.levels.cell = buildCell();
 
     set('ligando o carro...');
     await frame();
@@ -7065,8 +7715,11 @@ class Game {
 
   toMenu() {
     this.state = 'menu';
+    this.scene = null;
+    audio.stopDread(0.3);
     audio.stopAllLoops();
     audio.stopNarration();
+    gfx.eyelid = 1;
     this.menu.refresh();
     this.menu.enter();
     gfx.letterbox = 0;
@@ -7167,6 +7820,8 @@ class Game {
     this.dialogue.active = false;
     this.dialogue.fade = 0;
     this.player.clearBarks();
+    this.player.frozen = false;
+    this.player.controllable = true;
     if (lv.barks) for (const b of lv.barks) b.done = false;
     if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
@@ -7184,7 +7839,7 @@ class Game {
     const lv = this.level;
     const paused = this.pause.active;
 
-    if (!paused && !this.transition && input.pressed('pause') && !this.dialogue.active) {
+    if (!paused && !this.transition && !this.scene && input.pressed('pause') && !this.dialogue.active) {
       this.pause.open();
     }
 
@@ -7195,7 +7850,14 @@ class Game {
     if (!paused) {
       lv.update(sim);
       this.dialogue.update(sim);
-      const canControl = !this.dialogue.active && !this.transition;
+      if (this.scene) {
+        this.scene.update(sim);
+        if (this.scene.finished) {
+          this.scene = null;
+          this.player.controllable = false;   // continua algemado
+        }
+      }
+      const canControl = !this.dialogue.active && !this.transition && !this.scene;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
       this.checkBarks(lv);
@@ -7216,6 +7878,7 @@ class Game {
     lv.drawBack(gfx.s, cam);
     if (lv.drawProps) lv.drawProps(gfx.s, cam);
     this.player.draw(gfx.s, cam);
+    if (this.scene) this.scene.draw(gfx.s, cam);
     this.fx.draw(gfx.s, cam.ix, cam.iy);
     if (lv.indoor) this.dust.draw(gfx.s);
     else this.fog.draw(gfx.s);
@@ -7230,6 +7893,7 @@ class Game {
     gfx.addLight(this.player.x - cam.ix, this.player.y - cam.iy - 30, 86,
       lv.indoor ? '#a88458' : '#8f8d84', 0.26, 1.45);
     for (const L2 of this.player.lights(cam)) gfx.addLight(L2.x, L2.y, L2.r, L2.color, L2.i);
+    if (this.scene) this.scene.addLights(cam);
     gfx.endLights(lv.bloom);
 
     // ---- interface ----
@@ -7241,7 +7905,7 @@ class Game {
     // O balao fica acima da CABECA do detetive, nao acima do objeto: quase
     // sempre ele esta colado no objeto, e em cima do objeto o balao tapava
     // justamente o personagem.
-    const near = (!this.dialogue.active && !paused) ? lv.nearest(this.player.x) : null;
+    const near = (!this.dialogue.active && !paused && !this.scene) ? lv.nearest(this.player.x) : null;
     this.promptA = lerp(this.promptA || 0, near ? 1 : 0, 1 - Math.exp(-14 * dt));
     if (this.promptA > 0.02 && near) {
       drawPrompt(gfx.s, this.player.x - cam.ix, this.player.y - cam.iy - 70,
@@ -7261,7 +7925,8 @@ class Game {
       });
     }
 
-    if (!paused) this.drawGunUI(gfx.s, cam);
+    if (this.scene) this.scene.drawUI(gfx.s);
+    if (!paused && !this.scene) this.drawGunUI(gfx.s, cam);
 
     // Poupa o personagem do grao e das scanlines (ver gfx._post).
     gfx.protect = {
@@ -7351,10 +8016,41 @@ class Game {
       }, 0.7, 0.9);
       return;
     }
+    if (it.action === 'enter_back') {
+      audio.doorCreak(0.8);
+      this.fadeTo(() => this.enterLevel('backroom', null, 1), 0.7, 0.9);
+      return;
+    }
+    if (it.action === 'exit_back') {
+      audio.doorCreak(0.8);
+      this.fadeTo(() => this.enterLevel('bar', 900, -1), 0.7, 0.9);
+      return;
+    }
+    if (it.action === 'read_note') {
+      this.startNoteScene();
+      return;
+    }
     if (it.lines) {
       const arr = LINES[it.lines] || [];
       this.dialogue.start(arr.map((_, i) => ({ name: null, text: L(it.lines, i) })));
     }
+  }
+
+  // -------------------------------------------------------------------
+  // a cena da nota
+  // -------------------------------------------------------------------
+
+  startNoteScene() {
+    this.scene = new NoteScene(this.player, this.fx);
+    this.scene.onWake = () => {
+      this.enterLevel('cell', null, 1);
+      this.player.frozen = true;
+      this.player.controllable = false;
+      this.player.det.play('cuffed', { blend: 0 });
+      this.locCard = 4.5;
+      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3']);
+    };
+    this.scene.start(this.level);
   }
 
   // -------------------------------------------------------------------

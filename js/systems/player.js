@@ -222,6 +222,9 @@ export class Player {
 
   update(dt, level, allow = true) {
     const d = this.det;
+    // Congelado: preso, amarrado, numa cena. A animacao continua rodando,
+    // o resto da maquina de estados nao encosta nela.
+    if (this.frozen) { this.vx = 0; this._updateBarks(dt); d.update(dt); return; }
     const canAct = allow && this.controllable;
 
     if (this.lockTime > 0) this.lockTime -= dt;

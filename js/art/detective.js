@@ -9,7 +9,7 @@
 // de _renderRig(). Todo o resto do jogo so chama play() e draw().
 
 import { PAL } from './palette.js';
-import { sprite, darken, stamp, rimPass, DEG } from './pixel.js';
+import { sprite, darken, stamp, rimPass, silhouettePass, DEG } from './pixel.js';
 import { makeBuffer, lerp, clamp, easeInOut } from '../core/gfx.js';
 
 // ---------------------------------------------------------------------------
@@ -448,6 +448,26 @@ export const ANIM = {
     events: [{ t: 0.62, ev: 'step' }],
   },
 
+  // Agachado lendo. Ele fica de costas para a porta — de proposito.
+  read: {
+    dur: 3.4, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 15, torso: 20, head: 16, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 42, aFf: -64, aBu: 30, aBf: -52 }) },
+      { t: 0.50, p: pose({ hy: 15.9, torso: 21.5, head: 17, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 43, aFf: -65, aBu: 31, aBf: -53 }) },
+      { t: 1.00, p: pose({ hy: 15, torso: 20, head: 16, lFt: 72, lFs: -104, lFf: -8, lBt: 22, lBs: -112, lBf: -18, aFu: 42, aFf: -64, aBu: 30, aBf: -52 }) },
+    ],
+  },
+
+  // Sentado no chao, pulsos algemados num cano acima da cabeca.
+  cuffed: {
+    dur: 4.6, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+      { t: 0.50, p: pose({ hy: 20.8, torso: -7.5, head: 11, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -157, aFf: 13, aBu: -162, aBf: 11 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+    ],
+  },
+
   // parado olhando para tras — reservado para os sustos
   lookback: {
     dur: 1.60, loop: false,
@@ -523,6 +543,12 @@ export class Detective {
     this._cigWorld = null;
     this.visible = true;
     this.showSkeleton = false;
+    // Silhueta: se tiver cor, o corpo inteiro e pintado com ela e a luz de
+    // contorno some. E assim que a figura negra e feita — o mesmo boneco
+    // articulado, sem nenhuma informacao dentro.
+    this.silhouette = null;
+    this.scaleX = 1;
+    this.scaleY = 1;
   }
 
   play(name, opts = {}) {
@@ -666,29 +692,34 @@ export class Detective {
     // achatamento da virada: o sprite "gira" comprimindo em X
     const sq = 0.3 + 0.7 * Math.sin(clamp(this.flipT, 0, 1) * Math.PI / 2);
 
+    let src = b.c;
+    if (this.silhouette) {
+      silhouettePass(b.c, this.rimBuf, this.silhouette);
+      src = this.rimBuf.c;
+    }
+
     // reflexo no chao molhado
     if (this.reflect > 0) {
       ctx.save();
       ctx.imageSmoothingEnabled = false;
       ctx.globalAlpha = this.reflect * this.alpha;
       ctx.translate(px, py + 1);
-      ctx.scale(this.facing * sq, -0.82);
-      ctx.drawImage(b.c, -ORX, -ORY);
+      ctx.scale(this.facing * sq * this.scaleX, -0.82 * this.scaleY);
+      ctx.drawImage(src, -ORX, -ORY);
       ctx.restore();
     }
 
-    // luz de contorno
-    if (this.rimAlpha > 0) {
-      rimPass(b.c, this.rimBuf, this.rimColor, this.rimDX * this.facing, this.rimDY);
-    }
+    // luz de contorno (silhueta nao tem: ela nao reflete nada)
+    const comRim = this.rimAlpha > 0 && !this.silhouette;
+    if (comRim) rimPass(b.c, this.rimBuf, this.rimColor, this.rimDX * this.facing, this.rimDY);
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = this.alpha;
     ctx.translate(px, py);
-    ctx.scale(this.facing * sq, 1);
-    ctx.drawImage(b.c, -ORX, -ORY);
-    if (this.rimAlpha > 0) {
+    ctx.scale(this.facing * sq * this.scaleX, this.scaleY);
+    ctx.drawImage(src, -ORX, -ORY);
+    if (comRim) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = this.alpha * this.rimAlpha;
       ctx.drawImage(this.rimBuf.c, -ORX, -ORY);

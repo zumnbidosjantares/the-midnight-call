@@ -430,6 +430,23 @@ export function buildBar() {
   }
   inter.push({ x: 330, y: 138, w: 34, h: 46, prompt: 'prompt_look', lines: 'bar_wreck', range: 32 });
 
+  // --- a trilha de sangue ---
+  // Comeca fraca perto do balcao e vai ficando mais junta ate a porta dos
+  // fundos. O jogador segue sem precisar de seta na tela.
+  M.bloodDrops(g, 600, GY, 120, 9, 1501);
+  M.bloodDrops(g, 700, GY, 110, 14, 1511);
+  M.bloodDrops(g, 790, GY, 100, 20, 1521);
+  M.bloodDrops(g, 870, GY, 70, 26, 1531);
+
+  const bd = M.doorFrame(g, 930, GY, 1541);
+  inter.push({
+    x: bd.x, y: bd.y, w: bd.w, h: bd.h, prompt: 'prompt_open',
+    action: 'enter_back', range: 30, isDoor: true,
+  });
+  rect(g, 924, GY, 38, 3, '#241811');
+  const bdb = M.bareBulb(g, 943, bd.y - 18, 10);
+  lights.push({ x: bdb.bulbX, y: bdb.bulbY, r: 64, color: '#e8b46a', i: 0.5, flick: 'bulb' });
+
   const lampGlow = { x: 430, y: 52, r: 210, color: '#e8b46a', i: 1.15, flick: 'swing', falloff: 0.8 };
   const lampCore = { x: 430, y: 52, r: 30, color: '#ffdca8', i: 1.0, flick: 'swing' };
   lights.push(lampGlow, lampCore);
@@ -482,8 +499,9 @@ export function buildBar() {
       { x: 340, key: ['bark_bar_wreck', 'bark_bar_wreck2'], range: 46 },
       { x: 430, key: 'bark_bar_chairs', range: 40 },
       { x: 560, key: 'bark_bar_bottles', range: 44 },
-      { x: 700, key: 'bark_bar_chairs2', range: 44 },
-      { x: 900, key: 'bark_joke_2', range: 48 },
+      { x: 640, key: ['bark_blood', 'bark_blood2'], range: 46 },
+      { x: 780, key: 'bark_bar_chairs2', range: 44 },
+      { x: 900, key: 'bark_back_door', range: 48 },
     ],
   });
 
@@ -516,6 +534,172 @@ export function buildBar() {
   };
 
   return lvl;
+}
+
+// ---------------------------------------------------------------------------
+// DEPOSITO — onde a trilha de sangue termina
+// ---------------------------------------------------------------------------
+
+export function buildBackroom() {
+  const W = 520, GY = 214;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  // paredes de bloco, sem acabamento
+  rect(g, 0, 0, W, GY, '#1a1815');
+  M.brickWall(g, 0, 20, W, GY - 20, 2101, {
+    base: '#3a352e', hi: '#464036', dk: '#2a251f', mortar: '#1e1a16', moss: false,
+  });
+  for (let i = 0; i < 50; i++) {
+    g.globalAlpha = 0.7 * (1 - i / 50);
+    rect(g, 0, 20 + i, W, 1, '#050403');
+  }
+  g.globalAlpha = 1;
+  rect(g, 0, 0, W, 20, '#0a0908');
+
+  // piso de cimento
+  M.asphalt(g, 0, GY, W, VH - GY, 2111, { hi: '#3a352e', mid: '#2b2721', dk: '#1c1915' });
+  rect(g, 0, GY, W, 1, '#0d0b09');
+
+  const inter = [];
+  const lights = [];
+
+  // porta de volta ao bar
+  const ex = M.doorFrame(g, 46, GY, 2121);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'exit_back', range: 30, isDoor: true,
+  });
+
+  // prateleiras e engradados
+  for (const [px, n] of [[130, 3], [250, 2], [430, 3]]) {
+    for (let i = 0; i < n; i++) {
+      rect(g, px, 120 + i * 26, 62, 3, '#3a2a1c');
+      rect(g, px, 120 + i * 26, 62, 1, '#523c28');
+      rect(g, px + 2, 108 + i * 26, 14, 12, '#2c2118');
+      rect(g, px + 22, 110 + i * 26, 12, 10, '#33261a');
+      rect(g, px + 42, 106 + i * 26, 16, 14, '#281e15');
+    }
+    rect(g, px - 2, 118, 3, GY - 118, '#2a2018');
+    rect(g, px + 60, 118, 3, GY - 118, '#2a2018');
+  }
+  M.crate(g, 90, GY, 1, 2131);
+  M.crate(g, 320, GY, 0, 2141);
+  M.crate(g, 340, GY, 1, 2151);
+  M.debris(g, 200, GY, 40, 2161);
+
+  // --- a trilha, cada vez mais junta ate parar ---
+  M.bloodDrops(g, 80, GY, 90, 10, 2171);
+  M.bloodDrops(g, 160, GY, 90, 16, 2181);
+  M.bloodDrops(g, 240, GY, 90, 24, 2191);
+  M.bloodDrops(g, 320, GY, 50, 30, 2201);
+  M.bloodPool(g, 356, GY, 44, 2211);
+  const nt = M.note(g, 378, GY);
+  inter.push({
+    x: nt.x - 6, y: nt.y - 10, w: nt.w + 12, h: 20,
+    prompt: 'prompt_look', action: 'read_note', range: 26,
+  });
+
+  // uma lampada ruim, bem em cima da poca
+  const bulb = M.bareBulb(g, 382, 24, 54);
+  lights.push({ x: bulb.bulbX, y: bulb.bulbY, r: 170, color: '#e0b070', i: 1.0, flick: 'bulb', falloff: 0.85 });
+  lights.push({ x: bulb.bulbX, y: bulb.bulbY, r: 24, color: '#fff0c8', i: 1.0, flick: 'bulb' });
+  lights.push({ x: 378, y: 196, r: 92, color: '#c08a58', i: 0.42, falloff: 1.2 });
+  // resto que escapa da porta do bar
+  lights.push({ x: 58, y: 170, r: 74, color: '#e8b46a', i: 0.34, falloff: 1.2 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.2) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 10, '#040302');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#040302');
+
+  return new Level({
+    key: 'backroom',
+    nameKey: 'loc_back',
+    width: W, groundY: GY,
+    ambient: '#242832',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.2 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.05,
+    minX: 24, maxX: W - 60,
+    spawn: { x: 78, facing: 1 },
+    doorX: 59,
+    bloom: 0.4,
+    indoor: true,
+    enterBarks: ['bark_pool'],
+    barks: [{ x: 330, key: 'bark_note_pre', range: 44 }],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// CATIVEIRO — onde ele acorda
+// ---------------------------------------------------------------------------
+
+export function buildCell() {
+  const W = 340, GY = 214;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  rect(g, 0, 0, W, VH, '#100f0e');
+  // concreto cru, manchado
+  M.brickWall(g, 0, 0, W, GY, 3101, {
+    base: '#2e2b27', hi: '#39352f', dk: '#211e1b', mortar: '#171513', moss: false,
+  });
+  M.asphalt(g, 0, GY, W, VH - GY, 3111, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
+  rect(g, 0, GY, W, 1, '#0a0908');
+  grainRect(g, 0, 0, W, GY, ['#191715', '#3d3831'], 0.05, 3121);
+
+  // manchas de umidade descendo
+  for (const px of [40, 120, 250, 300]) {
+    for (let i = 0; i < 60; i++) {
+      g.globalAlpha = 0.1;
+      rect(g, px + Math.sin(i * 0.3) * 2, 20 + i, 2, 1, '#0d0f12');
+      g.globalAlpha = 1;
+    }
+  }
+
+  // O cano. Fica na altura do ombro de quem esta sentado no chao.
+  M.wallPipe(g, 0, 168, W, 3131);
+
+  // porta trancada, do outro lado da sala
+  const d = M.doorFrame(g, 286, GY, 3141);
+  rect(g, d.x + 4, d.y + 20, 18, 4, '#2a2622');   // tabua atravessada
+  rect(g, d.x + 4, d.y + 20, 18, 1, '#403a33');
+
+  // A lampada fica em cima dele: e a unica coisa que ele consegue ver, e
+  // isso e proposital — a sala inteira e uma pergunta sem resposta.
+  const lights = [
+    { x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 },
+    { x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' },
+    { x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 },
+  ];
+  M.bareBulb(g, 196, 12, 30);
+
+  const fore = makeBuffer(VW, VH);
+  rect(fore.x, 0, 0, VW, 12, '#030202');
+  rect(fore.x, 0, VH - 10, VW, 10, '#030202');
+
+  return new Level({
+    key: 'cell',
+    nameKey: 'loc_cell',
+    width: W, groundY: GY,
+    ambient: '#1e222c',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1 }],
+    lightDefs: lights,
+    interactables: [],
+    weather: 'none',
+    reflect: 0.04,
+    minX: 150, maxX: 152,     // preso: nao ha para onde ir
+    spawn: { x: 151, facing: 1 },
+    bloom: 0.35,
+    indoor: true,
+    pipeY: 168,
+  });
 }
 
 // ---------------------------------------------------------------------------

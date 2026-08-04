@@ -71,6 +71,22 @@ const STR = {
   loc_street:     { pt: 'RUA HOLLAND, 2h14',    en: 'HOLLAND STREET, 2:14 AM' },
   loc_alley:      { pt: 'BECO DOS FUNDOS',      en: 'BACK ALLEY' },
   loc_bar:        { pt: 'BAR O ULTIMO TROCO',   en: 'THE LAST DIME BAR' },
+  loc_back:       { pt: 'DEPOSITO DOS FUNDOS',  en: 'BACK STOREROOM' },
+  loc_cell:       { pt: 'EM ALGUM LUGAR',       en: 'SOMEWHERE' },
+  note_text:      { pt: 'POR QUE VOCÊ VOLTOU AQUI?',
+                    en: 'WHY DID YOU COME BACK HERE?' },
+
+  bark_blood:     { pt: 'Sangue. Fresco.',              en: 'Blood. Fresh.' },
+  bark_blood2:    { pt: 'Vai para os fundos.',          en: 'It leads to the back.' },
+  bark_back_door: { pt: 'A trilha para aqui.',          en: 'The trail stops here.' },
+  bark_pool:      { pt: 'Alguem ficou parado sangrando aqui. Tempo demais.',
+                    en: 'Someone stood here bleeding. For too long.' },
+  bark_note_pre:  { pt: 'Tem um papel no meio da poça.',
+                    en: 'There is a piece of paper in the middle of it.' },
+  bark_cell_1:    { pt: 'Cano. Frio. Sem folga.',       en: 'Pipe. Cold. No slack.' },
+  bark_cell_2:    { pt: 'Nao me mataram. Isso e pior.', en: 'They did not kill me. That is worse.' },
+  bark_cell_3:    { pt: 'Alguem me trouxe ate aqui. Carregado.',
+                    en: 'Somebody carried me here.' },
   not_today:      { pt: 'hoje não...',          en: 'not tonight...' },
 
   // ---------- falas soltas em cima da cabeca ----------

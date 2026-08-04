@@ -16,7 +16,8 @@ import { PAL } from './art/palette.js';
 import { ANIM_NAMES } from './art/detective.js';
 import { Camera } from './world/camera.js';
 import { Rain, Fog, Particles, DustMotes } from './world/fx.js';
-import { buildAlley, buildBar, buildRoad, buildCar } from './world/levels.js';
+import { buildAlley, buildBar, buildBackroom, buildCell, buildRoad, buildCar } from './world/levels.js';
+import { NoteScene } from './systems/scene-nota.js';
 import { Player } from './systems/player.js';
 import { Dialogue, drawPrompt, drawLocationCard } from './systems/dialogue.js';
 import { Opening } from './systems/cutscene.js';
@@ -66,6 +67,11 @@ class Game {
     set('acendendo o bar...');
     await frame();
     this.levels.bar = buildBar();
+
+    set('abrindo os fundos...');
+    await frame();
+    this.levels.backroom = buildBackroom();
+    this.levels.cell = buildCell();
 
     set('ligando o carro...');
     await frame();
@@ -210,8 +216,11 @@ class Game {
 
   toMenu() {
     this.state = 'menu';
+    this.scene = null;
+    audio.stopDread(0.3);
     audio.stopAllLoops();
     audio.stopNarration();
+    gfx.eyelid = 1;
     this.menu.refresh();
     this.menu.enter();
     gfx.letterbox = 0;
@@ -312,6 +321,8 @@ class Game {
     this.dialogue.active = false;
     this.dialogue.fade = 0;
     this.player.clearBarks();
+    this.player.frozen = false;
+    this.player.controllable = true;
     if (lv.barks) for (const b of lv.barks) b.done = false;
     if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
@@ -329,7 +340,7 @@ class Game {
     const lv = this.level;
     const paused = this.pause.active;
 
-    if (!paused && !this.transition && input.pressed('pause') && !this.dialogue.active) {
+    if (!paused && !this.transition && !this.scene && input.pressed('pause') && !this.dialogue.active) {
       this.pause.open();
     }
 
@@ -340,7 +351,14 @@ class Game {
     if (!paused) {
       lv.update(sim);
       this.dialogue.update(sim);
-      const canControl = !this.dialogue.active && !this.transition;
+      if (this.scene) {
+        this.scene.update(sim);
+        if (this.scene.finished) {
+          this.scene = null;
+          this.player.controllable = false;   // continua algemado
+        }
+      }
+      const canControl = !this.dialogue.active && !this.transition && !this.scene;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
       this.checkBarks(lv);
@@ -361,6 +379,7 @@ class Game {
     lv.drawBack(gfx.s, cam);
     if (lv.drawProps) lv.drawProps(gfx.s, cam);
     this.player.draw(gfx.s, cam);
+    if (this.scene) this.scene.draw(gfx.s, cam);
     this.fx.draw(gfx.s, cam.ix, cam.iy);
     if (lv.indoor) this.dust.draw(gfx.s);
     else this.fog.draw(gfx.s);
@@ -375,6 +394,7 @@ class Game {
     gfx.addLight(this.player.x - cam.ix, this.player.y - cam.iy - 30, 86,
       lv.indoor ? '#a88458' : '#8f8d84', 0.26, 1.45);
     for (const L2 of this.player.lights(cam)) gfx.addLight(L2.x, L2.y, L2.r, L2.color, L2.i);
+    if (this.scene) this.scene.addLights(cam);
     gfx.endLights(lv.bloom);
 
     // ---- interface ----
@@ -386,7 +406,7 @@ class Game {
     // O balao fica acima da CABECA do detetive, nao acima do objeto: quase
     // sempre ele esta colado no objeto, e em cima do objeto o balao tapava
     // justamente o personagem.
-    const near = (!this.dialogue.active && !paused) ? lv.nearest(this.player.x) : null;
+    const near = (!this.dialogue.active && !paused && !this.scene) ? lv.nearest(this.player.x) : null;
     this.promptA = lerp(this.promptA || 0, near ? 1 : 0, 1 - Math.exp(-14 * dt));
     if (this.promptA > 0.02 && near) {
       drawPrompt(gfx.s, this.player.x - cam.ix, this.player.y - cam.iy - 70,
@@ -406,7 +426,8 @@ class Game {
       });
     }
 
-    if (!paused) this.drawGunUI(gfx.s, cam);
+    if (this.scene) this.scene.drawUI(gfx.s);
+    if (!paused && !this.scene) this.drawGunUI(gfx.s, cam);
 
     // Poupa o personagem do grao e das scanlines (ver gfx._post).
     gfx.protect = {
@@ -496,10 +517,41 @@ class Game {
       }, 0.7, 0.9);
       return;
     }
+    if (it.action === 'enter_back') {
+      audio.doorCreak(0.8);
+      this.fadeTo(() => this.enterLevel('backroom', null, 1), 0.7, 0.9);
+      return;
+    }
+    if (it.action === 'exit_back') {
+      audio.doorCreak(0.8);
+      this.fadeTo(() => this.enterLevel('bar', 900, -1), 0.7, 0.9);
+      return;
+    }
+    if (it.action === 'read_note') {
+      this.startNoteScene();
+      return;
+    }
     if (it.lines) {
       const arr = LINES[it.lines] || [];
       this.dialogue.start(arr.map((_, i) => ({ name: null, text: L(it.lines, i) })));
     }
+  }
+
+  // -------------------------------------------------------------------
+  // a cena da nota
+  // -------------------------------------------------------------------
+
+  startNoteScene() {
+    this.scene = new NoteScene(this.player, this.fx);
+    this.scene.onWake = () => {
+      this.enterLevel('cell', null, 1);
+      this.player.frozen = true;
+      this.player.controllable = false;
+      this.player.det.play('cuffed', { blend: 0 });
+      this.locCard = 4.5;
+      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3']);
+    };
+    this.scene.start(this.level);
   }
 
   // -------------------------------------------------------------------

@@ -446,6 +446,75 @@ export function wallHole(ctx, x, y, w, h, seed) {
   rect(ctx, x - 1, y - 1, w + 2, 1, '#5c452c');
 }
 
+// ---------------------------------------------------------------------------
+// sangue
+// ---------------------------------------------------------------------------
+
+// Pingos espalhados numa faixa. Poucos e pequenos: uma trilha de sangue
+// convence pelo espacamento, nao pela quantidade.
+export function bloodDrops(ctx, x, gy, w, n, seed) {
+  const rnd = mulberry32(seed);
+  for (let i = 0; i < n; i++) {
+    const px = x + rnd() * w;
+    const py = gy + 2 + rnd() * 8;
+    const r = rnd();
+    const c = r > 0.6 ? '#8a1c16' : (r > 0.25 ? '#6b1310' : '#4a0d0b');
+    const s = 1 + Math.floor(rnd() * 2);
+    rect(ctx, px, py, s, s, c);
+    if (rnd() > 0.7) rect(ctx, px + 1, py + 1, 1, 1, '#a8241c');
+    // respingo satelite
+    if (rnd() > 0.75) rect(ctx, px + 2 + rnd() * 3, py + rnd() * 2, 1, 1, '#5c110e');
+  }
+}
+
+export function bloodPool(ctx, x, gy, w, seed) {
+  const rnd = mulberry32(seed);
+  const h = 7;
+  for (let i = 0; i < w; i++) {
+    const t = i / w;
+    const hh = Math.max(1, Math.round(Math.sin(t * Math.PI) * h * (0.7 + rnd() * 0.5)));
+    rect(ctx, x + i, gy + 8 - hh, 1, hh, '#5e100d');
+  }
+  // miolo mais escuro e brilho da borda molhada
+  for (let i = 2; i < w - 2; i++) {
+    const t = i / w;
+    const hh = Math.max(1, Math.round(Math.sin(t * Math.PI) * (h - 3)));
+    rect(ctx, x + i, gy + 8 - hh, 1, hh, '#430907');
+  }
+  for (let i = 0; i < w; i += 2) {
+    if (rnd() > 0.5) rect(ctx, x + i, gy + 7, 1, 1, '#93211a');
+  }
+  // arrasto saindo da poca
+  for (let i = 0; i < 14; i++) {
+    rect(ctx, x - 4 - rnd() * 12, gy + 4 + rnd() * 5, 1 + rnd() * 2, 1, '#4a0d0b');
+  }
+}
+
+// Papel dobrado caido no chao. Claro de proposito: e o unico ponto claro
+// da sala, e e para onde o olho tem que ir.
+export function note(ctx, x, gy) {
+  rect(ctx, x, gy + 2, 11, 7, '#0f0a08');
+  rect(ctx, x, gy + 1, 11, 7, '#c9c2ad');
+  rect(ctx, x, gy + 1, 11, 1, '#e2dcc6');
+  rect(ctx, x + 1, gy + 3, 8, 1, '#8b8471');
+  rect(ctx, x + 1, gy + 5, 6, 1, '#8b8471');
+  rect(ctx, x + 7, gy + 1, 4, 4, '#b3ac97');   // dobra
+  rect(ctx, x + 9, gy + 5, 2, 3, '#7d1712');   // canto encharcado
+  return { x, y: gy + 1, w: 11, h: 8 };
+}
+
+// Cano de parede — o que prende as algemas na sala do fim.
+export function wallPipe(ctx, x, y, len, seed) {
+  rect(ctx, x, y, len, 5, '#3c3f45');
+  rect(ctx, x, y, len, 1, '#5a5f68');
+  rect(ctx, x, y + 4, len, 1, '#1e2126');
+  for (let i = 0; i < len; i += 34) {
+    rect(ctx, x + i, y - 1, 4, 7, '#4a4e56');
+    rect(ctx, x + i, y - 1, 4, 1, '#666c76');
+  }
+  grainRect(ctx, x, y, len, 5, [PAL.rust, '#2a2016'], 0.12, seed);
+}
+
 export function wallPhone(ctx, x, y, seed) {
   rect(ctx, x, y, 12, 18, '#1c1f24');
   rect(ctx, x, y, 12, 1, '#2f343b');

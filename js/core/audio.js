@@ -383,6 +383,121 @@ class Audio {
     s.start(t, Math.random() * 3, 0.08); s.stop(t + 0.1);
   }
 
+  // ---------------- tensao ----------------
+  // Duas serras desafinadas uma contra a outra (o batimento entre elas e o
+  // que incomoda), um sopro agudo por cima e um filtro que vai abrindo.
+  // Tudo controlado por um numero so: 0 = longe, 1 = em cima de voce.
+
+  startDread() {
+    if (!this.ensure()) return;
+    if (this.dread) return;
+    const c = this.ctx, t = c.currentTime;
+
+    const saida = c.createGain();
+    saida.gain.setValueAtTime(0.0001, t);
+    saida.connect(this.busMusic);
+
+    const filtro = c.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.setValueAtTime(240, t);
+    filtro.Q.value = 3;
+    filtro.connect(saida);
+
+    const a = c.createOscillator(); a.type = 'sawtooth'; a.frequency.value = 41.2;
+    const b = c.createOscillator(); b.type = 'sawtooth'; b.frequency.value = 42.1;
+    const ga = c.createGain(); ga.gain.value = 0.5;
+    a.connect(ga); b.connect(ga); ga.connect(filtro);
+    a.start(t); b.start(t);
+
+    // sopro agudo, quase inaudivel no comeco
+    const ar = c.createBufferSource();
+    ar.buffer = this.noiseBuf; ar.loop = true; ar.playbackRate.value = 1.4;
+    const af = c.createBiquadFilter();
+    af.type = 'bandpass'; af.Q.value = 2.2; af.frequency.value = 3200;
+    const ag = c.createGain(); ag.gain.value = 0.0;
+    ar.connect(af); af.connect(ag); ag.connect(saida);
+    ar.start(t);
+
+    this.dread = { saida, filtro, a, b, ar, ag };
+    this.setDread(0);
+  }
+
+  setDread(k) {
+    const d = this.dread;
+    if (!d || !this.ready) return;
+    const t = this.ctx.currentTime, r = 0.25;
+    const ramp = (p, v) => {
+      p.cancelScheduledValues(t); p.setValueAtTime(p.value, t);
+      p.linearRampToValueAtTime(Math.max(0.0001, v), t + r);
+    };
+    ramp(d.saida.gain, 0.05 + k * 0.42);
+    ramp(d.filtro.frequency, 240 + k * k * 1500);
+    ramp(d.ag.gain, k * k * 0.05);
+    // as duas serras se afastam: quanto mais perto, mais aspero o batimento
+    ramp(d.b.frequency, 42.1 + k * 3.4);
+  }
+
+  // corte seco: e o silencio subito que da o susto, nao o barulho
+  stopDread(fade = 0) {
+    const d = this.dread;
+    if (!d) return;
+    const t = this.ctx.currentTime;
+    d.saida.gain.cancelScheduledValues(t);
+    d.saida.gain.setValueAtTime(d.saida.gain.value, t);
+    d.saida.gain.linearRampToValueAtTime(0.0001, t + Math.max(0.008, fade));
+    const stop = t + Math.max(0.02, fade) + 0.05;
+    try { d.a.stop(stop); d.b.stop(stop); d.ar.stop(stop); } catch (e) {}
+    this.dread = null;
+  }
+
+  heartbeat(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    for (let i = 0; i < 2; i++) {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      const t0 = t + i * 0.17;
+      o.frequency.setValueAtTime(64, t0);
+      o.frequency.exponentialRampToValueAtTime(30, t0 + 0.14);
+      this._env(o, t0, 0.006, 0.16, (i ? 0.28 : 0.42) * vol, this.busMusic);
+      o.start(t0); o.stop(t0 + 0.24);
+    }
+  }
+
+  // pancada surda na nuca
+  thud(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(28, t + 0.22);
+    const g = this._env(o, t, 0.001, 0.34, 0.8 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.45);
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 700;
+    s.connect(f);
+    this._env(f, t, 0.001, 0.16, 0.5 * vol);
+    s.start(t, Math.random() * 3, 0.3); s.stop(t + 0.3);
+  }
+
+  // zumbido de ouvido depois da pancada
+  tinnitus(dur = 3) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine'; o.frequency.value = 3100;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 0.15);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.2);
+  }
+
   uiMove() {
     if (!this.ensure()) return;
     const c = this.ctx, t = c.currentTime;
