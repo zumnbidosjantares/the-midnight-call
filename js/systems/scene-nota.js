@@ -128,6 +128,10 @@ export class NoteScene {
         break;
 
       case 'black':
+        // A figura sai de cena AQUI. Antes ela continuava desenhada e
+        // reaparecia no galpao junto com o jogador, sumindo no quadro
+        // seguinte — o susto virava bug.
+        this.figura.visible = false;
         gfx.fade = 1;
         gfx.eyelid = 0;
         if (this.pt > 2.4) {

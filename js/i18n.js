@@ -91,8 +91,11 @@ const STR = {
                     en: 'Whoever wrote this knew I would come.' },
   bark_note_2:    { pt: 'Sabia ate onde eu ia parar pra ler.',
                     en: 'Knew exactly where I would stop to read it.' },
-  bark_note_3:    { pt: 'Tem alguem atras de mim, nao tem?',
-                    en: 'There is someone behind me, is there not?' },
+  // NAO devolver a fala antiga aqui ("Tem alguem atras de mim, nao tem?").
+  // Ela entregava o susto: o detetive nao pode perceber a figura, senao o
+  // jogador para de sentir que sabe mais do que ele.
+  bark_note_3:    { pt: 'Essa letra... eu conheço essa letra.',
+                    en: 'This handwriting... I know this handwriting.' },
 
   bark_free_1:    { pt: 'Cano velho. Enferrujado por dentro.',
                     en: 'Old pipe. Rusted through.' },
