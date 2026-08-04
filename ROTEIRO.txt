@@ -567,66 +567,831 @@ TIPO:  Gameplay
 
 
 ===============================================================================
-PARTE III — CAPÍTULO 2
+PARTE III — A REGRA QUE MUDA TUDO: A CONVENIÊNCIA É A MENTE
 ===============================================================================
 
-  STATUS: A ESCREVER — por Luiz.
+  Decidido em 04/08/2026, e é a coisa mais importante deste documento depois
+  do próprio personagem.
 
-  Escreva à vontade abaixo. Do jeito que sair. Pode ser em tópicos, pode ser
-  bagunçado, pode ser só ideia solta. Eu organizo depois e transformo em cena.
+  TUDO ISSO É A MENTE DELE.
+
+  A mente está colocando ele nesses lugares. A mente está fazendo ele
+  confrontar os próprios medos. A mente está TENTANDO fazer ele superar.
+
+  E é por isso que existem coisas convenientes.
+
+  Uma arma jogada no chão. Munição espalhada. Um diário em branco esperando
+  para ser escrito. Um pedaço de madeira do tamanho exato de um porrete.
+
+  Em qualquer outro jogo isso é preguiça de design. Aqui é ENREDO.
+
+  ------------------------------------------------------------------------
+  CONSEQUÊNCIA PARA A ESCRITA — regra permanente:
+  ------------------------------------------------------------------------
+
+  Toda vez que o jogador achar algo conveniente, O DETETIVE COMENTA.
+  Ele percebe. Ele acha estranho. Ele usa mesmo assim.
+
+  Isso vira a piada recorrente do jogo, e ao mesmo tempo o fio da meada.
+
+    "Um pedaço de pau do tamanho certo. Que sorte a minha."
+    "Munição. Sem arma. Alguém tem senso de humor."
+    "Um caderno em branco e uma caneta. Até parece que querem que eu anote."
+    "Ou eu estou com muita sorte, ou alguém está arrumando a casa pra mim."
+
+  ------------------------------------------------------------------------
+  E O CONTRÁRIO TAMBÉM VALE:
+  ------------------------------------------------------------------------
+
+  Se a mente dele está montando o cenário, então quando ele PRECISA de algo
+  e não acha, isso também quer dizer alguma coisa. A mente decidiu que ele
+  não pode ter ainda.
+
+  É por isso que ele acha MUNIÇÃO antes de achar a PISTOLA. A mente está
+  dizendo: você vai precisar disso, mas ainda não é hora.
+
+
+===============================================================================
+PARTE IV — CAPÍTULO 2
+===============================================================================
+
+  DURAÇÃO ALVO: 1 hora
+  LOCAL ÚNICO: o galpão inteiro (complexo, vários setores)
+  A FIGURA PRETA NÃO APARECE NESTE CAPÍTULO.
 
 
 -------------------------------------------------------------------------------
-COISAS QUE EU PRECISO SABER PARA CONSTRUIR
+TÍTULO DO CAPÍTULO — sugestões minhas
 -------------------------------------------------------------------------------
 
-  (responda só o que já estiver decidido — o resto pode ficar em branco)
+  A tela de abertura é simples: preto, "CAPÍTULO DOIS", e embaixo o nome.
 
-  1. O NOME DO DETETIVE
-     [ESCREVER AQUI]
+  Minhas sugestões, em ordem de preferência:
 
-  2. O QUE TEM DO OUTRO LADO DAQUELA PORTA?
-     (o Cap. 1 termina com ele saindo do galpão)
-     [ESCREVER AQUI]
+  1. "GENTILEZA"
+     Vem da fala dele no fim do Cap. 1: "Deixaram o casaco. Que gentileza."
+     Irônico, curto, e vira mais amargo a cada item conveniente que ele acha.
 
-  3. QUEM É O PRIMEIRO NPC?
-     Nome, o que quer, o que esconde:
-     [ESCREVER AQUI]
+  2. "A CASA ARRUMADA"
+     Amarra com as cadeiras empilhadas no meio do estrago, e com a fala
+     "alguém está arrumando a casa pra mim".
 
-  4. O QUE ELE DESCOBRE NESTE CAPÍTULO?
-     (a investigação precisa de pista concreta, não só de clima)
-     [ESCREVER AQUI]
+  3. "TUDO QUE EU PRECISO"
+     Diz a regra do capítulo na cara, sem explicar.
 
-  5. QUAIS LUGARES NOVOS APARECEM?
-     [ESCREVER AQUI]
+  4. "CONVENIENTE"
+     Mais seco, mais direto. Funciona se você quiser o tom mais frio.
 
-  6. ONDE ENTRA O HORROR DE VERDADE?
-     (o momento em que a cabeça dele começa a vazar para o mundo)
-     [ESCREVER AQUI]
+  5. "INVENTÁRIO"
+     Duplo sentido: o sistema novo, e o que sobrou dele.
 
-  7. ELE RECUPERA A ARMA?
-     [ESCREVER AQUI]
-
-  8. A FIGURA PRETA VOLTA? ELA FALA?
-     [ESCREVER AQUI]
+  ESCOLHIDO: [ESCREVER AQUI]
 
 
 -------------------------------------------------------------------------------
-CAPÍTULO 2 — ROTEIRO
+MAPA DO CAPÍTULO — 8 setores, ~1 hora
 -------------------------------------------------------------------------------
 
-  [ESCREVER AQUI]
+  Cada setor tem uma FUNÇÃO clara. É isso que faz uma hora não virar uma hora
+  de andar em corredor.
 
-  (modelo, se ajudar:)
+  #  SETOR                  MINUTOS  O QUE ENSINA / ENTREGA
+  -- ---------------------- -------  ------------------------------------------
+  1  Corredor de Carga         5     Revela a escala. Acha o PORRETE.
+  2  Escritório                7     Acha o DIÁRIO. Acha o MAPA. Primeiro NPC.
+  3  Setor B — Estantes       10     Primeiro combate de verdade. Munição sem arma.
+  4  Vestiário e Refeitório    8     Descanso. Humanidade. Muitos objetos. Cigarros.
+  5  Câmara Fria               8     Terror puro. Sanidade despenca.
+  6  Sala de Máquinas          8     A PISTOLA. E o preço dela.
+  7  Mezanino                  6     A FIGURA ESPECIAL.
+  8  A Fuga                   10     O PERSEGUIDOR. Correr e se esconder.
+  -- ---------------------- -------
+                          ~62 min
 
-  CENA 1 — (nome do lugar)
-  LOCAL:
-  HORA:
-  O QUE ACONTECE:
 
-  FALAS DELE:
+===============================================================================
+CENA 1 — CORREDOR DE CARGA
+===============================================================================
+FUNÇÃO: revelar a escala. Dar a primeira arma. Estabelecer a regra da
+        conveniência.
+TEMPO:  ~5 min
 
-  O QUE O JOGADOR FAZ:
+  ABERTURA DO CAPÍTULO:
+
+    Preto.
+    Texto: CAPÍTULO DOIS
+    Embaixo, o nome do capítulo.
+    (nota: mesma tipografia do título do jogo, corroída.)
+
+  Ele empurra a porta que forçou e sai.
+
+  E o galpão é MUITO MAIOR do que ele pensava.
+
+  A sala onde ele acordou era um cubículo. Isso aqui é um corredor de carga
+  que some no escuro dos dois lados. Pé-direito de três andares. Estantes
+  industriais até o teto. Empilhadeira parada há anos. Portões de doca
+  fechados. Luz só de umas poucas lâmpadas de emergência, e da claraboia.
+
+    "Isso não é um galpão. Isso é um quarteirão."
+
+    "Eu estava numa caixa de fósforo dentro de outra caixa."
+
+  Ele anda. O jogo deixa ele andar um bom pedaço sem nada acontecer — é
+  proposital, é para o tamanho do lugar entrar na cabeça do jogador.
+
+  Então ele vê, encostado numa coluna, um PEDAÇO DE MADEIRA. Uma ripa grossa
+  de palete, com um prego torto na ponta.
+
+  ------- ITEM: PORRETE (ripa de palete) -------
+
+    (ao pegar)
+    "Um pedaço de pau do tamanho certo. Encostado numa coluna. Em pé."
+
+    (pausa)
+
+    "Que sorte a minha."
+
+  (nota: essa é a PRIMEIRA VEZ que ele percebe a conveniência. A partir daqui
+   é um tema. Ele não entende ainda — só acha estranho.)
+
+  COISAS PARA EXAMINAR NESTE SETOR:
+
+    A EMPILHADEIRA
+      "Chave na ignição. Bateria seca há uns dez anos."
+      "Alguém saiu daqui com pressa. Ou nunca voltou."
+
+    O PORTÃO DE DOCA
+      "Trancado por fora. Igual todos os outros."
+      "Estou começando a achar que 'por fora' é o único lado que existe."
+
+    RELÓGIO DE PONTO NA PAREDE
+      "Relógio de ponto. Parado."
+      "02h14."
+      (nota: MESMO HORÁRIO DA LIGAÇÃO. Ele não comenta. O jogador comenta.)
+
+    PILHA DE PALETES
+      "Foi daqui que saiu meu pedaço de pau."
+      "Ou pelo menos é o que eu prefiro acreditar."
+
+
+===============================================================================
+CENA 2 — ESCRITÓRIO DA ADMINISTRAÇÃO
+===============================================================================
+FUNÇÃO: entregar o DIÁRIO e o MAPA. Primeiro NPC. Ensinar o sistema de anotar.
+TEMPO:  ~7 min
+
+  Um escritório envidraçado suspenso, com escada de metal. Lá de cima dá para
+  ver o corredor inteiro — e é aqui que o jogador entende o mapa do capítulo.
+
+  Dentro: mesa, arquivo, quadro de avisos, cadeira caída, uma luminária que
+  ainda funciona.
+
+  ------- ITEM: DIÁRIO -------
+
+  Em cima da mesa, um caderno de capa de couro. Aberto. Em branco.
+  Ao lado, uma caneta. Tampada.
+
+    "Um caderno em branco. E uma caneta que ainda escreve."
+
+    "Até parece que querem que eu anote."
+
+    (ele pega, folheia)
+
+    "Ou eu estou com muita sorte, ou alguém está arrumando a casa pra mim."
+
+  A PARTIR DAQUI: sistema de diário ativo. (ver PARTE V)
+
+  ------- ITEM: MAPA DO GALPÃO -------
+
+  Preso no quadro de avisos. Planta baixa dos setores.
+
+    "Setor A, B, C. Câmara fria. Casa de máquinas."
+    "Pelo menos agora eu sei o tamanho do problema."
+
+  ------- PRIMEIRO NPC -------
+
+  [ESCREVER AQUI — quem é, o que quer, o que esconde]
+
+  MINHA SUGESTÃO (descarte à vontade):
+
+    O VIGIA. Um homem velho de uniforme desbotado, sentado na cadeira do
+    escritório como se estivesse no turno dele. Fala com naturalidade
+    absoluta, como se o galpão estivesse funcionando normalmente.
+
+    Ele responde perguntas — mas todas as respostas são sobre um lugar que
+    não existe mais. Fala de colegas pelo nome. Fala do movimento de ontem.
+    Reclama do café.
+
+    Ele NÃO reage ao estado do lugar, nem ao sangue, nem ao porrete na mão
+    do detetive.
+
+    E em nenhum momento o jogo diz se ele é real.
+
+    Fala de exemplo:
+      VIGIA: "O senhor é da inspeção? Avisaram que vinha alguém hoje."
+      DETETIVE: "Que dia é hoje?"
+      VIGIA: "Terça."
+      DETETIVE: "Terça de que ano?"
+      VIGIA: (sorri) "Engraçado o senhor."
+
+    (nota: ele é a primeira prova de que a mente dele fabrica gente. E é o
+     primeiro teste do sistema de diálogo com escolhas.)
+
+  COISAS PARA EXAMINAR:
+
+    FOTO NA MESA
+      "Foto de família. O vidro trincado."
+      "Não é a minha família. Acho que não é."
+
+    ARQUIVO DE AÇO
+      "Pastas de A a M. As de N até Z sumiram."
+      (nota: o nome dele começa com uma letra entre N e Z. Pista muda.)
+
+    CANECA
+      "Café pela metade. Ainda morno."
+      "Isso não é possível."
+
+
+===============================================================================
+CENA 3 — SETOR B: AS ESTANTES
+===============================================================================
+FUNÇÃO: primeiro combate real. Ensinar o porrete. Munição sem arma.
+TEMPO:  ~10 min
+
+  Labirinto de estantes industriais de três níveis. Corredores estreitos.
+  Visão bloqueada. Coisas se movem duas fileiras adiante e você não vê o quê.
+
+  ------- PRIMEIRO INIMIGO -------
+
+  (ver PARTE VI para o desenho dos inimigos)
+
+  O primeiro aparece SOZINHO, num corredor sem saída, e o jogo deixa o
+  jogador olhar para ele por uns segundos antes de ele reagir.
+
+    "...eu conheço isso."
+
+    (nota: ele não diz o que é. Nunca diz. O jogador que se vire.)
+
+  COMBATE COM PORRETE:
+    - Lento. Pesado. Dois golpes e ele precisa respirar.
+    - O inimigo cambaleia quando acertado, mas não morre fácil.
+    - O porrete PODE QUEBRAR. Cria tensão e justifica procurar outro.
+    - Fugir é sempre uma opção válida. O jogo nunca obriga a matar.
+
+  ------- ITEM: MUNIÇÃO (sem pistola) -------
+
+  Numa prateleira, uma caixa de munição. Cheia. Nova.
+
+    "Munição."
+
+    (ele procura em volta)
+
+    "Sem arma."
+
+    (pausa)
+
+    "Alguém tem senso de humor."
+
+  (nota: essa é a jogada mais importante do capítulo. O jogador vai carregar
+   munição inútil por 20 minutos. Toda vez que abrir o inventário vai ver.
+   Quando finalmente achar a pistola, o alívio é enorme — e ele já vai ter
+   percebido que estava sendo conduzido.)
+
+  COISAS PARA EXAMINAR:
+
+    ESTANTE DESABADA
+      "Isso desabou de dentro para fora. Igual a parede do bar."
+
+    CAIXAS LACRADAS
+      "Todas as caixas estão vazias. Todas lacradas."
+      "Ninguém lacra caixa vazia."
+
+    MARCA DE ARRASTO NO CHÃO
+      "Alguma coisa foi arrastada por aqui. Pesado."
+      "E não faz muito tempo."
+
+
+===============================================================================
+CENA 4 — VESTIÁRIO E REFEITÓRIO
+===============================================================================
+FUNÇÃO: respiro. Humanidade. Recuperar sanidade. ACHAR OS CIGARROS.
+TEMPO:  ~8 min
+
+  Depois de dez minutos de tensão, o jogo dá um lugar quase normal. Armários,
+  bancos, um refeitório com mesas de fórmica, uma máquina de café, um rádio.
+
+  É o mais perto de "seguro" que o capítulo chega. Menos inimigos aqui. Luz
+  melhor. E é onde o jogador vai querer parar e respirar — que é exatamente o
+  que a mente dele quer que ele faça.
+
+  ------- ITEM: MAÇO DE CIGARROS -------
+
+  Num armário aberto. Maço fechado. Isqueiro em cima.
+
+    "..."
+
+    "Minha marca."
+
+    (pausa longa)
+
+    "Isso já não é sorte. Isso é recado."
+
+  A PARTIR DAQUI: o comportamento do cigarro muda conforme a sanidade.
+  (ver PARTE VII)
+
+  COISAS PARA EXAMINAR (aqui tem MUITAS — é o setor de personagem):
+
+    ARMÁRIOS COM NOMES
+      "Marcos. Elaine. Betinho."
+      "Gente que teve nome. Deve ter ido embora."
+
+    RÁDIO
+      "Ainda liga."
+      (ele liga — só estática)
+      "Estática. Em todas as estações."
+      "Achei que fosse gostar mais do silêncio."
+
+    QUADRO DE ESCALA
+      "Escala do mês. Todo mundo com folga marcada."
+      "Ninguém marcou volta."
+
+    MÁQUINA DE CAFÉ
+      "Sem copo. Sem energia. Sem chance."
+
+    ESPELHO DO VESTIÁRIO
+      (nota: ele SE RECUSA a olhar, igual ao espelho do bar. Se o jogador
+       insistir três vezes, ele olha — e perde sanidade. Vale a pena
+       recompensar a teimosia com algo horrível.)
+      1ª vez: "Não."
+      2ª vez: "Eu disse não."
+      3ª vez: (ele olha) [ESCREVER AQUI — o que ele vê?]
+
+    BILHETE NA PORTA DO ARMÁRIO
+      "'Volto às seis.'"
+      "Todo mundo volta às seis."
+
+
+===============================================================================
+CENA 5 — CÂMARA FRIA
+===============================================================================
+FUNÇÃO: o horror sem disfarce. Sanidade despenca. Alucinação garantida.
+TEMPO:  ~8 min
+
+  Uma câmara frigorífica desligada há anos. Portas pesadas de aço. Ganchos
+  de açougue no teto, em fileiras. Escuro quase total — a lanterna dele é o
+  isqueiro, e ele só consegue segurar aceso por alguns segundos.
+
+  É frio. Dá para ver a respiração dele.
+
+  Aqui a sanidade DESPENCA por estar no escuro. É de propósito: este é o
+  setor que ensina o jogador a temer o próprio medidor.
+
+    "Frio. Depois de todos esses anos, ainda tem frio aqui dentro."
+
+    "Isso não é possível. Já sei. Já anotei."
+
+  EVENTO OBRIGATÓRIO — A PRIMEIRA ALUCINAÇÃO GRANDE:
+  [ESCREVER AQUI — sugestão minha abaixo]
+
+    Os ganchos começam a balançar. Todos. No mesmo ritmo.
+    Não há vento.
+
+    Ele acende o isqueiro e vê que um dos ganchos tem alguma coisa pendurada.
+    Quando a chama apaga e ele acende de novo, não tem mais nada.
+
+    E o que ele viu naquele segundo é [ESCREVER AQUI].
+
+  COISAS PARA EXAMINAR:
+
+    TERMÔMETRO
+      "Marca dois graus negativos."
+      "O compressor está desligado há uma década."
+
+    OS GANCHOS
+      "Fileira de ganchos. Vinte e três."
+      "Contei duas vezes. Deu vinte e quatro na segunda."
+
+
+===============================================================================
+CENA 6 — SALA DE MÁQUINAS
+===============================================================================
+FUNÇÃO: A PISTOLA. E fazer o jogador pagar por ela.
+TEMPO:  ~8 min
+
+  Caldeiras, tubulação, geradores mortos. Barulhento de um jeito que não
+  deveria ser — há um zumbido elétrico e nada aqui tem energia.
+
+  ------- ITEM: PISTOLA -------
+
+  A arma está no meio da sala, em cima de uma bancada, LIMPA, apontada para a
+  porta por onde ele entra.
+
+  Não está caída. Está POSTA.
+
+    "Lá está ela."
+
+    "No meio da sala. Limpa. Apontada pra porta."
+
+    "Isso não é uma arma perdida. Isso é uma arma ENTREGUE."
+
+    (ele pega mesmo assim)
+
+    "E eu vou pegar, porque eu sou exatamente o idiota que eles precisam."
+
+  MINHA SUGESTÃO DE PREÇO (o capítulo fica melhor se pegar a arma custar algo):
+
+    No instante em que ele encosta na pistola, as luzes de emergência
+    apagam e TODAS as máquinas ligam ao mesmo tempo. Barulho ensurdecedor.
+    E três inimigos entram pela porta pela qual ele veio.
+
+    O jogo obriga a usar a arma imediatamente. Primeiro tiro é uma cena.
+
+    Aceita? [ESCREVER AQUI]
+
+  COISAS PARA EXAMINAR:
+
+    PAINEL ELÉTRICO
+      "Disjuntor geral desligado. Selado com arame."
+      "Então de onde vem esse zumbido?"
+
+    MACACÃO PENDURADO
+      "Macacão de mecânico. Do meu tamanho."
+      "Claro que é do meu tamanho."
+
+
+===============================================================================
+CENA 7 — MEZANINO: A FIGURA ESPECIAL
+===============================================================================
+FUNÇÃO: o gancho emocional do capítulo. Preparar o final.
+TEMPO:  ~6 min
+
+  Passarela de metal alta, correndo por cima do corredor de carga. Dá para
+  ver o galpão inteiro daqui.
+
+  E no meio da passarela, PARADA, de costas, tem uma pessoa.
+
+  Não é a figura preta. É uma pessoa. Detalhada. Real.
+
+  MINHA SUGESTÃO: é a MULHER DO CARTAZ DE DESAPARECIDA do beco. A mesma que
+  sumiu há três semanas e cujo rosto a chuva comeu pela metade.
+
+    "..."
+
+    "Moça?"
+
+    (ela não se move)
+
+    "Moça, eu não vou te machucar."
+
+    (ele dá um passo)
+
+  O QUE ACONTECE: [ESCREVER AQUI]
+
+  Sugestões minhas, escolha uma ou nenhuma:
+
+    (a) Ela se vira. E o rosto dela está pela metade — exatamente como no
+        cartaz molhado. Não é ferimento: é como se a metade que a chuva
+        apagou simplesmente não existisse nela.
+
+    (b) Ela não se vira nunca. Fala de costas, calmamente, e sabe o nome
+        dele. Quando ele chega perto, não tem ninguém.
+
+    (c) Ela se vira e é alguém do passado dele — ligada ao caso de sete anos.
+        Aí ela vira a chave do jogo inteiro, e não só do capítulo.
+
+  (nota: eu recomendo (a) ou (b) para o Capítulo 2, e guardar (c) para o 3.
+   Gastar o caso de sete anos agora é cedo demais.)
+
+
+===============================================================================
+CENA 8 — O PERSEGUIDOR
+===============================================================================
+FUNÇÃO: o final. Dez minutos de terror sem combate.
+TEMPO:  ~10 min
+
+  Logo depois do mezanino, as luzes de emergência do galpão inteiro começam
+  a apagar SETOR POR SETOR, vindo na direção dele.
+
+  E alguma coisa começa a arrastar metal no chão, longe.
+
+  ------- O PERSEGUIDOR -------
+
+  MINHA PROPOSTA DE DESENHO (ver PARTE VI.3 para detalhes):
+
+    NOME: O CREDOR
+
+    Por quê: na narração de abertura ele diz
+      "Se existe uma conta esperando por mim... já passou da hora de pagar."
+    O Credor é essa conta com pernas. É o pagamento vindo cobrar.
+
+    APARÊNCIA: alto demais. Sobretudo — IGUAL AO DELE, mas grande demais,
+    arrastando no chão. Sem rosto visível sob a gola levantada.
+    Arrasta um cano de metal com a mão direita. O MESMO cano com que o
+    detetive se soltou.
+
+    NÃO PODE SER MORTO. Tiro faz ele parar. Nada mais.
+    NÃO PODE SER PERDIDO no braço. Ele sempre sabe a direção geral.
+
+  MECÂNICA DA PERSEGUIÇÃO:
+
+    - Ele te CAÇA pelo galpão inteiro, atravessando os setores que você já
+      conhece — e é isso que faz funcionar: o jogador conhece o mapa, e agora
+      o mapa virou armadilha.
+    - Você tem que se ESCONDER: armários do vestiário, embaixo das estantes,
+      atrás dos paletes, dentro da câmara fria.
+    - Escondido: prender a respiração (segurar tecla). Batimento cardíaco
+      audível. A tela treme com a respiração dele.
+    - Ele PROCURA. Abre armários. Não é aleatório — é uma busca que vai
+      fechando o cerco.
+    - Sanidade drena rápido enquanto escondido. Ficar parado não é grátis.
+
+  O OBJETIVO: chegar até [ESCREVER AQUI — onde é a saída do capítulo?]
+
+  FIM DO CAPÍTULO: [ESCREVER AQUI]
+
+  Minha sugestão: ele consegue sair, e a última coisa que a câmera mostra
+  antes do corte é o Credor parado, sem persegui-lo mais, apenas OLHANDO
+  ele ir embora. Como quem sabe que vai cobrar outro dia.
+
+
+===============================================================================
+PARTE V — SISTEMA DE DIÁRIO
+===============================================================================
+
+  Referência: Red Dead Redemption 2 e The Last of Us.
+  Abre com uma tecla dedicada. Páginas manuscritas, com a letra dele.
+
+  COMO FUNCIONA:
+
+  - Ele anota SOZINHO quando encontra algo importante. O jogador não digita.
+  - A anotação aparece com uma animação de escrita à mão.
+  - As páginas acumulam. Dá para reler tudo a qualquer momento.
+  - Anotar RESTAURA UM POUCO DE SANIDADE. Escrever é organizar a cabeça.
+
+  TIPOS DE PÁGINA:
+
+    PISTAS ....... fatos concretos. "Telefone com fio cortado. Ligação veio
+                   assim mesmo."
+    PESSOAS ...... quem ele encontrou. O Vigia entra aqui.
+    LUGARES ...... mapa desenhado à mão, se preenchendo conforme explora.
+    ELE MESMO .... as páginas mais curtas e mais pesadas. Uma linha só.
+
+  ------- A IDEIA QUE EU MAIS QUERO PROPOR -------
+
+  Conforme a sanidade cai, COMEÇAM A APARECER PÁGINAS QUE ELE NÃO ESCREVEU.
+
+  Letra diferente. Mais firme. Escrevendo coisas que ele não sabia.
+
+  E lá pro Capítulo 3 ou 4, a revelação: a letra é a DELE MESMO, de sete anos
+  atrás. Antes de tudo acontecer.
+
+  Isso amarra direto com o bilhete do Capítulo 1 — "essa letra... eu conheço
+  essa letra" — e explica por que ele reconheceu sem saber de onde.
+
+  Aceita essa ideia? [ESCREVER AQUI]
+
+
+===============================================================================
+PARTE VI — INIMIGOS
+===============================================================================
+
+VI.1 — A REGRA
+--------------
+
+  Os inimigos são medos dele que vazaram. Então NENHUM deles pode ser um
+  monstro genérico. Cada um tem que ser reconhecível como uma ideia.
+
+  E o detetive NUNCA explica o que eles são. Ele só reage:
+    "...eu conheço isso."
+
+
+VI.2 — OS TRÊS QUE EU PROPONHO PARA O CAPÍTULO 2
+------------------------------------------------
+
+  Escolha quais entram. Sugiro os dois primeiros no Cap. 2 e o terceiro
+  guardado.
+
+  ┌─ OS EMPILHADOS ────────────────────────────────────────────────────┐
+  │ APARÊNCIA: corpo humano dobrado sobre si mesmo como cadeira        │
+  │            empilhada. Anda de quatro, membros em ângulo errado.    │
+  │ COMPORTAMENTO: lento, silencioso, agarra e prende no chão.         │
+  │ POR QUE ELE: amarra direto com as cadeiras empilhadas do bar —     │
+  │            a imagem de "alguém arrumou isso com cuidado".          │
+  │ MEDO QUE REPRESENTA: ordem imposta sobre destruição. Alguém        │
+  │            organizando o estrago que ele fez.                      │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌─ OS SEM-ROSTO ─────────────────────────────────────────────────────┐
+  │ APARÊNCIA: gente normal, roupa normal, rosto ALISADO. Sem traço.   │
+  │ COMPORTAMENTO: andam devagar em grupo pequeno. Não correm.         │
+  │            Cercam. Só machucam quando você fica sem saída.         │
+  │ POR QUE ELES: são as pessoas que ele não conseguiu salvar e cujos  │
+  │            rostos ele já não lembra.                               │
+  │ DETALHE: se você ficar parado olhando, um deles pode PARAR e       │
+  │            ficar olhando de volta. Sem atacar.                     │
+  └────────────────────────────────────────────────────────────────────┘
+
+  ┌─ O ECOADOR ────────────────────────────────────────────────────────┐
+  │ APARÊNCIA: mal se vê. Vulto magro, sempre a meia distância.        │
+  │ COMPORTAMENTO: não ataca. QUANDO ELE ESTÁ PERTO, TOCA TELEFONE.    │
+  │            O som vem do nada. Quanto mais perto, mais alto.        │
+  │ FUNÇÃO: não é inimigo, é ALARME. Onde ele aparece, coisa ruim vem. │
+  │ POR QUE ELE: amarra com a ligação das 2h14 que não podia existir.  │
+  └────────────────────────────────────────────────────────────────────┘
+
+  Quais entram no Capítulo 2? [ESCREVER AQUI]
+
+
+VI.3 — O PERSEGUIDOR: "O CREDOR"
+---------------------------------
+
+  Já descrito na Cena 8. O que ele NÃO pode ser:
+
+  - Não pode ser rápido demais. Terror de perseguição funciona quando você
+    quase consegue.
+  - Não pode ser burro. Se ele der para enganar em círculo, morre a tensão.
+  - Não pode fazer barulho o tempo todo. O silêncio dele é pior.
+
+  Regra de ouro: o jogador precisa ouvir o cano arrastando ANTES de ver.
+
+
+VI.4 — SISTEMA DE GERAÇÃO DE INIMIGOS ("O DIRETOR")
+----------------------------------------------------
+
+  Não é gerador de ondas. É um DIRETOR, que decide quando vale a pena
+  colocar alguém na cena — mesma ideia do Left 4 Dead, adaptada.
+
+  O QUE O DIRETOR OLHA:
+    - sanidade atual do jogador (quanto menor, mais ele gera)
+    - quanto tempo desde o último encontro
+    - se o jogador está numa área "de respiro" (vestiário: quase nada)
+    - quantos inimigos já estão vivos (TETO RÍGIDO: 3)
+
+  REGRAS QUE NÃO PODEM SER QUEBRADAS:
+    - NUNCA aparecer dentro do campo de visão. Sempre do escuro, sempre de
+      fora da tela. Como é a mente dele, isso é diegético.
+    - Nunca dois seguidos no mesmo lugar.
+    - Sempre existe rota de fuga. O jogo nunca obriga a lutar, exceto na
+      Sala de Máquinas.
+    - Depois de um combate, garantir 40 a 60 segundos de silêncio.
+
+  ISSO EVITA o problema que você levantou: "não deixar o jogo só andar e
+  bater". O ritmo tem que ser tenso-calmo-tenso, não uma esteira.
+
+
+===============================================================================
+PARTE VII — SISTEMA DE SANIDADE
+===============================================================================
+
+  Existe DESDE O COMEÇO DO JOGO — desde a hora que ele desce do carro no
+  Capítulo 1. Só que no Capítulo 1 ela quase não se mexe. Ela é uma coisa que
+  o jogador só percebe que existia quando começa a piorar.
+
+  ESCALA: 0 a 100. Começa em 100.
+
+  O QUE TIRA:
+    - ficar no escuro (contínuo, lento)
+    - ver inimigo (ao avistar, não ao lutar)
+    - tomar dano
+    - eventos de alucinação
+    - ler certas páginas do diário
+    - o Credor: dreno pesado enquanto ele estiver caçando
+    - olhar no espelho (o teimoso paga caro)
+
+  O QUE DEVOLVE:
+    - FUMAR (ver abaixo — é o principal)
+    - luz forte / setores seguros
+    - escrever no diário
+    - matar um inimigo (pouco — a violência acalma e isso é feio, e é o ponto)
+
+  OS QUATRO ESTADOS:
+
+  ┌──────────────┬────────────────────────────────────────────────────────┐
+  │ 100–75       │ LÚCIDO                                                 │
+  │              │ Tudo normal. Cigarro: ele tira, olha, joga fora.       │
+  │              │ "hoje não..."                                          │
+  ├──────────────┼────────────────────────────────────────────────────────┤
+  │ 74–50        │ RACHANDO                                               │
+  │              │ Sons falsos. Vinheta fecha. Passos atrás de você que   │
+  │              │ não existem.                                           │
+  │              │ Cigarro: ele ACENDE. Olha a brasa. Joga fora aceso.    │
+  ├──────────────┼────────────────────────────────────────────────────────┤
+  │ 49–25        │ VAZANDO                                                │
+  │              │ ALUCINAÇÕES ATACÁVEIS: inimigos que não existem.       │
+  │              │ Somem quando acertados. Você gastou a bala do mesmo    │
+  │              │ jeito. Cochichos. Imagem tremendo.                     │
+  │              │ Cigarro: ele TRAGA. Uma vez. Se arrepende. Joga fora.  │
+  ├──────────────┼────────────────────────────────────────────────────────┤
+  │ 24–0         │ RENDIDO                                                │
+  │              │ Diretor gera muito mais. Alucinação constante.         │
+  │              │ Páginas no diário que ele não escreveu.                │
+  │              │ Cigarro: fuma um atrás do outro, compulsivo, e não     │
+  │              │ para até você mandar andar.                            │
+  └──────────────┴────────────────────────────────────────────────────────┘
+
+  ------- A ELEGÂNCIA DO CIGARRO -------
+
+  FUMAR RESTAURA SANIDADE. E quanto pior ele está, mais ele fuma.
+
+  Isso resolve sozinho a coisa que você descreveu: o cigarro é a forma como
+  a mente dele se RECUSA A ACEITAR o que está vendo. É anestesia.
+
+  E como restaura sanidade, o jogador vai fumar de propósito — e vai
+  gastar cigarro, que é recurso finito. O vício vira mecânica.
+
+  Detalhe cruel: enquanto ele fuma, ele fica PARADO E VULNERÁVEL.
+  Você tem que escolher a hora.
+
+  (nota: você falou "caso a sanidade esteja muito alta". Eu escrevi ao
+   contrário — quanto MAIS BAIXA a sanidade, mais ele fuma — porque casa com
+   "se recusar a aceitar o que está vendo". Se você quis o oposto, me diz que
+   eu inverto. Ver pergunta 4 no fim do arquivo.)
+
+
+===============================================================================
+PARTE VIII — SISTEMA DE INVENTÁRIO
+===============================================================================
+
+  Abre com TAB.
+
+  O CONCEITO: o inventário É O SOBRETUDO DELE.
+
+  A tela mostra o casaco ABERTO, visto por dentro, como se ele estivesse
+  segurando as abas. Os bolsos são os espaços.
+
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │    ┌──────────┐              ┌──────────┐                  │
+  │    │  BOLSO   │              │  BOLSO   │                  │
+  │    │ INTERNO  │   [ o forro  │ INTERNO  │                  │
+  │    │ ESQUERDO │     do       │ DIREITO  │                  │
+  │    │          │     casaco ] │          │                  │
+  │    │  3 x 4   │              │  3 x 4   │                  │
+  │    └──────────┘              └──────────┘                  │
+  │                                                            │
+  │         ┌────────────┐   ┌────────────┐                    │
+  │         │  BOLSO DO  │   │   CINTO    │                    │
+  │         │   PEITO    │   │            │                    │
+  │         │   2 x 2    │   │   5 x 1    │                    │
+  │         └────────────┘   └────────────┘                    │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+
+  REGRAS:
+  - Cada item ocupa um formato (a pistola é 2x1, o porrete é 1x4, o maço de
+    cigarro é 1x1, a caixa de munição é 2x2).
+  - Espaço LIMITADO. Você tem que escolher o que carregar.
+  - Você ORGANIZA como quiser — arrastar, girar, empilhar o que empilha.
+  - O CINTO é acesso rápido: só o que estiver ali pode ser usado sem abrir
+    o inventário.
+  - O porrete não cabe em bolso nenhum. Fica na mão ou fica para trás.
+    (nota: isso força uma decisão real quando ele achar a pistola.)
+
+  DETALHE DE IMERSÃO:
+  Abrir o inventário NÃO PAUSA O JOGO. Igual Resident Evil moderno.
+  E enquanto está aberto, o casaco cobre parte da tela — você fica cego para
+  o que está atrás dele.
+
+  Aceita não pausar? [ESCREVER AQUI]
+
+
+===============================================================================
+PARTE IX — PERGUNTAS PARA VOCÊ
+===============================================================================
+
+  Respondi tudo que dava para decidir sozinho. Estas eu não devo decidir.
+
+  1. NOME DO DETETIVE ...................... [ESCREVER AQUI]
+
+  2. TÍTULO DO CAPÍTULO 2
+     (minha 1ª escolha: "GENTILEZA") ....... [ESCREVER AQUI]
+
+  3. O NPC DO ESCRITÓRIO
+     Aceita o Vigia? .................... [ESCREVER AQUI]
+
+  4. O CIGARRO E A SANIDADE
+     Eu escrevi: sanidade BAIXA = fuma mais (anestesia).
+     Você disse "sanidade muito alta". Qual dos dois? .... [ESCREVER AQUI]
+
+  5. A FIGURA ESPECIAL DO MEZANINO
+     É a desaparecida do cartaz? Opção (a), (b) ou (c)? .. [ESCREVER AQUI]
+
+  6. O PERSEGUIDOR
+     Aceita "O CREDOR", vestindo um sobretudo igual ao dele
+     e arrastando o mesmo cano? ......................... [ESCREVER AQUI]
+
+  7. PÁGINAS NO DIÁRIO QUE ELE NÃO ESCREVEU
+     E a revelação de que a letra é dele mesmo, de 7 anos atrás?
+     ................................................... [ESCREVER AQUI]
+
+  8. QUAIS INIMIGOS ENTRAM NO CAP. 2
+     (Empilhados / Sem-Rosto / Ecoador) ................. [ESCREVER AQUI]
+
+  9. O ESPELHO DO VESTIÁRIO
+     Se o jogador insistir 3 vezes, o que ele vê? ....... [ESCREVER AQUI]
+
+  10. FIM DO CAPÍTULO
+      Onde é a saída, e o que acontece? ................. [ESCREVER AQUI]
 
 
 ===============================================================================
