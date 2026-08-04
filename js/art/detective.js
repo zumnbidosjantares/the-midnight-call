@@ -70,13 +70,13 @@ function buildParts() {
       '..HHhhhhhhhH..',
       '.HHhhgggggghh.',
       '.HHhgggggggSt.',
-      '.HHhgSSSSSSSt.',
-      '.HHhSSSooSSSt.',
-      '.HHqSSSEeSSst.',
-      '.HHqSSSqSSStS.',
-      '.HhqSSSSSSSqS.',
-      '.HhSSSSSSSSst.',
-      '..hSSSSqqSSst.',
+      '.HHhhgSSSSSSt.',
+      '.HHhhSSSooSSt.',
+      '.HHhqSSSEeSst.',
+      '.HHhqSSSqSStS.',
+      '.HHhqSSSSSSqS.',
+      '.HHhSSSSSSSst.',
+      '..hqSSSqqSSst.',
       '..sSSSSSSSSs..',
       '...sSSSSSSs...',
       '....sSSSs.....',
@@ -758,7 +758,10 @@ export class Detective {
     g.translate(0, 4);
     stamp(g, P.collar);
     g.restore();
-    g.rotate(R(p.head));
+    // A cabeca so gira em passos de 7 graus e no maximo 14. Girar um sprite
+    // de 14px em angulo qualquer reamostra o rosto e deforma olho e nariz —
+    // era isso que "desmanchava a cara do nada".
+    g.rotate(R(Math.round(clamp(p.head, -14, 14) / 7) * 7));
     g.translate(1, -1);
     stamp(g, P.head);
     if (this.props.cig === 'mouth') {
@@ -793,6 +796,19 @@ export class Detective {
     g.translate(0, UPPER_LEN);
     g.rotate(R(fo)); stamp(g, sFo);
     g.translate(0, FORE_LEN);
+
+    // A arma vem ANTES da mao, para os dedos ficarem por cima do cabo. E
+    // girada 90 graus porque dentro da cadeia do braco o eixo "para frente"
+    // e o +y local — sem isso o cano aponta para o lado e a arma aparece
+    // deitada.
+    if (front && this.props.gun === 'hand') {
+      g.save();
+      g.translate(0, 1);
+      g.rotate(Math.PI / 2);
+      stamp(g, P.gun);
+      g.restore();
+    }
+
     stamp(g, sHa);
 
     // objetos presos a mao
@@ -801,13 +817,10 @@ export class Detective {
     }
     if (front && this.props.gun === 'hand') {
       g.save();
-      g.translate(0, 3);
-      stamp(g, P.gun);
-      // a boca do cano fica 10px a frente do punho
-      g.translate(10, -1);
+      g.translate(0, 11);          // boca do cano, na direcao do braco
       const m = g.getTransform ? g.getTransform() : null;
       if (m) this._muzzleLocal = { x: m.e, y: m.f };
-      if (this.muzzleT > 0) stamp(g, P.muzzle);
+      if (this.muzzleT > 0) { g.rotate(Math.PI / 2); stamp(g, P.muzzle); }
       g.restore();
     }
     if (!front && this.props.lighter === 'hand') {
