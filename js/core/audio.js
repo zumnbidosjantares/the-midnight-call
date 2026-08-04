@@ -883,6 +883,21 @@ class Audio {
       src.playbackRate.value = 0.25;
       f.type = 'lowpass'; f.frequency.value = 220;
       src.connect(f); f.connect(g);
+    } else if (name === 'serra') {
+      // A motosserra do Credor. Ela nao desliga: comeca quando a fuga
+      // comeca, do outro lado do galpao, e so cala quando o capitulo
+      // acaba. Um dente-de-serra grave batendo contra ruido filtrado — o
+      // motor e a corrente.
+      src.playbackRate.value = 0.9;
+      f.type = 'bandpass'; f.Q.value = 3.2; f.frequency.value = 420;
+      const f2 = c.createBiquadFilter();
+      f2.type = 'lowpass'; f2.frequency.value = 2600;
+      src.connect(f); f.connect(f2); f2.connect(g);
+      // marcha lenta: o motor sobe e desce sozinho
+      const lfo = c.createOscillator(); lfo.type = 'sawtooth'; lfo.frequency.value = 11;
+      const lg = c.createGain(); lg.gain.value = 190;
+      lfo.connect(lg); lg.connect(f.frequency); lfo.start(t);
+      this.loops[name + '_lfo'] = { src: lfo, gain: lg };
     } else if (name === 'hum') {
       // Zumbido eletrico da sala de maquinas. O disjuntor geral esta
       // desligado e selado com arame — e mesmo assim ele existe.

@@ -143,9 +143,16 @@ export class Inventory {
     if (this.toast > 0) this.toast -= dt;
     if (!this.open) { this.drag = null; return; }
 
+    // Se o mouse ainda nao se moveu nesta sessao, comeca no meio da tela
+    // em vez de no canto — abrir o casaco e nao achar o cursor era metade
+    // do problema.
+    if (input.mouse.cx === undefined) {
+      const r = gfx.out ? gfx.out.getBoundingClientRect() : null;
+      if (r) { input.mouse.cx = r.left + r.width / 2; input.mouse.cy = r.top + r.height / 2; }
+    }
     const m = gfx.toVirtual(input.mouse.cx || 0, input.mouse.cy || 0);
-    this.mx = m.x; this.my = m.y;
-    this.hover = this._itemEm(m.x, m.y);
+    this.mx = clamp(m.x, 0, VW); this.my = clamp(m.y, 0, VH);
+    this.hover = this._itemEm(this.mx, this.my);
 
     if (input.mouse.pressed && !this.drag && this.hover) {
       this.drag = this.hover;
@@ -267,8 +274,30 @@ export class Inventory {
     }
 
     text(ctx, T('inv_hint'), cx, VH - 14, {
-      size: 7, font: 'ui', color: '#5a5249', align: 'center', track: 1, alpha: a, shadow: true,
+      size: 7, font: 'type', weight: 'bold', color: '#6a6156',
+      align: 'center', track: 1, alpha: a, shadow: true,
     });
+
+    // O CURSOR. A pagina esconde o ponteiro do sistema (`cursor: none`, para
+    // o jogo nao ter uma seta branca de escritorio no meio do terror), e o
+    // resultado era um inventario de arrastar em que ninguem via o que
+    // estava arrastando. Este e desenhado dentro do jogo, no mesmo pixel
+    // que todo o resto.
+    if (this.mx !== undefined) this._cursor(ctx, this.mx, this.my, a);
+  }
+
+  _cursor(ctx, x, y, a) {
+    x = Math.round(x); y = Math.round(y);
+    ctx.save();
+    ctx.globalAlpha = a;
+    // sombra dura por baixo, para o cursor nunca sumir num fundo claro
+    ctx.fillStyle = '#000000';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x + 1, y + 1 + i, Math.max(1, 6 - i), 1);
+    ctx.fillStyle = this.drag ? PAL.uiAccent : '#e8e0d2';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x, y + i, Math.max(1, 6 - i), 1);
+    ctx.fillStyle = '#3a332c';
+    ctx.fillRect(x, y, 1, 8);
+    ctx.restore();
   }
 
   _drawZona(ctx, Z, a) {

@@ -801,6 +801,7 @@ const BINDINGS = {
   // Capitulo 2
   journal:  ['KeyQ'],
   bag:      ['Tab'],
+  map:      ['KeyM'],
   light:    ['KeyF'],
   breath:   ['ShiftLeft', 'ShiftRight'],
 };
@@ -1796,6 +1797,21 @@ class Audio {
       src.playbackRate.value = 0.25;
       f.type = 'lowpass'; f.frequency.value = 220;
       src.connect(f); f.connect(g);
+    } else if (name === 'serra') {
+      // A motosserra do Credor. Ela nao desliga: comeca quando a fuga
+      // comeca, do outro lado do galpao, e so cala quando o capitulo
+      // acaba. Um dente-de-serra grave batendo contra ruido filtrado — o
+      // motor e a corrente.
+      src.playbackRate.value = 0.9;
+      f.type = 'bandpass'; f.Q.value = 3.2; f.frequency.value = 420;
+      const f2 = c.createBiquadFilter();
+      f2.type = 'lowpass'; f2.frequency.value = 2600;
+      src.connect(f); f.connect(f2); f2.connect(g);
+      // marcha lenta: o motor sobe e desce sozinho
+      const lfo = c.createOscillator(); lfo.type = 'sawtooth'; lfo.frequency.value = 11;
+      const lg = c.createGain(); lg.gain.value = 190;
+      lfo.connect(lg); lg.connect(f.frequency); lfo.start(t);
+      this.loops[name + '_lfo'] = { src: lfo, gain: lg };
     } else if (name === 'hum') {
       // Zumbido eletrico da sala de maquinas. O disjuntor geral esta
       // desligado e selado com arame — e mesmo assim ele existe.
@@ -2165,6 +2181,15 @@ const FONTS = {
   serif:  'Georgia,"Times New Roman",serif',
   title:  'Impact,Haettenschweiler,"Arial Black","Franklin Gothic Heavy",sans-serif',
   mono:   'Consolas,"Courier New",monospace',
+  // Maquina de escrever. E a fonte de TODA fala do jogo — o que ele diz
+  // sozinho, o que os outros dizem, e o que ele escreve no caderno.
+  //
+  // Georgia a 10px passava por um corte duro de alpha e perdia metade dos
+  // tracos finos: sobrava um borrao ilegivel. Courier tem haste grossa e
+  // uniforme, que e exatamente o que sobrevive a esse corte — e ainda por
+  // cima e a letra de relatorio policial, que e o que ele passou a vida
+  // escrevendo.
+  type:   '"Courier New",Courier,"DejaVu Sans Mono","Liberation Mono",monospace',
 };
 
 const cache = new Map();
@@ -3470,6 +3495,11 @@ class Detective {
     // contorno some. E assim que a figura negra e feita — o mesmo boneco
     // articulado, sem nenhuma informacao dentro.
     this.silhouette = null;
+    // Troca de peças. Uma criatura só declara o que muda nela; tudo que
+    // faltar cai nas peças do detetive. Peça declarada como `null` não é
+    // desenhada — é assim que os inimigos ficam sem gola, sem aba de
+    // sobretudo e sem coldre.
+    this.parts = null;
     // Recolorir o boneco inteiro: e assim que os NPCs e os Sem-Rosto usam o
     // mesmo esqueleto sem virarem clones do detetive.
     this.tint = null;
@@ -3478,6 +3508,12 @@ class Detective {
     this.faceless = false;
     this.scaleX = 1;
     this.scaleY = 1;
+  }
+
+  // Peça `n`, respeitando a troca da criatura.
+  _p(n) {
+    if (this.parts && Object.prototype.hasOwnProperty.call(this.parts, n)) return this.parts[n];
+    return P[n];
   }
 
   play(name, opts = {}) {
@@ -3663,6 +3699,7 @@ class Detective {
   _renderRig(g) {
     const p = this.pose;
     const R = a => -a * DEG;
+    const S = (ctx, peca) => { if (peca) stamp(ctx, peca); };
 
     g.save();
     g.translate(ORX + p.hx, ORY + p.hy);
@@ -3670,11 +3707,11 @@ class Detective {
     // ---- perna de tras ----
     g.save();
     g.translate(-LEG_X, HIP_Y);
-    g.rotate(R(p.lBt)); stamp(g, P.dThigh);
+    g.rotate(R(p.lBt)); S(g, this._p('dThigh'));
     g.translate(0, THIGH_LEN);
-    g.rotate(R(p.lBs)); stamp(g, P.dShin);
+    g.rotate(R(p.lBs)); S(g, this._p('dShin'));
     g.translate(0, SHIN_LEN);
-    g.rotate(R(p.lBf - p.lBt - p.lBs)); stamp(g, P.dFoot);
+    g.rotate(R(p.lBf - p.lBt - p.lBs)); S(g, this._p('dFoot'));
     g.restore();
 
     const backArmFront = p.aBu > 42;   // soco de reverso passa para a frente
@@ -3685,32 +3722,38 @@ class Detective {
     // ---- perna da frente ----
     g.save();
     g.translate(LEG_X, HIP_Y);
-    g.rotate(R(p.lFt)); stamp(g, P.thigh);
+    g.rotate(R(p.lFt)); S(g, this._p('thigh'));
     g.translate(0, THIGH_LEN);
-    g.rotate(R(p.lFs)); stamp(g, P.shin);
+    g.rotate(R(p.lFs)); S(g, this._p('shin'));
     g.translate(0, SHIN_LEN);
-    g.rotate(R(p.lFf - p.lFt - p.lFs)); stamp(g, P.foot);
+    g.rotate(R(p.lFf - p.lFt - p.lFs)); S(g, this._p('foot'));
     g.restore();
 
     // ---- aba do sobretudo (por cima das pernas, por baixo do tronco) ----
-    g.save();
-    g.translate(0, HIP_Y);
-    g.rotate(R(this.skirt));
-    stamp(g, P.coatSkirt);
-    g.restore();
+    const aba = this._p('coatSkirt');
+    if (aba) {
+      g.save();
+      g.translate(0, HIP_Y);
+      g.rotate(R(this.skirt));
+      stamp(g, aba);
+      g.restore();
+    }
 
     // ---- coldre no quadril ----
-    g.save();
-    g.translate(6, HIP_Y + 1);
-    stamp(g, P.holster);
-    if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
-    g.restore();
+    const coldre = this._p('holster');
+    if (coldre) {
+      g.save();
+      g.translate(6, HIP_Y + 1);
+      stamp(g, coldre);
+      if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
+      g.restore();
+    }
 
     // ---- tronco ----
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
-    stamp(g, P.torso);
+    S(g, this._p('torso'));
     g.restore();
 
     // ---- cabeca (com a gola atras dela) ----
@@ -3718,16 +3761,19 @@ class Detective {
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
-    g.save();
-    g.translate(0, 4);
-    stamp(g, P.collar);
-    g.restore();
+    const gola = this._p('collar');
+    if (gola) {
+      g.save();
+      g.translate(0, 4);
+      stamp(g, gola);
+      g.restore();
+    }
     // A cabeca so gira em passos de 7 graus e no maximo 14. Girar um sprite
     // de 14px em angulo qualquer reamostra o rosto e deforma olho e nariz —
     // era isso que "desmanchava a cara do nada".
     g.rotate(R(Math.round(clamp(p.head, -14, 14) / 7) * 7));
     g.translate(1, -1);
-    stamp(g, this.faceless ? P.headBlank : P.head);
+    S(g, this.faceless ? this._p('headBlank') : this._p('head'));
     if (this.props.cig === 'mouth') {
       g.save();
       g.translate(7, -5);
@@ -3747,18 +3793,18 @@ class Detective {
     const up = front ? p.aFu : p.aBu;
     const fo = front ? p.aFf : p.aBf;
     const R = a => -a * DEG;
-    const sUp = dark ? P.dUpperArm : P.upperArm;
-    const sFo = dark ? P.dForearm : P.forearm;
-    const sHa = dark ? P.dHand : P.hand;
+    const sUp = this._p(dark ? 'dUpperArm' : 'upperArm');
+    const sFo = this._p(dark ? 'dForearm' : 'forearm');
+    const sHa = this._p(dark ? 'dHand' : 'hand');
 
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
     g.translate(front ? ARM_X : -ARM_X_BACK, 2);
-    g.rotate(R(up)); stamp(g, sUp);
+    g.rotate(R(up)); if (sUp) stamp(g, sUp);
     g.translate(0, UPPER_LEN);
-    g.rotate(R(fo)); stamp(g, sFo);
+    g.rotate(R(fo)); if (sFo) stamp(g, sFo);
     g.translate(0, FORE_LEN);
 
     // A arma vem ANTES da mao, para os dedos ficarem por cima do cabo. E
@@ -3773,7 +3819,12 @@ class Detective {
       g.restore();
     }
 
-    stamp(g, sHa);
+    if (sHa) stamp(g, sHa);
+
+    // O que a criatura carrega e nunca solta: o fio do telefone, a
+    // motosserra, o esfregao. Sai da mao seguindo o antebraco.
+    const naMao = this.parts && this.parts.naMao;
+    if (front && naMao) { g.save(); g.translate(0, 2); stamp(g, naMao); g.restore(); }
 
     // Ripa e cano saem da mao seguindo o antebraco: o eixo "para fora da
     // mao" ja e o +y local aqui dentro, entao nao ha rotacao a fazer — foi
@@ -6216,7 +6267,14 @@ function buildCorridor() {
   M.crate(g, 1140, GY, 1, 5181);
   M.crate(g, 1164, GY, 0, 5191);
   M.crate(g, 1146, GY - 17, 0, 5201);
-  M.debris(g, 1240, GY, 44, 5211);
+  // porta do arquivo morto
+  const dArq = M.doorFrame(g, 1180, GY, 5215);
+  inter.push({
+    x: dArq.x, y: dArq.y, w: dArq.w, h: dArq.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_arquivo', tox: 66, tofacing: 1, range: 30, isDoor: true,
+  });
+  rect(g, 1174, GY, 38, 3, '#2b2620');
+  M.debris(g, 1250, GY, 44, 5211);
   M.puddle(g, 700, GY + 12, 70, 5221);
   M.puddle(g, 1290, GY + 16, 52, 5231);
 
@@ -6717,20 +6775,16 @@ function buildLockerRoom() {
   rect(g, 406, GY - 13, 5, 13, '#3a4048');
   rect(g, 480, GY - 13, 5, 13, '#3a4048');
 
-  // ★ O ESPELHO. A unica cena em primeira pessoa do jogo inteiro esta atras
-  // dele — e so para quem insistir tres vezes.
-  const ESP = 560;
-  M.crackedMirror(g, ESP, 44, 54, 62, 5671);
-  rect(g, ESP - 3, 42, 60, 2, '#5c5a52');
-  rect(g, ESP - 3, 106, 60, 3, '#4a4840');
-  // pia embaixo
-  rect(g, ESP - 6, 118, 66, 10, '#9a968c');
-  rect(g, ESP - 6, 118, 66, 2, '#b6b2a6');
-  rect(g, ESP + 20, 128, 6, 14, '#7f7b72');
+  // porta do banheiro — o espelho mudou de sala
+  const dW = M.doorFrame(g, 560, GY, 5671);
   inter.push({
-    x: ESP, y: 44, w: 54, h: 62, prompt: 'prompt_look',
-    action: 'mirror', range: 28, id: 'espelho',
+    x: dW.x, y: dW.y, w: dW.w, h: dW.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_wc', tox: 64, tofacing: 1, range: 30, isDoor: true,
   });
+  rect(g, 554, GY, 38, 3, '#2b2620');
+  // plaquinha de banheiro na porta
+  rect(g, 572, dW.y - 12, 12, 8, '#2a2620');
+  rect(g, 574, dW.y - 10, 8, 4, '#8a8272');
 
   // quadro de escala do mes
   rect(g, 660, 40, 76, 46, '#2a2620');
@@ -6763,7 +6817,7 @@ function buildLockerRoom() {
   inter.push({ x: 756, y: GY - 44, w: 30, h: 18, prompt: 'prompt_use', lines: 'c2_radio', range: 24 });
 
   // porta de aco para a camara fria
-  const cd = coldDoor(g, 618, GY, 5721);
+  const cd = coldDoor(g, 650, GY, 5721);
   inter.push({
     x: cd.x, y: cd.y, w: cd.w, h: cd.h, prompt: 'prompt_open',
     action: 'goto', to: 'ch2_cold', tox: 70, tofacing: 1, range: 32, isDoor: true, sfx: 'heavy',
@@ -6823,6 +6877,241 @@ function buildLockerRoom() {
       ctx.fillStyle = '#4a4a52'; ctx.fillRect(x + 9, y + 2, 4, 4);
     },
   }]);
+  return lvl;
+}
+
+// ---------------------------------------------------------------------------
+// 4b — O BANHEIRO
+//
+// Existe por um motivo só: o espelho estava pendurado a dois metros do chão
+// na parede do vestiário, e ninguém olha para um espelho que fica acima da
+// própria cabeça. Aqui ele está onde espelho fica — em cima da pia, na
+// altura do rosto de um homem de pé.
+// ---------------------------------------------------------------------------
+
+function buildBathroom() {
+  const W = 420;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  rect(g, 0, 0, W, VH, '#191c1e');
+  // azulejo branco encardido do chão ao teto
+  ditherV(g, 0, 20, W, GY - 20, '#5a5c56', '#43453f', 5);
+  for (let x = 0; x < W; x += 13) rect(g, x, 20, 1, GY - 20, '#33352f');
+  for (let y = 20; y < GY; y += 13) rect(g, 0, y, W, 1, '#33352f');
+  grainRect(g, 0, 20, W, GY - 20, ['#3d3f39', '#63655d'], 0.06, 6201);
+  rect(g, 0, 0, W, 20, '#101211');
+  // azulejos faltando, e o reboco atrás
+  for (const [mx, my] of [[70, 60], [83, 60], [212, 112], [316, 47], [329, 60]]) {
+    rect(g, mx, my, 12, 12, '#3a332c');
+    grainRect(g, mx, my, 12, 12, ['#2c2620', '#463d34'], 0.2, 6211 + mx);
+  }
+  M.asphalt(g, 0, GY, W, VH - GY, 6221, { hi: '#43443e', mid: '#33342f', dk: '#232420' });
+  rect(g, 0, GY, W, 1, '#0d0f0d');
+
+  const inter = [];
+  const lights = [];
+
+  const ex = M.doorFrame(g, 34, GY, 6231);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_locker', tox: 592, tofacing: -1, range: 30, isDoor: true,
+  });
+
+  // três cabines, uma com a porta arrancada
+  for (let i = 0; i < 3; i++) {
+    const cx = 240 + i * 58;
+    rect(g, cx, GY - 96, 3, 96, '#5a6b64');
+    rect(g, cx, GY - 96, 3, 96 - 60, '#6b7d75');
+    if (i !== 1) {
+      rect(g, cx + 3, GY - 92, 52, 88, '#4e5f58');
+      rect(g, cx + 3, GY - 92, 52, 2, '#63756d');
+      rect(g, cx + 46, GY - 52, 4, 4, '#8f959e');
+    } else {
+      rect(g, cx + 3, GY - 92, 52, 88, '#101413');
+      // vaso, lá no fundo do escuro
+      rect(g, cx + 22, GY - 26, 16, 26, '#8a8d86');
+      rect(g, cx + 20, GY - 30, 20, 6, '#9a9d96');
+    }
+  }
+  rect(g, 240, GY - 99, 178, 3, '#5a6b64');
+
+  // ---- a bancada de pias ----
+  const PIA = 96;
+  rect(g, PIA - 8, 150, 118, 8, '#9a968c');
+  rect(g, PIA - 8, 150, 118, 2, '#b6b2a6');
+  rect(g, PIA - 8, 158, 118, 4, '#6b6860');
+  for (const px of [PIA + 8, PIA + 74]) {
+    rect(g, px - 10, 152, 24, 6, '#8a8780');
+    rect(g, px - 2, 144, 4, 8, '#a8a49a');
+    rect(g, px - 4, 142, 8, 3, '#c2beb2');
+    rect(g, px + 8, 162, 4, 18, '#7f7b72');
+  }
+
+  // ★ O ESPELHO — pequeno, e na altura do rosto de quem está em pé.
+  // Um homem de 62px com os pés em 214 tem os olhos por volta de 165.
+  const ESP = 88, ESPY = 108;
+  M.crackedMirror(g, ESP, ESPY, 40, 40, 6241);
+  rect(g, ESP - 2, ESPY - 2, 44, 2, '#6b6860');
+  rect(g, ESP - 2, ESPY + 40, 44, 2, '#4a4840');
+  inter.push({
+    x: ESP, y: ESPY, w: 40, h: 40, prompt: 'prompt_look',
+    action: 'mirror', range: 26, id: 'espelho', prio: 1,
+  });
+
+  // luminária piscando em cima da pia
+  rect(g, ESP - 4, 88, 48, 5, '#2a3038');
+  rect(g, ESP, 93, 40, 2, '#dfe8f0');
+  lights.push({ x: ESP + 20, y: 96, r: 132, color: '#cfe0f0', i: 0.62, flick: 'bulb', falloff: 1.05 });
+  lights.push({ x: ESP + 20, y: 96, r: 22, color: '#ffffff', i: 0.5, flick: 'bulb' });
+  lights.push({ x: 300, y: 60, r: 128, color: '#8fa8c8', i: 0.34, falloff: 1.3 });
+  lights.push({ x: 200, y: 190, r: 120, color: '#6a7a86', i: 0.22, falloff: 1.4 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.15) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 10, '#040505');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#040505');
+
+  return new Level({
+    key: 'ch2_wc',
+    nameKey: 'loc_wc',
+    width: W, groundY: GY,
+    ambient: '#39414e',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.15 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.14,
+    minX: 30, maxX: W - 40,
+    spawn: { x: 64, facing: 1 },
+    bloom: 0.5,
+    indoor: true,
+    safe: true,
+    ambience: [{ n: 'roomtone', g: 0.1 }],
+    randomSfx: [{ fn: 'drip', min: 3, max: 8, vol: 0.9 }],
+    maxInimigos: 0,
+    esconderijos: [298],
+    enterBarks: ['b2_wc_1'],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 2b — ARQUIVO MORTO
+//
+// A gaveta do D não estava no arquivo do escritório. Ela está aqui — e
+// continua vazia.
+// ---------------------------------------------------------------------------
+
+function buildArchive() {
+  const W = 620;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+  warehouseWall(g, W, 6301, { corte: 100 });
+  damp(g, [150, 420], 104);
+
+  const inter = [];
+  const lights = [];
+
+  const ex = M.doorFrame(g, 40, GY, 6311);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_corridor', tox: 1180, tofacing: -1, range: 30, isDoor: true,
+  });
+
+  // corredor de arquivos de aço, do chão ao teto
+  for (let i = 0; i < 7; i++) {
+    const x = 130 + i * 62;
+    rect(g, x, GY - 108, 46, 108, '#39434e');
+    rect(g, x, GY - 108, 46, 2, '#4c5866');
+    rect(g, x + 44, GY - 108, 2, 108, '#232a32');
+    for (let j = 0; j < 6; j++) {
+      const dy = GY - 104 + j * 17;
+      // a gaveta aberta, e vazia
+      if (i === 3 && j === 3) {
+        rect(g, x + 3, dy, 40, 14, '#0b0e12');
+        rect(g, x + 3, dy, 40, 2, '#151a20');
+        rect(g, x + 1, dy + 2, 3, 12, '#414c58');
+        continue;
+      }
+      rect(g, x + 3, dy, 40, 14, '#414c58');
+      rect(g, x + 3, dy, 40, 1, '#556374');
+      rect(g, x + 17, dy + 5, 12, 3, '#8f959e');
+      rect(g, x + 6, dy + 4, 8, 5, '#b9b0a2');
+    }
+  }
+  inter.push({
+    x: 316, y: GY - 60, w: 46, h: 22, prompt: 'prompt_look',
+    lines: 'c2_gavetaD', range: 30, prio: 1,
+  });
+
+  M.debris(g, 480, GY, 50, 6321);
+  M.crate(g, 560, GY, 1, 6331);
+  // papel espalhado pelo chão, como se alguém tivesse procurado com pressa
+  {
+    const rnd = mulberry32(6341);
+    for (let i = 0; i < 80; i++) {
+      const x = 120 + rnd() * 460;
+      g.globalAlpha = 0.3 + rnd() * 0.4;
+      rect(g, x, GY + 2 + rnd() * 42, 4 + rnd() * 5, 3, '#8f8878');
+    }
+    g.globalAlpha = 1;
+  }
+
+  emergencyLamp(g, 300, 48);
+  lights.push({ x: 307, y: 58, r: 190, color: '#c98a5e', i: 0.66, falloff: 1.12 });
+  lights.push({ x: 307, y: 192, r: 130, color: '#a8804e', i: 0.28, falloff: 1.35 });
+  lights.push({ x: 90, y: 160, r: 120, color: '#7d6a52', i: 0.26, falloff: 1.4 });
+  lights.push({ x: 540, y: 160, r: 120, color: '#7d6a52', i: 0.24, falloff: 1.4 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.2) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 12, '#030202');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#030202');
+  rect(fore.x, 250, 0, 9, VH, '#050607');
+
+  const lvl = new Level({
+    key: 'ch2_arquivo',
+    nameKey: 'loc_arquivo',
+    width: W, groundY: GY,
+    ambient: '#262d3a',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.2 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.05,
+    minX: 30, maxX: W - 40,
+    spawn: { x: 66, facing: 1 },
+    bloom: 0.42,
+    indoor: true,
+    ambience: [{ n: 'hall', g: 0.08 }],
+    randomSfx: [{ fn: 'metalCreak', min: 10, max: 24, vol: 0.7 }],
+    spawnTipos: ['semrosto'],
+    ritmo: 48,
+    maxInimigos: 1,
+    esconderijos: [420],
+    enterBarks: ['b2_arq_1'],
+    barks: [{ x: 330, key: 'b2_arq_2', range: 60 }],
+  });
+
+  // A CHAVE DA ESCADA. Sem ela o mezanino não abre — e sem o mezanino a
+  // perseguição não começa. É o que garante que ninguém encare o Credor
+  // de mãos vazias.
+  itensSoltos(lvl, [{
+    id: 'chave', x: 331, y: GY - 52,
+    draw: (ctx, x, y) => {
+      ctx.fillStyle = '#b09258'; ctx.fillRect(x, y + 2, 10, 2);
+      ctx.fillRect(x + 9, y, 4, 6);
+      ctx.fillStyle = '#8a6a38'; ctx.fillRect(x, y + 4, 3, 2);
+      ctx.fillRect(x + 4, y + 4, 2, 2);
+    },
+  }]);
+  inter.push({
+    x: 326, y: GY - 58, w: 22, h: 16, prompt: 'prompt_take',
+    action: 'take_key', range: 24, id: 'chave', prio: 2,
+  });
+
   return lvl;
 }
 
@@ -7065,9 +7354,16 @@ function buildMachineRoom() {
     rect(g, 866 + i * 2, GY - 14 - i * 14, 24, 3, '#3d434b');
     rect(g, 866 + i * 2, GY - 14 - i * 14, 24, 1, '#525a64');
   }
+  // A escada do mezanino fica TRANCADA. Sem a chave do arquivo — que está
+  // do outro lado do galpão — ninguém sobe. E como a perseguição só começa
+  // quando ele desce de lá, isso garante que o Credor nunca apareça com o
+  // detetive de mãos vazias.
+  rect(g, 878, GY - 46, 12, 20, '#2a3038');
+  rect(g, 881, GY - 40, 6, 8, '#b09258');
   inter.push({
     x: 880, y: GY - 44, w: 44, h: 44, prompt: 'prompt_open',
     action: 'goto', to: 'ch2_mezz', tox: 80, tofacing: 1, range: 34,
+    precisa: 'chave', semChave: 'b2_trancado',
   });
 
   for (const lx of [340, 700]) {
@@ -7336,8 +7632,10 @@ function buildChapter2() {
   return {
     ch2_corridor: buildCorridor(),
     ch2_office: buildOffice(),
+    ch2_arquivo: buildArchive(),
     ch2_shelves: buildShelves(),
     ch2_locker: buildLockerRoom(),
+    ch2_wc: buildBathroom(),
     ch2_cold: buildColdStore(),
     ch2_machines: buildMachineRoom(),
     ch2_mezz: buildMezzanine(),
@@ -7349,6 +7647,8 @@ function buildChapter2() {
   Object.defineProperty(__exp, "buildOffice", { get: function(){ return buildOffice; }, enumerable: true });
   Object.defineProperty(__exp, "buildShelves", { get: function(){ return buildShelves; }, enumerable: true });
   Object.defineProperty(__exp, "buildLockerRoom", { get: function(){ return buildLockerRoom; }, enumerable: true });
+  Object.defineProperty(__exp, "buildBathroom", { get: function(){ return buildBathroom; }, enumerable: true });
+  Object.defineProperty(__exp, "buildArchive", { get: function(){ return buildArchive; }, enumerable: true });
   Object.defineProperty(__exp, "buildColdStore", { get: function(){ return buildColdStore; }, enumerable: true });
   Object.defineProperty(__exp, "buildMachineRoom", { get: function(){ return buildMachineRoom; }, enumerable: true });
   Object.defineProperty(__exp, "buildMezzanine", { get: function(){ return buildMezzanine; }, enumerable: true });
@@ -7532,6 +7832,41 @@ const STR = {
   loc_machines:   { pt: 'SALA DE MAQUINAS',     en: 'MACHINE ROOM' },
   loc_mezz:       { pt: 'MEZANINO',             en: 'MEZZANINE' },
   loc_dock:       { pt: 'DOCA 3',               en: 'DOCK 3' },
+  loc_wc:         { pt: 'BANHEIRO',             en: 'WASHROOM' },
+  loc_arquivo:    { pt: 'ARQUIVO MORTO',        en: 'DEAD FILES' },
+
+  b2_wc_1:    { pt: 'Azulejo branco. Alguém já achou que isso aqui fosse limpo.',
+                en: 'White tile. Somebody once thought this place was clean.' },
+  b2_arq_1:   { pt: 'Arquivo morto. Nome apropriado.',
+                en: 'Dead files. Fitting name.' },
+  b2_arq_2:   { pt: 'Alguém procurou alguma coisa aqui. Com pressa.',
+                en: 'Somebody searched in here. In a hurry.' },
+  b2_chave_1: { pt: 'Uma chave. Na gaveta que estava faltando lá no escritório.',
+                en: 'A key. In the drawer that was missing from the office.' },
+  b2_chave_2: { pt: 'Claro que estava aqui.',
+                en: 'Of course it was here.' },
+  b2_trancado:{ pt: 'Trancado. Precisa de chave.',
+                en: 'Locked. Needs a key.' },
+
+  // ---------- tela de carregamento ----------
+  load_1: { pt: 'Duas e quatorze da manhã.',            en: 'Two fourteen in the morning.' },
+  load_2: { pt: 'O telefone tocou. Ele atendeu.',       en: 'The phone rang. He answered.' },
+  load_3: { pt: 'Não existe aposentadoria pra consciência.',
+            en: 'There is no retirement for a conscience.' },
+  load_4: { pt: 'Ela bate ponto todos os dias.',        en: 'It clocks in every day.' },
+  load_wait: { pt: 'CARREGANDO',                        en: 'LOADING' },
+
+  hud_hp:  { pt: 'CORPO',    en: 'BODY' },
+  hud_san: { pt: 'CABECA',   en: 'MIND' },
+
+  // ---------- o mapa ----------
+  map_title:  { pt: 'PLANTA BAIXA — GALPAO',  en: 'FLOOR PLAN — WAREHOUSE' },
+  map_hint:   { pt: 'M  FECHAR',              en: 'M  CLOSE' },
+  map_here:   { pt: 'VOCE ESTA AQUI',         en: 'YOU ARE HERE' },
+  map_none:   { pt: 'Sem mapa. Deve ter um em algum escritório.',
+                en: 'No map. There must be one in an office somewhere.' },
+  map_mark:   { pt: 'alguém marcou a doca 3 a lápis',
+                en: 'someone pencilled a mark on dock 3' },
 
   speaker_me:     { pt: 'EU',      en: 'ME' },
   talk_leave:     { pt: 'Deixa pra lá.', en: 'Never mind.' },
@@ -8039,6 +8374,12 @@ const LINES = {
     { pt: 'Nenhum dos cabos vai a lugar nenhum.',
       en: 'None of the cords go anywhere.' },
   ],
+  c2_gavetaD: [
+    { pt: 'A gaveta do D. Aberta, e vazia.',
+      en: 'The D drawer. Open, and empty.' },
+    { pt: 'Tinha alguma coisa aqui. Não tem mais.',
+      en: 'There was something in here. Not anymore.' },
+  ],
   c2_railing: [
     { pt: 'Daqui dá pra ver o galpão inteiro.',
       en: 'From up here you can see the whole warehouse.' },
@@ -8063,7 +8404,7 @@ const LINES = {
 
 const TALKS = {
   vigia: {
-    speaker: { pt: 'VIGIA', en: 'NIGHT WATCHMAN' },
+    speaker: { pt: 'ZELADOR', en: 'CARETAKER' },
     start: 'a',
     nodes: {
       a: {
@@ -8179,8 +8520,8 @@ const JOURNAL = {
                en: 'Every door in this warehouse locks from the outside.' },
   j_clock:   { cat: 'clue', pt: 'Relógio de ponto parado em 02h14. Mesma hora da ligação.',
                en: 'Punch clock stopped at 2:14. Same time as the call.' },
-  j_vigia:   { cat: 'people', pt: 'O vigia. Fala de um turno que acabou há dez anos. Sabe o meu nome, e eu não disse.',
-               en: 'The watchman. Talks about a shift that ended ten years ago. Knows my name, and I never said it.' },
+  j_vigia:   { cat: 'people', pt: 'O zelador. Fala de um turno que acabou há dez anos. Sabe o meu nome, e eu não disse.',
+               en: 'The caretaker. Talks about a shift that ended ten years ago. Knows my name, and I never said it.' },
   j_conv:    { cat: 'clue', pt: 'Cada coisa de que eu preciso aparece no minuto em que eu preciso.',
                en: 'Everything I need turns up the minute I need it.' },
   j_ammo:    { cat: 'clue', pt: 'Achei munição antes de achar arma. Nessa ordem.',
@@ -8749,6 +9090,7 @@ const { Detective } = __req("art/detective.js");
 const { clamp, gfx } = __req("core/gfx.js");
 const { input } = __req("core/input.js");
 const { audio } = __req("core/audio.js");
+const { t: T } = __req("i18n.js");
 
 const ACC = 620;
 const FRICTION = 1000;
@@ -9114,23 +9456,40 @@ class Player {
   // `agora` corta o que estiver na tela e a fila inteira. Serve para o que
   // ele precisa dizer no instante em que ve — uma poca de sangue nao pode
   // esperar tres falas sobre cadeiras empilhadas.
-  say(key, dur = 2.6, agora = false) {
+  // Quanto tempo uma fala fica na tela.
+  //
+  // Antes era 2,6s para tudo. Uma frase de quatro palavras sobrava na tela
+  // e uma de quinze sumia antes de ser lida — e, entrando numa sala, duas
+  // ou tres falas engatilhadas passavam antes de o jogador terminar o
+  // fade-in. Agora o tempo sai do TAMANHO do que ele diz, com um piso
+  // generoso: ninguem le a 12 caracteres por segundo.
+  _duracao(key) {
+    const s = T(key) || '';
+    return clamp(2.2 + s.length * 0.062, 2.6, 7.0);
+  }
+
+  say(key, dur, agora = false) {
     if (agora) { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
     else {
       if (this.floatText && this.floatText.key === key) return;
       if (this.barkQueue.some(b => b.key === key)) return;
+      // Fila curta de proposito. Ele fala sozinho porque nao tem com quem
+      // falar, nao porque e tagarela — acumular seis frases faz o jogador
+      // parar de ler todas.
+      if (this.barkQueue.length >= 2) return;
     }
-    this.barkQueue.push({ key, dur });
+    this.barkQueue.push({ key, dur: dur || this._duracao(key) });
   }
 
   sayAll(keys, agora = false) {
-    for (let i = 0; i < keys.length; i++) this.say(keys[i], 2.6, agora && i === 0);
+    for (let i = 0; i < keys.length; i++) this.say(keys[i], 0, agora && i === 0);
   }
 
   _updateBarks(dt) {
+    if (this.barkDelay > 0) { this.barkDelay -= dt; return; }
     if (this.floatText) {
       this.floatText.t += dt;
-      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
+      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.9; }
     } else if (this.barkGap > 0) {
       this.barkGap -= dt;
     } else if (this.barkQueue.length) {
@@ -9139,7 +9498,16 @@ class Player {
     }
   }
 
-  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
+  clearBarks() {
+    this.floatText = null;
+    this.barkQueue.length = 0;
+    this.barkGap = 0;
+    this.barkDelay = 0;
+  }
+
+  // Ao entrar numa sala a primeira fala espera o fade-in acabar. Sem isso
+  // ela nasce e morre atras da tela preta.
+  atrasarFala(s) { this.barkDelay = s; }
 
   // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
   floatAlpha() {
@@ -9195,6 +9563,22 @@ class Player {
     gfx.shake(3.4, 0.35);
     if (this.onHurt) this.onHurt(n, this.hp);
     return true;
+  }
+
+  // Caixa do corpo, em coordenadas de mundo. O jogo inteiro so tinha
+  // distancia em X, e por isso um bicho andando de quatro — que ocupa 30px
+  // de altura e nao 62 — era quase impossivel de acertar: o golpe "passava"
+  // em X e ninguem checava se havia corpo naquela altura.
+  caixa() {
+    return { x0: this.x - 10, x1: this.x + 10, y0: this.y - 60, y1: this.y };
+  }
+
+  // Caixa do golpe: um retangulo na frente dele, na altura do peito ate o
+  // chao. Vai baixo de proposito, para o porrete alcancar quem rasteja.
+  caixaGolpe() {
+    const f = this.facing;
+    const x0 = f > 0 ? this.x + 2 : this.x - 44;
+    return { x0, x1: x0 + 42, y0: this.y - 54, y1: this.y + 4 };
   }
 
   segurarPorrete(sim) {
@@ -9348,7 +9732,7 @@ class Dialogue {
 
   _wrapCur() {
     const l = this.lines[this.idx];
-    this.wrapped = wrap(l.text, BOX_W - 24, { size: 10, font: 'ui' });
+    this.wrapped = wrap(l.text, BOX_W - 24, { size: 10, font: 'type', weight: 'bold' });
     this.total = l.text.length;
   }
 
@@ -9450,7 +9834,7 @@ class Dialogue {
     let ty = y + 10;
     if (l.name) {
       text(ctx, l.name, BOX_X + 12, y - 12, {
-        size: 10, font: 'ui', weight: 'bold', color: PAL.uiAccent, track: 1,
+        size: 10, font: 'type', weight: 'bold', color: PAL.uiAccent, track: 1,
         shadow: true, alpha: a,
       });
     }
@@ -9461,7 +9845,8 @@ class Dialogue {
       if (shown <= 0) break;
       const part = ln.length <= shown ? ln : ln.slice(0, shown);
       text(ctx, part, BOX_X + 12, ty, {
-        size: 10, font: l.name ? 'ui' : 'ui', color: l.name ? PAL.uiText : '#b9b0a2',
+        size: 10, font: 'type', weight: 'bold',
+        color: l.name ? '#ddd4c2' : '#c4bbab',
         shadow: true, shadowColor: '#000', alpha: a,
       });
       shown -= ln.length;
@@ -9520,7 +9905,7 @@ class Dialogue {
         });
       }
       text(ctx, label, x + 18, y + 5 + i * lh, {
-        size: 9, font: 'ui', weight: sel ? 'bold' : 'normal', color: cor, alpha: a, track: 1,
+        size: 9, font: 'type', weight: 'bold', color: cor, alpha: a, track: 1,
       });
     }
   }
@@ -10091,9 +10476,12 @@ class Sanity {
     const antes = this.state;
     this.value = clamp(this.value - n, 0, 100);
     if (forte || n >= 6) {
-      this.pulse = Math.min(1, this.pulse + 0.5 + n * 0.02);
+      this.pulse = Math.min(1, this.pulse + 0.35 + n * 0.012);
       audio.heartbeat(0.5 + Math.min(0.5, n * 0.03));
-      gfx.shake(1.2 + n * 0.06, 0.3);
+      // Tremor so nos baques grandes, e curto. O tremor continuo do estado
+      // VAZANDO foi removido: ele fazia a tela chacoalhar o tempo todo e
+      // era impossivel andar em linha reta.
+      if (n >= 8) gfx.shake(1.0 + n * 0.03, 0.22);
     }
     if (this.state !== antes && this.onEvent) this.onEvent('worse');
   }
@@ -10158,21 +10546,17 @@ class Sanity {
   }
 
   // Efeitos de imagem. Chamado depois da luz, antes do present().
+  //
+  // CALIBRAGEM: a vinheta chegava a 2,15 e fechava a tela inteira — o
+  // jogador nao conseguia ver o que estava acontecendo durante a fuga,
+  // que e justamente quando ele mais precisa ver. O teto agora e 1,35, e
+  // o pulso do baque entra com um quarto da forca que tinha.
   apply() {
     const v = this.shown;
-    // vinheta fecha conforme ele piora
     const k = clamp((100 - v) / 100, 0, 1);
-    gfx.vignetteAmount = 0.9 + k * 0.75 + this.pulse * 0.5;
+    gfx.vignetteAmount = clamp(0.9 + k * 0.34 + this.pulse * 0.12, 0.9, 1.35);
     // o grao sobe pouco: acima de um ponto ele come o rosto (B-16)
-    gfx.grainExtra = k * 0.012;
-  }
-
-  // Tremor continuo de imagem no estado VAZANDO para baixo. Nao e o shake
-  // do impacto — e mais fraco e nunca para, que e o pior.
-  jitter() {
-    const st = this.state;
-    if (st < SAN_LEAK) return 0;
-    return st === SAN_GONE ? 0.55 : 0.25;
+    gfx.grainExtra = k * 0.006;
   }
 
   save() { return { v: Math.round(this.value), on: this.enabled }; }
@@ -10356,10 +10740,11 @@ class Journal {
     // diz de quem e.
     const corpo = tx(e);
     const mostrado = corpo.slice(0, Math.ceil(corpo.length * this.write));
-    const linhas = wrap(mostrado, w - 28, { size: 11, font: 'serif' });
+    const linhas = wrap(mostrado, w - 28, { size: 10, font: 'type', weight: 'bold' });
     for (let i = 0; i < linhas.length; i++) {
       text(ctx, linhas[i], x + 14, y + 36 + i * 12, {
-        size: 11, font: 'serif', color: e.alheia ? '#7e211a' : '#2e2620', alpha: a,
+        size: 10, font: 'type', weight: 'bold',
+        color: e.alheia ? '#7e211a' : '#2e2620', alpha: a,
       });
     }
 
@@ -10523,9 +10908,16 @@ class Inventory {
     if (this.toast > 0) this.toast -= dt;
     if (!this.open) { this.drag = null; return; }
 
+    // Se o mouse ainda nao se moveu nesta sessao, comeca no meio da tela
+    // em vez de no canto — abrir o casaco e nao achar o cursor era metade
+    // do problema.
+    if (input.mouse.cx === undefined) {
+      const r = gfx.out ? gfx.out.getBoundingClientRect() : null;
+      if (r) { input.mouse.cx = r.left + r.width / 2; input.mouse.cy = r.top + r.height / 2; }
+    }
     const m = gfx.toVirtual(input.mouse.cx || 0, input.mouse.cy || 0);
-    this.mx = m.x; this.my = m.y;
-    this.hover = this._itemEm(m.x, m.y);
+    this.mx = clamp(m.x, 0, VW); this.my = clamp(m.y, 0, VH);
+    this.hover = this._itemEm(this.mx, this.my);
 
     if (input.mouse.pressed && !this.drag && this.hover) {
       this.drag = this.hover;
@@ -10647,8 +11039,30 @@ class Inventory {
     }
 
     text(ctx, T('inv_hint'), cx, VH - 14, {
-      size: 7, font: 'ui', color: '#5a5249', align: 'center', track: 1, alpha: a, shadow: true,
+      size: 7, font: 'type', weight: 'bold', color: '#6a6156',
+      align: 'center', track: 1, alpha: a, shadow: true,
     });
+
+    // O CURSOR. A pagina esconde o ponteiro do sistema (`cursor: none`, para
+    // o jogo nao ter uma seta branca de escritorio no meio do terror), e o
+    // resultado era um inventario de arrastar em que ninguem via o que
+    // estava arrastando. Este e desenhado dentro do jogo, no mesmo pixel
+    // que todo o resto.
+    if (this.mx !== undefined) this._cursor(ctx, this.mx, this.my, a);
+  }
+
+  _cursor(ctx, x, y, a) {
+    x = Math.round(x); y = Math.round(y);
+    ctx.save();
+    ctx.globalAlpha = a;
+    // sombra dura por baixo, para o cursor nunca sumir num fundo claro
+    ctx.fillStyle = '#000000';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x + 1, y + 1 + i, Math.max(1, 6 - i), 1);
+    ctx.fillStyle = this.drag ? PAL.uiAccent : '#e8e0d2';
+    for (let i = 0; i < 8; i++) ctx.fillRect(x, y + i, Math.max(1, 6 - i), 1);
+    ctx.fillStyle = '#3a332c';
+    ctx.fillRect(x, y, 1, 8);
+    ctx.restore();
   }
 
   _drawZona(ctx, Z, a) {
@@ -10756,6 +11170,651 @@ class Inventory {
   Object.defineProperty(__exp, "ITEMS", { get: function(){ return ITEMS; }, enumerable: true });
   Object.defineProperty(__exp, "Inventory", { get: function(){ return Inventory; }, enumerable: true });
 };
+__mods["art/creatures.js"] = function(__exp){
+// creatures.js — as coisas que vazaram da cabeça dele, e as duas pessoas.
+//
+// REGRA: nenhum deles pode ser um monstro genérico. Cada um tem que ser
+// reconhecível como UMA IDEIA, e a ideia tem que ser um trauma que a
+// profissão dele produz. Não é um bestiário de terror — é a ficha médica
+// de um detetive de vinte e tantos anos de serviço.
+//
+//   OS SEM-ROSTO ..... as pessoas que ele não conseguiu salvar. Ele não
+//                      lembra mais a cara de nenhuma. Roupa de gente comum,
+//                      mancha escura no peito onde ele não estancou nada.
+//
+//   OS EMPILHADOS .... os corpos. Dobrados sobre si mesmos como quem foi
+//                      guardado com pressa, lençol de necrotério ainda
+//                      preso, etiqueta amarela no pé. Andam de quatro.
+//
+//   O ECOADOR ........ a ligação que chegou tarde. No lugar do rosto tem
+//                      um fone de telefone preto, e ele arrasta o fio.
+//                      Não ataca: TOCA.
+//
+//   O CREDOR ......... a conta. Avental de açougueiro por cima do
+//                      sobretudo, cabeça de porco costurada em pano de
+//                      saco, e uma motosserra que nunca desliga.
+//
+// Tudo continua sendo o mesmo esqueleto articulado do detetive — o que
+// muda são as PEÇAS. Cada criatura troca cabeça, tronco, braços e pernas
+// pelas suas, e herda todas as animações de graça.
+
+const { PAL } = __req("art/palette.js");
+const { sprite, darken } = __req("art/pixel.js");
+
+// Paleta de caracteres própria. Deliberadamente mais clara do que a
+// lógica pediria: a cena inteira é multiplicada pela luz, e cor
+// "realista" vira preto.
+const C = {
+  // pele morta, esverdeada
+  S: '#a89a86', s: '#8a7d6b', q: '#6b6053', t: '#c2b5a0',
+  // lençol de necrotério
+  L: '#c9c6bd', l: '#a8a49a', k: '#807d75',
+  // roupa de gente comum, encardida
+  R: '#6e6a79', r: '#565364', z: '#3d3b48',
+  // casaco/paletó escuro
+  P: '#4a4650', p: '#38353e', d: '#26242b',
+  // sangue seco
+  B: '#8d2a22', b: '#5c1a15',
+  // baquelite do telefone
+  T: '#2a2a30', y: '#43434c', Y: '#5e5e69',
+  // metal
+  M: '#8f959e', m: '#5c626b', N: '#c8ced6',
+  // etiqueta de necrotério
+  A: '#c9a83a', a: '#8f7620',
+  // avental e pano de saco
+  V: '#b9a888', v: '#8f8064', u: '#635840',
+  // porco
+  G: '#c98d8d', g: '#a86a6a', h: '#7d4a4a',
+  // cabelo
+  H: '#1c1614', E: '#ddd4c6', e: '#141013',
+  // uniforme de zelador / vestido de telefonista
+  U: '#4a6a5c', n: '#35503f',
+  W: '#8a5a68', w: '#6b4250',
+  // cabo e franja do esfregão
+  F: '#c9bfa0', f: '#9a9078',
+};
+
+const P = {};
+let pronto = false;
+
+// ---------------------------------------------------------------------------
+
+function build() {
+  // =======================================================================
+  // OS SEM-ROSTO
+  // =======================================================================
+  // A cabeça é a parte inteira do truque: mesmo formato de crânio, mesmo
+  // cabelo, e nenhum traço dentro. A silhueta continua sendo de gente — e
+  // é por isso que assusta. Um rosto derretido seria monstro; isto aqui é
+  // alguém de quem você esqueceu a cara.
+  P.faceHead = sprite({
+    pivot: [6, 14], map: C, rows: [
+      '...HHHHHHH....',
+      '..HHHHHHHHH...',
+      '.HHHHHqqqqH...',
+      '.HHHHqSSSSSt..',
+      '.HHHqSSSSSSSt.',
+      '.HHHqSSSSSSSt.',
+      '.HHHqSSSSSSSt.',
+      '.HHHqSSSSSSSt.',
+      '.HHHqSSSSSSSt.',
+      '.HHHqSSSSSSst.',
+      '..HqSSSSSSSst.',
+      '..qsSSSSSSSs..',
+      '...sSSSSSSs...',
+      '....sSSSs.....',
+      '....sSSSs.....',
+    ]
+  });
+
+  // Tronco: roupa de trabalho comum, e a mancha. Ela é a única informação
+  // do corpo inteiro, e conta a história toda sem uma linha de diálogo.
+  P.faceTorso = sprite({
+    pivot: [9, 20], map: C, rows: [
+      '...zRRRRRRRz......',
+      '..zRRRRRRRRRz.....',
+      '.zRRRRRRRRREEz....',
+      '.zRRRRRRRRRERz....',
+      '.zRRRrRRRRRzRz....',
+      '.zRRRrRRRRRzRz....',
+      '.zRRrbBBbrRzRz....',
+      '.zRRbBBBBbRzRz....',
+      '.zRRbBBBBBbzRz....',
+      '.zRRrbBBBbRzRz....',
+      '.zRRRrbBbrRzRz....',
+      '.zRRRRrbrRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '.zRRRRRRRRRzRz....',
+      '..zRRRRRRRRzRz....',
+      '..zRRRRRRRRRz.....',
+      '...zRRRRRRRz......',
+    ]
+  });
+
+  P.faceUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'zRRRr', 'zRRRr', 'zRRRr', 'zRRRr', 'zRRRr', 'zRRRr',
+      'zRRRr', 'zRRRr', 'zRRRr', '.zRRr', '.zrrr',
+    ]
+  });
+  P.faceFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'zRRRr', 'zRRRr', 'zRRRr', 'zRRRr', '.zRRr', '.zRRr',
+      '.zSSq', '.zSSq', 'zSSSq', '.zqqq',
+    ]
+  });
+  P.faceHand = sprite({
+    pivot: [2, 0], map: C, rows: ['.sSs.', 'sSSSs', 'sSSSs', '.sSs.', '..q..'],
+  });
+  P.faceThigh = sprite({
+    pivot: [4, 1], map: C, rows: [
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd',
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd',
+      '.dpPPPpd', '.dpPPPpd', '.dpPPPpd', '.dpPPPpd',
+      '.dpPPPpd', '..dpPpd.',
+    ]
+  });
+  P.faceShin = sprite({
+    pivot: [3, 1], map: C, rows: [
+      '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd',
+      'dppppppd', 'dpppppd', 'dpppppd', 'dpppppd', 'dpppppd',
+      'dpppppd', 'ddpppdd',
+    ]
+  });
+  P.faceFoot = sprite({
+    pivot: [3, 0], map: C, rows: ['.dppppd..', 'dpppppppd', 'dddddddd.', '.dddddd..'],
+  });
+
+  // =======================================================================
+  // OS EMPILHADOS
+  // =======================================================================
+  // A cabeça pende para baixo, virada ao contrário. O lençol ainda está
+  // amarrado por cima — quem guardou não terminou o serviço.
+  P.stackHead = sprite({
+    pivot: [6, 12], map: C, rows: [
+      '....LLLLL.....',
+      '..LLLLLLLLL...',
+      '.LLLlllllLLL..',
+      '.Llq.....qlL..',
+      '.lqSSSSSSSql..',
+      '.qSSsssssSSq..',
+      '.qSseeeeesSq..',
+      '.qSsee.eesSq..',
+      '..qSssssssq...',
+      '..qSSqqqSSq...',
+      '...qSSSSSq....',
+      '....qqqqq.....',
+    ]
+  });
+
+  // Tronco dobrado, com as costelas marcando por baixo do lençol.
+  P.stackTorso = sprite({
+    pivot: [9, 20], map: C, rows: [
+      '...kLLLLLLLk......',
+      '..kLLLLLLLLLk.....',
+      '.kLLLLLLLLLLLk....',
+      '.kLlLLLLLLLlLk....',
+      '.kLlkLLLLLklLk....',
+      '.kLLlkLLLklLLk....',
+      '.kLLLlkLklLLLk....',
+      '.kLLLLlklLLLLk....',
+      '.kLLLLLkLLLLLk....',
+      '.kLLLLklkLLLLk....',
+      '.kLLLklLlkLLLk....',
+      '.kLLklLLLlkLLk....',
+      '.kLklLLLLLlkLk....',
+      '.kklLLLLLLLlkk....',
+      '.klLLLLLLLLLlk....',
+      '.kLLLLLLLLLLLk....',
+      '.kLLLLqqqLLLLk....',
+      '.kLLLqSSSqLLLk....',
+      '..kLLqSSSqLLk.....',
+      '..kLLLqqqLLLk.....',
+      '...kLLLLLLLk......',
+    ]
+  });
+
+  // Membros esqueléticos: pele colada no osso, sem roupa.
+  P.stackUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'qSSsq', 'qSSsq', 'qSsSq', 'qSSsq', 'qSsSq', 'qSSsq',
+      'qSsSq', 'qSSsq', 'qSsSq', '.qSsq', '.qqsq',
+    ]
+  });
+  P.stackFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'qSSsq', 'qSsSq', 'qSSsq', 'qSsSq', '.qSSq', '.qSsq',
+      '.qSSq', '.qSsq', 'qSSSq', '.qqqq',
+    ]
+  });
+  P.stackHand = sprite({
+    pivot: [2, 0], map: C, rows: ['.sqs.', 'sSqSs', 'qSSSq', '.sqs.', '..q..'],
+  });
+  P.stackThigh = sprite({
+    pivot: [4, 1], map: C, rows: [
+      'qsSSSSsq', 'qsSSSSsq', 'qsSsSSsq', 'qsSSSSsq',
+      'qsSsSSsq', 'qsSSSSsq', 'qsSsSSsq', 'qsSSSSsq',
+      '.qsSSSsq', '.qsSsSsq', '.qsSSSsq', '.qsSsSsq',
+      '.qsSSSsq', '..qsSsq.',
+    ]
+  });
+  P.stackShin = sprite({
+    pivot: [3, 1], map: C, rows: [
+      '.qsSSsq', '.qsSsSq', '.qsSSsq', '.qsSsSq', '.qsSSsq',
+      '.qsSsSq', '.qsSSsq', '.qsSsSq', '.qsSSsq', '.qsSSsq',
+      '.qsSSsq', '.qqssqq',
+    ]
+  });
+  // O pé com a etiqueta de necrotério amarrada. É o detalhe que diz o que
+  // isso é, e ele nunca comenta.
+  P.stackFoot = sprite({
+    pivot: [3, 0], map: C, rows: [
+      '.qsSSSsq..', 'qsSSSSSSq.', 'qqsssssqq.', '.qqAAAqq..', '...aAa....',
+    ]
+  });
+
+  // =======================================================================
+  // O ECOADOR
+  // =======================================================================
+  // No lugar da cara, um fone de telefone preto — daqueles pesados, de
+  // baquelite. Ele não tem boca, e mesmo assim é o único que faz barulho.
+  P.echoHead = sprite({
+    pivot: [6, 13], map: C, rows: [
+      '...HHHHHHH....',
+      '..HHHHHHHHH...',
+      '.HHHqqqqqqH...',
+      '.HHqSSSSSSq...',
+      '..TTTTTTTTTT..',
+      '.TYYYYYYYYYYT.',
+      'TYYYTTTTTTYYYT',
+      'TYYT......TYYT',
+      '.TT........TT.',
+      '..qSSSSSSSq...',
+      '..qSSSSSSSq...',
+      '...qSSSSSq....',
+      '....qSSSq.....',
+    ]
+  });
+
+  P.echoTorso = sprite({
+    pivot: [9, 20], map: C, rows: [
+      '....dPPPPPd.......',
+      '...dPPPPPPPd......',
+      '..dPPPPPPPPPd.....',
+      '..dPPPpPPPpPd.....',
+      '..dPPpPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPpPPPPPPpd.....',
+      '..dPPpPPPPpPd.....',
+      '...dPPPPPPPd......',
+      '...dPPPPPPPd......',
+      '....dPPPPPd.......',
+    ]
+  });
+
+  P.echoUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'dPPp', 'dPPp', 'dPPp', 'dPPp', 'dPPp', 'dPPp',
+      'dPPp', 'dPPp', 'dPPp', '.dPp', '.dpp',
+    ]
+  });
+  P.echoFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'dPPp', 'dPPp', 'dPPp', 'dPPp', '.dPp', '.dPp',
+      '.dSq', '.dSq', 'dSSq', '.dqq',
+    ]
+  });
+  P.echoHand = sprite({
+    pivot: [2, 0], map: C, rows: ['.sSs.', 'sSSSs', 'sSSSs', '.sSs.', '..q..'],
+  });
+  P.echoThigh = sprite({
+    pivot: [4, 1], map: C, rows: [
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd',
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', '.dpPPPpd',
+      '.dpPPPpd', '.dpPPPpd', '.dpPPPpd', '.dpPPPpd',
+      '..dpPpd.', '..dpPpd.',
+    ]
+  });
+  P.echoShin = sprite({
+    pivot: [3, 1], map: C, rows: [
+      '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd',
+      '.dppppd', '.dppppd', '.dppppd', '.dppppd', '.dppppd',
+      '.dppppd', '.ddppdd',
+    ]
+  });
+  P.echoFoot = sprite({
+    pivot: [3, 0], map: C, rows: ['.dpppd...', 'dppppppd.', 'dddddddd.', '.dddddd..'],
+  });
+
+  // O fio, que ele arrasta e que não está ligado em lugar nenhum.
+  P.echoCord = sprite({
+    pivot: [1, 0], map: C, rows: [
+      '.T.', 'TT.', '.TT', '.T.', 'TT.', '.TT', '.T.', 'TT.',
+      '.TT', '.T.', 'TT.', '.TT', '.T.', 'TTT',
+    ]
+  });
+
+  // =======================================================================
+  // O CREDOR
+  // =======================================================================
+  // Cabeça de porco costurada em pano de saco. Não é uma máscara bonita:
+  // é pano grosso, com dois furos e um focinho mal costurado. Os olhos
+  // não são olhos — são buracos onde a luz não entra.
+  P.pigHead = sprite({
+    pivot: [7, 15], map: C, rows: [
+      '..vvvvvvvvv...',
+      '.vVVVVVVVVVv..',
+      'vVVVVVVVVVVVv.',
+      'vVVuVVVVVuVVv.',
+      'vVVVVVVVVVVVv.',
+      'vVVeeVVVVeeVv.',
+      'vVVeeVVVVeeVvG',
+      'vVVVVVVVVVGGGG',
+      'vVVVVVVVVGGggG',
+      'vVVVVVVVVGeGeG',
+      'vVVuVVVVVGGGGG',
+      '.vVVVVVVVVGGg.',
+      '.vVVVVVVVVVv..',
+      '..vuvuvuvuv...',
+      '...vvvvvvv....',
+    ]
+  });
+
+  // Avental de açougueiro por cima do sobretudo. O avental é claro, e é a
+  // única coisa clara nele — por isso é o que se vê primeiro no escuro.
+  P.pigTorso = sprite({
+    pivot: [10, 22], map: C, rows: [
+      '...ddPPPPPPPdd.....',
+      '..dPPPPPPPPPPPd....',
+      '.dPPPPPPPPPPPPPd...',
+      '.dPPvVVVVVVVvPPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVbBBbVVvPd...',
+      '.dPvVVbBBBBbVvPd...',
+      '.dPvVVVbBBbVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVbVVVbVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPvVVVVVVVVVvPd...',
+      '.dPPvVVVVVVVvPPd...',
+      '..dPPvvvvvvvPPd....',
+      '..dPPPPPPPPPPPd....',
+      '...ddPPPPPPPdd.....',
+    ]
+  });
+
+  P.pigUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'dPPPp', 'dPPPp', 'dPPPp', 'dPPPp', 'dPPPp', 'dPPPp',
+      'dPPPp', 'dPPPp', 'dPPPp', '.dPPp', '.dppp',
+    ]
+  });
+  P.pigFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'dPPPp', 'dPPPp', 'dPPPp', 'dPPPp', '.dPPp', '.dPPp',
+      '.dGGh', '.dGGh', 'dGGGh', '.dhhh',
+    ]
+  });
+  P.pigHand = sprite({
+    pivot: [2, 0], map: C, rows: ['.gGg.', 'gGGGg', 'gGGGg', '.gGg.', '..h..'],
+  });
+  P.pigThigh = sprite({
+    pivot: [4, 1], map: C, rows: [
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd',
+      'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd', 'dpPPPPpd',
+      'dpPPPPpd', '.dpPPPpd', '.dpPPPpd', '.dpPPPpd',
+      '.dpPPPpd', '..dpPpd.',
+    ]
+  });
+  P.pigShin = sprite({
+    pivot: [3, 1], map: C, rows: [
+      '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd', '.dpPPpd',
+      'ddddddd', 'dddddddd', 'ddddddd', 'ddddddd', 'ddddddd',
+      'ddddddd', 'ddddddd',
+    ]
+  });
+  P.pigFoot = sprite({
+    pivot: [3, 0], map: C, rows: ['.dddddd..', 'dddddddddd', 'dddddddddd', '.dddddddd.'],
+  });
+
+  // A MOTOSSERRA. Ela nunca desliga — e é o som dela que chega antes dele.
+  // Corrente desenhada com dentes alternados para o olho pegar movimento
+  // mesmo com a coisa parada.
+  P.chainsaw = sprite({
+    pivot: [2, 0], map: C, rows: [
+      'mMMMMm', 'MNNNNM', 'mMMMMm', 'mmMMmm', '.mMMm.',
+      '.mMMm.', '.MmmM.', '.mMMm.', '.MmmM.', '.mMMm.',
+      '.MmmM.', '.mMMm.', '.MmmM.', '.mMMm.', '.MmmM.',
+      '.mMMm.', '..MM..', '..mm..',
+    ]
+  });
+
+  // =======================================================================
+  // AS DUAS PESSOAS
+  // =======================================================================
+
+  // A TELEFONISTA — cabelo preso, vestido de trabalho vinho, gola branca.
+  // Ela está no turno dela, e o turno dela acabou há dez anos.
+  P.opHead = sprite({
+    pivot: [6, 14], map: C, rows: [
+      '...HHHHHHH....',
+      '..HHHHHHHHHH..',
+      '.HHHHHHHHHHHH.',
+      '.HHHHHHHSSStH.',
+      '.HHHHHSSSSSStH',
+      '.HHHHqSSeeSStH',
+      '.HHHHqSSEeSstH',
+      '.HHHHqSSqSStSH',
+      '.HHHHqSSSSSqSH',
+      '.HHHHSSSSSSstH',
+      '..HHqSSBBBSstH',
+      '..sHSSSSSSSsHH',
+      '...sSSSSSSs.H.',
+      '....sSSSs.....',
+      '....sSSSs.....',
+    ]
+  });
+  P.opTorso = sprite({
+    pivot: [9, 20], map: C, rows: [
+      '...wWWWWWWWw......',
+      '..wWWWWWWWWWw.....',
+      '.wWWWWWWWWWEEw....',
+      '.wWWWWWWWWWEWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wWWWwWWWWWwWw....',
+      '.wwwwwwwwwwwww....',
+      '.wWWWWWWWWWWWw....',
+      '.wWWWWWWWWWWWw....',
+      '.wWWWWWWWWWWWw....',
+      '.wWWWWWWWWWWWw....',
+      '.wWWWWWWWWWWWw....',
+      '..wWWWWWWWWWw.....',
+      '..wWWWWWWWWWw.....',
+      '...wWWWWWWWw......',
+    ]
+  });
+  P.opUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'wWWWw', 'wWWWw', 'wWWWw', 'wWWWw', 'wWWWw', 'wWWWw',
+      'wWWWw', 'wWWWw', '.wWWw', '.wSSq', '.qSSq',
+    ]
+  });
+  P.opFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'qSSSq', 'qSSSq', 'qSSSq', 'qSSSq', '.qSSq', '.qSSq',
+      '.qSSq', '.qSSq', 'qSSSq', '.qqqq',
+    ]
+  });
+
+  // O ZELADOR — macacão verde desbotado, e o esfregão. Ele nunca larga o
+  // esfregão, nem quando está sentado, nem quando está falando com você.
+  P.jaHead = sprite({
+    pivot: [6, 14], map: C, rows: [
+      '...LLLLLLL....',
+      '..LLLLLLLLLL..',
+      '.LLLLLLLLLLLL.',
+      '.HHHHHHHSSSt..',
+      '.HHHHHSSSSSSt.',
+      '.HHHHqSSeeSSt.',
+      '.HHHHqSSEeSst.',
+      '.HHHHqSSqSStS.',
+      '.HHHHqSSSSSqS.',
+      '.HHHHSSSSSSst.',
+      '..HHqSSSSSSst.',
+      '..sHSSSSSSSs..',
+      '...sSSSSSSs...',
+      '....sSSSs.....',
+      '....sSSSs.....',
+    ]
+  });
+  P.jaTorso = sprite({
+    pivot: [9, 20], map: C, rows: [
+      '...nUUUUUUUn......',
+      '..nUUUUUUUUUn.....',
+      '.nUUUUUUUUUEEn....',
+      '.nUUUUUUUUUEUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUAAnUUUUUnUn....',
+      '.nUAAnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUUUUUUUUUn....',
+      '.nUUUUUUUUUUUn....',
+      '.nUUUnUUUUUnUn....',
+      '.nUUUnUUUUUnUn....',
+      '..nUUnUUUUUnUn....',
+      '..nUUUUUUUUUn.....',
+      '...nUUUUUUUn......',
+    ]
+  });
+  P.jaUpper = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'nUUUn', 'nUUUn', 'nUUUn', 'nUUUn', 'nUUUn', 'nUUUn',
+      'nUUUn', 'nUUUn', 'nUUUn', '.nUUn', '.nnnn',
+    ]
+  });
+  P.jaFore = sprite({
+    pivot: [2, 1], map: C, rows: [
+      'nUUUn', 'nUUUn', 'nUUUn', 'nUUUn', '.nUUn', '.nUUn',
+      '.qSSq', '.qSSq', 'qSSSq', '.qqqq',
+    ]
+  });
+
+  // O esfregão. Cabo comprido e um bolo de fios cinzentos na ponta.
+  P.mop = sprite({
+    pivot: [1, 0], map: C, rows: [
+      'fFf', 'fFf', 'fFf', 'fFf', 'fFf', 'fFf', 'fFf', 'fFf',
+      'fFf', 'fFf', 'fFf', 'fFf', 'fFf', 'fFf',
+      'kLk', 'LLL', 'LLL', 'lLl', 'lll', 'klk',
+    ]
+  });
+
+  // versões escurecidas dos membros de trás
+  const K = 0.68, T2 = '#22304a';
+  for (const nome of ['faceUpper', 'faceFore', 'faceHand', 'faceThigh', 'faceShin', 'faceFoot',
+    'stackUpper', 'stackFore', 'stackHand', 'stackThigh', 'stackShin', 'stackFoot',
+    'echoUpper', 'echoFore', 'echoHand', 'echoThigh', 'echoShin', 'echoFoot',
+    'pigUpper', 'pigFore', 'pigHand', 'pigThigh', 'pigShin', 'pigFoot',
+    'opUpper', 'opFore', 'jaUpper', 'jaFore']) {
+    P['d_' + nome] = darken(P[nome], K, T2);
+  }
+
+  pronto = true;
+}
+
+// Conjuntos de peças por criatura. O rig procura primeiro aqui e cai no
+// detetive para o que não estiver definido — assim uma criatura nova só
+// precisa das peças que realmente mudam.
+function partesDe(id) {
+  if (!pronto) build();
+  switch (id) {
+    case 'semrosto': return {
+      head: P.faceHead, headBlank: P.faceHead, torso: P.faceTorso,
+      upperArm: P.faceUpper, forearm: P.faceFore, hand: P.faceHand,
+      thigh: P.faceThigh, shin: P.faceShin, foot: P.faceFoot,
+      dUpperArm: P.d_faceUpper, dForearm: P.d_faceFore, dHand: P.d_faceHand,
+      dThigh: P.d_faceThigh, dShin: P.d_faceShin, dFoot: P.d_faceFoot,
+      collar: null, coatSkirt: null, holster: null,
+    };
+    case 'empilhado': return {
+      head: P.stackHead, headBlank: P.stackHead, torso: P.stackTorso,
+      upperArm: P.stackUpper, forearm: P.stackFore, hand: P.stackHand,
+      thigh: P.stackThigh, shin: P.stackShin, foot: P.stackFoot,
+      dUpperArm: P.d_stackUpper, dForearm: P.d_stackFore, dHand: P.d_stackHand,
+      dThigh: P.d_stackThigh, dShin: P.d_stackShin, dFoot: P.d_stackFoot,
+      collar: null, coatSkirt: null, holster: null,
+    };
+    case 'ecoador': return {
+      head: P.echoHead, headBlank: P.echoHead, torso: P.echoTorso,
+      upperArm: P.echoUpper, forearm: P.echoFore, hand: P.echoHand,
+      thigh: P.echoThigh, shin: P.echoShin, foot: P.echoFoot,
+      dUpperArm: P.d_echoUpper, dForearm: P.d_echoFore, dHand: P.d_echoHand,
+      dThigh: P.d_echoThigh, dShin: P.d_echoShin, dFoot: P.d_echoFoot,
+      collar: null, coatSkirt: null, holster: null,
+      naMao: P.echoCord,
+    };
+    case 'credor': return {
+      head: P.pigHead, headBlank: P.pigHead, torso: P.pigTorso,
+      upperArm: P.pigUpper, forearm: P.pigFore, hand: P.pigHand,
+      thigh: P.pigThigh, shin: P.pigShin, foot: P.pigFoot,
+      dUpperArm: P.d_pigUpper, dForearm: P.d_pigFore, dHand: P.d_pigHand,
+      dThigh: P.d_pigThigh, dShin: P.d_pigShin, dFoot: P.d_pigFoot,
+      collar: null, coatSkirt: null, holster: null,
+      naMao: P.chainsaw,
+    };
+    case 'operadora': return {
+      head: P.opHead, headBlank: P.opHead, torso: P.opTorso,
+      upperArm: P.opUpper, forearm: P.opFore,
+      dUpperArm: P.d_opUpper, dForearm: P.d_opFore,
+      collar: null, coatSkirt: null, holster: null,
+    };
+    case 'zelador': return {
+      head: P.jaHead, headBlank: P.jaHead, torso: P.jaTorso,
+      upperArm: P.jaUpper, forearm: P.jaFore,
+      dUpperArm: P.d_jaUpper, dForearm: P.d_jaFore,
+      collar: null, coatSkirt: null, holster: null,
+      naMao: P.mop,
+    };
+  }
+  return null;
+}
+
+
+
+  Object.defineProperty(__exp, "partesDe", { get: function(){ return partesDe; }, enumerable: true });
+  Object.defineProperty(__exp, "CREATURE_PARTS", { get: function(){ return P; }, enumerable: true });
+};
 __mods["systems/enemies.js"] = function(__exp){
 // enemies.js — os inimigos, e o Diretor que decide quando eles existem.
 //
@@ -10770,21 +11829,19 @@ __mods["systems/enemies.js"] = function(__exp){
 const { clamp, VW } = __req("core/gfx.js");
 const { audio } = __req("core/audio.js");
 const { Detective } = __req("art/detective.js");
+const { partesDe } = __req("art/creatures.js");
 
 const TIPOS = {
   // OS EMPILHADOS — corpo dobrado sobre si mesmo como cadeira empilhada,
   // andando de quatro. Vem das cadeiras arrumadas no meio do estrago do
   // bar: ordem imposta sobre destruicao.
   empilhado: {
-    // Tingimento forte demais apaga a sombra interna do boneco e a coisa
-    // vira um borrao claro rastejando. O que tem que se ler e um CORPO
-    // dobrado errado — para isso o desenho de baixo precisa continuar
-    // aparecendo por dentro da cor.
-    // E a mesma regra da paleta do jogo inteiro: a cena e MULTIPLICADA pela
-    // luz, entao cor "realista" vira preto. Estes tons parecem claros
-    // demais no codigo e saem certos na tela.
-    anim: 'crawl', vel: 26, hp: 3, dano: 15, alcance: 22, recarga: 1.5,
-    tint: '#6b5a62', tintK: 0.62, faceless: true, scaleX: 1.14, scaleY: 0.82,
+    anim: 'crawl', vel: 26, hp: 3, dano: 15, alcance: 24, recarga: 1.5,
+    scaleX: 1.14, scaleY: 0.82,
+    // Andando de quatro ele ocupa uns 34px de altura, nao 62. Sem declarar
+    // isso, o golpe e a bala passavam POR CIMA dele e nada acontecia — era
+    // o inimigo mais dificil de acertar do jogo, e por acidente.
+    altura: 34, largura: 26,
   },
   // OS SEM-ROSTO — gente normal, roupa normal, rosto ALISADO. Andam devagar,
   // cercam, e so machucam quem ficou sem saida. Sao as pessoas que ele nao
@@ -10794,24 +11851,24 @@ const TIPOS = {
     // fazia eles brilharem no escuro e a coisa virava assombracao de
     // lencol — o medo aqui e outro: sao pessoas, e ele nao lembra a cara
     // de nenhuma.
-    anim: 'shamble', vel: 17, hp: 2, dano: 11, alcance: 19, recarga: 1.9,
-    tint: '#6e6a79', tintK: 0.7, faceless: true, scaleX: 1, scaleY: 1,
+    anim: 'shamble', vel: 17, hp: 2, dano: 11, alcance: 21, recarga: 1.9,
+    scaleX: 1, scaleY: 1, altura: 62, largura: 22,
     encara: true,
   },
   // O ECOADOR — nao ataca. Onde ele aparece, coisa ruim vem. Quando esta
   // perto, TOCA TELEFONE, e o som vem do nada.
   ecoador: {
     anim: 'shamble', vel: 13, hp: 0, dano: 0, alcance: 0, recarga: 0,
-    silhueta: '#05050a', alpha: 0.5, scaleX: 0.8, scaleY: 1.08,
+    alpha: 0.62, scaleX: 0.86, scaleY: 1.06, altura: 66, largura: 20,
     alarme: true, invulneravel: true,
   },
-  // O CREDOR — a conta com pernas. Alto demais, o sobretudo dele grande
-  // demais, arrastando no chao, e o cano do galpao na mao direita. Nao
-  // morre. Tiro faz ele parar; nada mais.
+  // O CREDOR — a conta com pernas. Avental de acougueiro por cima do
+  // sobretudo, cabeca de porco costurada em pano de saco, e uma motosserra
+  // que nao desliga. Nao morre. Tiro faz ele parar; nada mais.
   credor: {
-    anim: 'dragWalk', vel: 30, hp: 0, dano: 34, alcance: 24, recarga: 2.4,
-    silhueta: '#050406', scaleX: 1.04, scaleY: 1.34, invulneravel: true,
-    cano: true, pesado: true,
+    anim: 'dragWalk', vel: 30, hp: 0, dano: 34, alcance: 26, recarga: 2.4,
+    scaleX: 1.06, scaleY: 1.3, invulneravel: true, altura: 80, largura: 26,
+    pesado: true, serra: true,
   },
 };
 
@@ -10835,21 +11892,30 @@ class Enemy {
     this._px = x;
 
     const d = this.det = new Detective();
-    // Contorno frio um pouco mais forte que o do detetive. Eles vivem no
-    // escuro, e sem essa casquinha de luz na borda somem no cenario — o
-    // susto tem que vir de ver, nao de nao ver.
-    d.rimAlpha = this.cfg.silhueta ? 0 : 0.34;
+    // Cada criatura tem as PECAS dela agora: cabeca, tronco, membros. Nao
+    // e mais o detetive recolorido — recolorir dava um clone dele com
+    // outra tinta, e o que o jogo precisa e que cada uma seja reconhecivel
+    // como uma ideia.
+    d.parts = partesDe(tipo);
+    // Contorno frio. Eles vivem no escuro, e sem essa casquinha de luz na
+    // borda somem no cenario — o susto tem que vir de ver, nao de nao ver.
+    d.rimAlpha = 0.34;
     d.rimColor = '#8fa8c8';
     d.reflect = 0;
-    d.faceless = !!this.cfg.faceless;
-    if (this.cfg.silhueta) d.silhouette = this.cfg.silhueta;
-    else { d.tint = this.cfg.tint; d.tintK = this.cfg.tintK; }
     d.scaleX = this.cfg.scaleX || 1;
     d.scaleY = this.cfg.scaleY || 1;
     d.alpha = this.alpha;
-    if (this.cfg.cano) d.props.pipe = 'hand';
     d.onEvent = (ev) => this._evento(ev);
     d.play(this.cfg.anim, { blend: 0 });
+  }
+
+  // Caixa do corpo em coordenadas de mundo. Cada criatura declara a sua:
+  // quem anda de quatro nao tem 62px de altura, e o jogo precisa saber
+  // disso para o golpe acertar.
+  caixa() {
+    const w = (this.cfg.largura || 22) / 2;
+    const h = this.cfg.altura || 62;
+    return { x0: this.x - w, x1: this.x + w, y0: this.y - h, y1: this.y };
   }
 
   // Som de passo com volume pela distancia. Fora do alcance nem toca: um
@@ -10935,13 +12001,20 @@ class Enemy {
       return;
     }
 
-    if (dist > this.cfg.alcance - 4) {
+    // Para a uma distancia de braco, e NAO entra dentro do jogador. Antes
+    // eles atravessavam o corpo dele: o sinal de dx invertia, o bicho
+    // ficava girando, e o golpe do jogador — que so olha para a frente —
+    // nunca achava ninguem.
+    const parada = this.cfg.alcance * 0.8;
+    if (dist > parada) {
       this.facing = dir;
       d.setFacing(dir);
       this.x += dir * this.cfg.vel * dt;
       if (level) this.x = clamp(this.x, level.minX - 30, level.maxX + 30);
       if (d.anim !== this.cfg.anim) d.play(this.cfg.anim, { blend: 0.2 });
       if (this.cfg.encara && Math.random() < dt * 0.08) this.encaraT = 1.4 + Math.random() * 1.6;
+    } else if (d.anim !== 'idle' && this.cd > 0.4) {
+      d.play('idle', { blend: 0.25 });
     }
     d.update(dt);
   }
@@ -11094,17 +12167,36 @@ class Director {
     for (const e of this.lista) e.draw(ctx, cam);
   }
 
-  // Inimigo mais perto do jogador dentro de um alcance, opcionalmente so
-  // do lado para onde ele esta virado.
-  maisPerto(x, alcance, facing) {
+  // Quem esta dentro de uma caixa. Substitui o "mais perto em X" antigo,
+  // que era a raiz do combate quebrado: ele ignorava a ALTURA, entao um
+  // bicho de quatro no chao e um homem em pe eram a mesma coisa para o
+  // golpe. Agora e sobreposicao de retangulo, como tem que ser.
+  dentroDe(cx) {
+    const out = [];
+    for (const e of this.lista) {
+      if (e.state === 'dead' || e.cfg.alarme) continue;
+      const b = e.caixa();
+      if (b.x1 < cx.x0 || b.x0 > cx.x1 || b.y1 < cx.y0 || b.y0 > cx.y1) continue;
+      out.push(e);
+    }
+    return out;
+  }
+
+  // A bala: uma reta saindo da boca do cano. Testa a altura da linha na
+  // distancia de cada inimigo — mirar para baixo agora ACERTA quem esta
+  // rastejando, que antes era impossivel.
+  naLinhaDoTiro(ox, oy, facing, angGraus, alcance = 240) {
+    const tan = Math.tan(-angGraus * Math.PI / 180);
     let melhor = null, bd = 1e9;
     for (const e of this.lista) {
-      if (e.state === 'dead') continue;
-      if (e.cfg.alarme) continue;         // no Ecoador nao se bate
-      const dx = e.x - x;
-      if (facing && Math.sign(dx) !== facing && Math.abs(dx) > 8) continue;
-      const d = Math.abs(dx);
-      if (d < alcance && d < bd) { bd = d; melhor = e; }
+      if (e.state === 'dead' || e.cfg.alarme) continue;
+      const dx = (e.x - ox) * facing;
+      if (dx < -6 || dx > alcance) continue;
+      const y = oy + tan * dx;
+      const b = e.caixa();
+      // margem de 5px: a mira e uma nocao, nao um laser
+      if (y < b.y0 - 5 || y > b.y1 + 5) continue;
+      if (dx < bd) { bd = dx; melhor = e; }
     }
     return melhor;
   }
@@ -11143,20 +12235,22 @@ __mods["systems/npc.js"] = function(__exp){
 // numa cadeira que nao existe mais.
 
 const { Detective } = __req("art/detective.js");
+const { partesDe } = __req("art/creatures.js");
 
 const NPCS = {
+  // O ZELADOR. Macacao verde desbotado e um esfregao que ele nunca larga —
+  // nem sentado, nem falando com voce. Ele esta no turno dele, e o turno
+  // dele acabou ha dez anos.
   vigia: {
-    level: 'ch2_office', x: 506, facing: -1,
-    anim: 'sitChair', tint: '#4a4436', tintK: 0.6,
+    level: 'ch2_office', x: 508, facing: -1,
+    anim: 'sitChair', arte: 'zelador',
     talk: 'vigia', prompt: 'prompt_talk',
-    // uniforme desbotado; nada nele reage ao estado do lugar
-    luz: null,
   },
+  // A TELEFONISTA. Cabelo preso, vestido de trabalho vinho, gola branca.
   operadora: {
-    level: 'ch2_mezz', x: 636, facing: -1,
-    anim: 'switchboard', tint: '#5a3040', tintK: 0.62,
+    level: 'ch2_mezz', x: 638, facing: -1,
+    anim: 'switchboard', arte: 'operadora',
     talk: 'operadora', prompt: 'prompt_talk',
-    luz: null,
   },
 };
 
@@ -11168,9 +12262,11 @@ class Npc {
     this.facing = c.facing;
     this.falado = false;
     const d = this.det = new Detective();
-    d.tint = c.tint;
-    d.tintK = c.tintK;
-    d.rimAlpha = 0;
+    // Peças próprias. Antes eles eram o detetive tingido — literalmente a
+    // mesma pessoa, um sentado e o outro quase de quatro. Agora cada um
+    // tem cabeça, tronco e roupa dele.
+    d.parts = partesDe(c.arte);
+    d.rimAlpha = 0.16;
     d.reflect = 0;
     d.facing = c.facing;
     d.flipT = 1;
@@ -11251,18 +12347,55 @@ class Chase {
     this.apagou = 0;
     this.estado = 'cacar';
     this.levelKey = deLevel;
+    this.jogadorLevel = deLevel;
     this.lastX = deX;
-    this.chegada = 6;          // ele nao aparece junto: primeiro se ouve
+    this.chegada = 8;          // ele nao aparece junto: primeiro se ouve
+    this.dano = 0;
     this.credor = new Enemy('credor', deX, 214);
     this.levels = levels;
     audio.startDread();
+    // A motosserra comeca a roncar AGORA, no outro lado do galpao, e nao
+    // para mais ate o fim do capitulo.
+    audio.startLoop('serra', { gain: 0.04, fade: 3 });
   }
 
   parar() {
     this.ativo = false;
     this.credor = null;
     audio.stopDread(1.2);
+    audio.stopLoop('serra', 1.6);
     this._restaurar();
+  }
+
+  // Estado salvavel. Sem isto, carregar um save feito no meio da fuga
+  // devolvia o jogador a um galpao apagado, com a musica de tensao tocando
+  // e SEM o Credor — e com o portao da doca fechado, ou seja, sem saida.
+  save() {
+    if (!this.ativo) return null;
+    return {
+      lvl: this.levelKey, x: Math.round(this.credor ? this.credor.x : 0),
+      lastX: Math.round(this.lastX), apagou: this.apagou,
+      t: Math.round(this.t), estado: this.estado,
+    };
+  }
+
+  load(d, levels, levelKeyDoJogador) {
+    if (!d) { this.ativo = false; this.credor = null; return; }
+    this.comecar(levels, d.lvl, d.x || 0);
+    this.t = d.t || 0;
+    this.lastX = d.lastX || 0;
+    this.estado = d.estado || 'cacar';
+    this.jogadorLevel = levelKeyDoJogador;
+    if (this.credor) this.credor.x = d.x || 0;
+    // reaplica o apagao dos setores que ja estavam no escuro
+    this.apagou = 0;
+    for (let i = 0; i < (d.apagou || 0) && i < ORDEM_APAGAR.length; i++) {
+      this._apagarSetor(ORDEM_APAGAR[i]);
+      this.apagou++;
+    }
+    // Se ele estava noutro setor, mantem a distancia — carregar um save
+    // nunca pode devolver o jogador com o Credor colado nele.
+    if (this.levelKey !== levelKeyDoJogador) this.chegada = 9;
   }
 
   // As luzes de emergencia do galpao inteiro comecam a apagar SETOR POR
@@ -11300,16 +12433,36 @@ class Chase {
       gfx.shake(1.4, 0.3);
     }
 
+    // ---- trocou de setor: ele NAO vem junto ----
+    //
+    // Este era o pior defeito da perseguicao. `chegada` era acertado uma
+    // vez, no comeco, e nunca mais: depois da primeira chegada ele ficava
+    // em zero, e trocar de sala punha o Credor em cima do jogador no mesmo
+    // quadro. Fugir nao servia para nada.
+    //
+    // Agora cada porta atravessada compra tempo — pouco, mas compra. E e
+    // esse tempo que transforma o mapa numa ferramenta em vez de numa
+    // sentenca.
+    if (levelKey !== this.jogadorLevel) {
+      this.jogadorLevel = levelKey;
+      if (this.levelKey !== levelKey) {
+        this.chegada = 7 + Math.random() * 4;
+        this.estado = 'cacar';
+      }
+    }
+
     // ---- ele nao esta na sua fase: esta vindo ----
     if (this.levelKey !== levelKey) {
       this.chegada -= dt;
-      // O som chega antes dele. Sempre.
+      // O som chega antes dele. Sempre. A motosserra fica mais alta
+      // conforme ele se aproxima da porta.
+      audio.setLoopGain('serra', clamp(0.10 - this.chegada * 0.008, 0.02, 0.1), 0.6);
       this.buscaT -= dt;
       if (this.buscaT <= 0) {
         this.buscaT = 1.4 + Math.random() * 1.6;
-        audio.dragMetal(clamp(0.5 - this.chegada * 0.03, 0.12, 0.5));
+        audio.dragMetal(clamp(0.4 - this.chegada * 0.02, 0.1, 0.4));
       }
-      audio.setDread(clamp(0.25 - this.chegada * 0.02, 0.1, 0.5));
+      audio.setDread(clamp(0.22 - this.chegada * 0.015, 0.08, 0.42));
       if (this.chegada <= 0) {
         this.levelKey = levelKey;
         // Entra pela porta por onde VOCE entrou, do lado de fora da tela.
@@ -11335,8 +12488,12 @@ class Chase {
 
     if (this.estado === 'cacar') {
       const alvo = invisivel ? this.lastX : player.x;
-      const dir = Math.sign(alvo - c.x) || 1;
-      if (Math.abs(alvo - c.x) > 6) {
+      const dir = Math.sign(alvo - c.x) || c.facing;
+      // Zona morta de 14px. Sem ela, com o Credor em cima do jogador o
+      // sinal de `dir` trocava a cada quadro, `setFacing` disparava a
+      // virada toda vez, e ele ficava GIRANDO no lugar para sempre — foi
+      // exatamente o que travou a camara fria.
+      if (Math.abs(alvo - c.x) > 14) {
         c.facing = dir;
         c.det.setFacing(dir);
         // Perto ele acelera um pouco. E o "quase consegue".
@@ -11374,14 +12531,26 @@ class Chase {
 
     // ---- tensao pela DISTANCIA, nunca pelo relogio ----
     const k = escondido ? clamp(1 - dist / 300, 0, 1) * 0.8 : clamp(1 - dist / 340, 0, 1);
-    audio.setDread(k);
-    if (k > 0.6 && !escondido) gfx.shake(k * 0.8, 0.2);
+    audio.setDread(k * 0.85);
+    // A motosserra sobe com a proximidade — e ela nunca desliga.
+    audio.setLoopGain('serra', 0.05 + k * 0.16, 0.35);
+    // Tremor SO quando ele esta em cima de voce, e fraco. Antes era a cada
+    // quadro acima de 0.6 e a tela inteira balancava a fuga inteira.
+    if (k > 0.86 && !escondido) gfx.shake(1.1, 0.18);
 
-    // ---- o cano ----
-    if (!escondido && dist < c.cfg.alcance && this.onDano) {
+    // ---- a motosserra ----
+    //
+    // Ele PRECISA machucar. O gancho de dano nunca chegou a ser ligado no
+    // jogo, entao o Credor chegava perto, encostava, e nao acontecia nada
+    // — ele era um susto ambulante sem consequencia nenhuma.
+    if (this.dano > 0) this.dano -= dt;
+    if (!escondido && dist < c.cfg.alcance && this.dano <= 0 && this.onDano) {
+      this.dano = 1.6;
+      audio.punchHit(1.2);
       this.onDano(c.cfg.dano, c.x);
-      // depois de acertar ele para um instante, e da para correr
-      c.stun = 1.3;
+      // Depois de acertar ele para um instante — e e essa janela que da
+      // para correr. Sem ela a coisa vira uma sentenca, nao uma fuga.
+      c.stun = 1.5;
       c.det.play('hurt', { restart: true, blend: 0.06 });
     }
   }
@@ -12310,6 +13479,20 @@ const { PauseMenu } = __req("ui/pause.js");
 const { SlotPicker, OptionsPanel, screenDim, panelBox } = __req("ui/panels.js");
 const { t: T, setLang, getLang, LINES, line: L, TALKS } = __req("i18n.js");
 
+// A planta baixa do galpao, do jeito que ela e desenhada no papel que ele
+// arranca do quadro de avisos. As coordenadas sao do papel, nao do mundo:
+// o mapa e um desenho de alguem, e nao uma miniatura fiel.
+const MAPA_SETORES = [
+  { k: 'ch2_office',   x: 46,  y: 20,  w: 52,  h: 26, n: 'loc_office' },
+  { k: 'ch2_mezz',     x: 118, y: 20,  w: 74,  h: 26, n: 'loc_mezz' },
+  { k: 'ch2_dock',     x: 22,  y: 92,  w: 60,  h: 24, n: 'loc_dock' },
+  { k: 'ch2_corridor', x: 22,  y: 56,  w: 172, h: 26, n: 'loc_corridor' },
+  { k: 'ch2_shelves',  x: 202, y: 56,  w: 76,  h: 40, n: 'loc_shelves' },
+  { k: 'ch2_locker',   x: 202, y: 106, w: 76,  h: 28, n: 'loc_locker' },
+  { k: 'ch2_cold',     x: 118, y: 106, w: 74,  h: 28, n: 'loc_cold' },
+  { k: 'ch2_machines', x: 202, y: 20,  w: 76,  h: 26, n: 'loc_machines' },
+];
+
 const settings = {
   lang: 'pt',
   master: 0.8, music: 0.55, sfx: 0.85, voice: 1.0,
@@ -12487,6 +13670,7 @@ class Game {
       case 'menu': this.updateMenu(dt); break;
       case 'cutscene': this.updateCutscene(dt); break;
       case 'chapcard': this.updateChapCard(dt); break;
+      case 'carregando': this.updateCarregando(dt); break;
       case 'play': this.updatePlay(dt); break;
       case 'endcard': this.updateEndCard(dt); break;
       case 'lab': this.updateLab(dt); break;
@@ -12665,6 +13849,12 @@ class Game {
       lv._apagada = false;
     }
     this.player.det.alpha = 1;
+    this.mapaAberto = false;
+    // A primeira fala espera o fade-in acabar, senao ela nasce e morre
+    // atras da tela preta e o jogador nunca a le.
+    this.player.atrasarFala(1.0);
+    this.flags.visto = this.flags.visto || {};
+    this.flags.visto[lv.key] = true;
     this.entrouCh2(lv);
   }
 
@@ -12686,11 +13876,23 @@ class Game {
     // galpao tem que custar alguma coisa: enquanto o casaco esta aberto,
     // ele tapa parte da tela.
     if (cap2 && !paused && !this.scene && !this.dialogue.active && !this.transition) {
-      if (input.pressed('journal') && this.flags.caderno) { this.journal.toggle(); this.inv.open = false; }
-      if (input.pressed('bag')) { this.inv.toggle(); this.journal.open = false; }
+      if (input.pressed('journal') && this.flags.caderno) {
+        this.journal.toggle(); this.inv.open = false; this.mapaAberto = false;
+      }
+      if (input.pressed('bag')) {
+        this.inv.toggle(); this.journal.open = false; this.mapaAberto = false;
+      }
+      if (input.pressed('map')) {
+        if (this.inv.has('map')) {
+          this.mapaAberto = !this.mapaAberto;
+          this.journal.open = false; this.inv.open = false;
+          audio.pageTurn(0.9);
+        } else this.player.say('map_none', 0, true);
+      }
     }
     if (cap2) { this.journal.update(paused ? 0 : dt); this.inv.update(paused ? 0 : dt); }
-    const uiAberta = this.journal.open || this.inv.open;
+    this.mapaFade = clamp((this.mapaFade || 0) + (this.mapaAberto ? dt * 8 : -dt * 9), 0, 1);
+    const uiAberta = this.journal.open || this.inv.open || this.mapaAberto;
 
     if (!paused) {
       lv.update(sim);
@@ -12807,10 +14009,13 @@ class Game {
     if (fa > 0) {
       const ft = this.player.floatText;
       const alto = this.promptA > 0.15 ? 96 : 80;
+      // Fonte de maquina de escrever, em negrito, com contorno preto: e a
+      // unica combinacao que sobrevive ao corte duro de alpha a 10px e
+      // continua legivel em cima de tijolo escuro.
       text(gfx.s, T(ft.key), this.player.x - cam.ix,
         this.player.y - cam.iy - alto - Math.min(6, ft.t * 5), {
-        size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
-        alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
+        size: 10, font: 'type', weight: 'bold', color: '#e4dccc', align: 'center',
+        alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.95,
       });
     }
 
@@ -12827,7 +14032,7 @@ class Game {
     };
 
     this.dialogue.draw(gfx.s);
-    if (cap2) { this.journal.draw(gfx.s); this.inv.draw(gfx.s); }
+    if (cap2) { this.journal.draw(gfx.s); this.inv.draw(gfx.s); this.drawMapa(gfx.s); }
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
@@ -12967,6 +14172,14 @@ class Game {
       return;
     }
     if (it.action === 'goto') {
+      // Porta que pede chave. E o que impede o jogador de topar com o
+      // Credor antes de ter com que se defender.
+      if (it.precisa && !this.flags[it.precisa]) {
+        audio.doorSlam(0.4);
+        gfx.shake(1.4, 0.18);
+        this.player.say(it.semChave || 'b2_trancado', 0, true);
+        return;
+      }
       audio.doorCreak(it.sfx === 'heavy' ? 0.5 : 0.9);
       if (it.sfx === 'heavy') audio.metalCreak(1);
       this.fadeTo(() => {
@@ -13272,6 +14485,7 @@ class Game {
     switch (it.action) {
       case 'take_club':
         it.disabled = true;
+        this.level.pego.porrete = true;
         this.inv.hand = 'club';
         p.segurarPorrete(true);
         audio.leather(0.7);
@@ -13283,6 +14497,7 @@ class Game {
 
       case 'take_journal':
         it.disabled = true;
+        this.level.pego.caderno = true;
         this.flags.caderno = true;
         audio.pageTurn(1);
         p.sayAll(['b2_diary_1', 'b2_diary_2', 'b2_diary_3'], true);
@@ -13294,12 +14509,14 @@ class Game {
 
       case 'take_map':
         it.disabled = true;
+        this.level.pego.mapa = true;
         this.pegar('map');
         p.sayAll(['b2_map_1', 'b2_map_2'], true);
         return true;
 
       case 'take_ammo':
         it.disabled = true;
+        this.level.pego.municao = true;
         this.pegar('ammo');
         p.reserve = 18;
         // A jogada mais importante do capitulo: municao ANTES da arma. O
@@ -13310,6 +14527,7 @@ class Game {
 
       case 'take_cigs':
         it.disabled = true;
+        this.level.pego.maco = true;
         this.pegar('cigs');
         this.pegar('lighter');
         p.sayAll(['b2_cig_1', 'b2_cig_2', 'b2_cig_3'], true);
@@ -13318,7 +14536,16 @@ class Game {
 
       case 'take_gun':
         it.disabled = true;
+        this.level.pego.pistola = true;
         this.pegarPistola();
+        return true;
+
+      case 'take_key':
+        it.disabled = true;
+        this.level.pego.chave = true;
+        this.flags.chave = true;
+        audio.reloadClick(1.2);
+        p.sayAll(['b2_chave_1', 'b2_chave_2'], true);
         return true;
 
       case 'mirror':
@@ -13457,8 +14684,12 @@ class Game {
   golpeDePorrete() {
     const p = this.player;
     audio.whoosh(1.1);
-    const alvo = this.director.maisPerto(p.x, 34, p.facing);
-    if (!alvo) return;
+    // Sobreposicao de caixa, e nao "quem esta mais perto em X". A caixa do
+    // golpe desce ate o chao de proposito: e assim que a ripa alcanca quem
+    // rasteja, que antes era praticamente inatingivel.
+    const atingidos = this.director.dentroDe(p.caixaGolpe());
+    if (!atingidos.length) return;
+    const alvo = atingidos[0];
     const r = alvo.levarDano(1, p.x);
     if (r === 'fake') {
       // Nao estava la. E ele nao comenta.
@@ -13510,11 +14741,23 @@ class Game {
 
   sairEsconderijo() {
     const p = this.player;
+    if (!this.escondido) return;
+    // Empurra ele para fora do esconderijo, na direcao contraria a de quem
+    // esta cacando: sair para dentro do Credor nao e sair.
+    const c = this.chase.ativo && this.chase.credor && this.chase.levelKey === this.level.key
+      ? this.chase.credor.x : p.x - 40;
+    const fora = Math.sign(p.x - c) || 1;
+    p.x = clamp(p.x + fora * 16, this.level.minX, this.level.maxX);
+    p.facing = fora;
+    p.det.setFacing(fora);
     this.escondido = null;
     p.frozen = false;
     p.controllable = true;
+    p.lockTime = 0;
+    p.state = 'idle';
     p.det.alpha = 1;
     p.det.play('idle', { blend: 0.3 });
+    audio.leather(0.5);
   }
 
   updateEsconderijo(dt) {
@@ -13536,7 +14779,15 @@ class Game {
       this.batidaT = lerp(1.1, 0.36, k);
       audio.heartbeat(0.4 + k * 0.6);
     }
-    if (input.pressed('interact')) this.sairEsconderijo();
+    // Sair NUNCA pode falhar. Antes so o E servia, e se ele fosse comido
+    // por qualquer outra coisa o jogador ficava preso no esconderijo com
+    // um Credor girando em cima dele — sem morrer e sem poder sair.
+    // Agora qualquer intencao de se mexer tira ele de la.
+    if (input.pressed('interact') || input.pressed('confirm')
+        || input.pressed('left') || input.pressed('right')
+        || input.pressed('attack') || input.pressed('cancel')) {
+      this.sairEsconderijo();
+    }
     return prendendo;
   }
 
@@ -13589,9 +14840,16 @@ class Game {
 
     // ---- o Diretor ----
     this.director.update(dt, { player: p, level: lv, cam: this.cam, sanity: this.sanity });
+    const cxP = p.caixa();
     for (const e of this.director.lista) {
       if (e.state === 'dead') continue;
-      if (e.acertou() && !this.escondido) p.takeDamage(e.cfg.dano, e.x);
+      if (!e.acertou() || this.escondido) continue;
+      // O golpe dele tambem passa a valer por caixa: quem rasteja bate na
+      // canela, quem esta em pe bate no peito, e os dois contam.
+      const b = e.caixa();
+      const perto = Math.abs(e.x - p.x) <= e.cfg.alcance + 8;
+      const alturaOk = b.y0 <= cxP.y1 && b.y1 >= cxP.y0;
+      if (perto && alturaOk) p.takeDamage(e.cfg.dano, e.x);
     }
     // Ver um deles ja custa, mesmo sem encostar.
     const dInimigo = this.director.distanciaMaisProximo(p.x);
@@ -13606,6 +14864,8 @@ class Game {
 
     // ---- a perseguicao ----
     if (this.chase.ativo) {
+      this.chase.onDano = (n, deX) => p.takeDamage(n, deX);
+      this.chase.onFala = (k) => p.say(k, 0, true);
       this.chase.update(dt, {
         player: p, level: lv, levelKey: lv.key,
         escondido: !!this.escondido, prendendo,
@@ -13622,9 +14882,6 @@ class Game {
     // jogador a temer o proprio medidor.
     if (lv.frio) this.sanity.drain(dt * (this.isqueiroT > 0 ? 0.35 : 0.9));
     this.sanity.apply();
-    const jt = this.sanity.jitter();
-    if (jt > 0) gfx.shake(jt, 0.1);
-
     if (p.hp <= 0) this.derrubado();
 
     this.updateFrio(dt, lv);
@@ -13669,10 +14926,13 @@ class Game {
   // O tiro precisa saber em quem bateu. O jogador dispara; o jogo procura
   // alguem na frente do cano.
   tiro(x, facing, ang) {
-    const alvo = this.director.maisPerto(x, 210, facing);
+    // A bala vira uma reta de verdade, saindo da boca do cano. O teste
+    // antigo descartava qualquer tiro com mais de 22 graus — ou seja,
+    // mirar para baixo, que e o unico jeito de acertar quem esta no chao,
+    // era garantia de errar.
+    const oy = this.player.y - 48;
+    const alvo = this.director.naLinhaDoTiro(x + facing * 20, oy, facing, ang, 240);
     if (!alvo) return;
-    // Mira so no eixo vertical: acima de uns 20 graus a bala passa por cima.
-    if (Math.abs(ang) > 22) return;
     const r = alvo.levarDano(3, x);
     if (r === 'fake') {
       // Voce gastou a bala do mesmo jeito.
@@ -13711,26 +14971,43 @@ class Game {
   // interface do capitulo
   // -------------------------------------------------------------------
 
+  // As duas barras. CORPO em vermelho seco, CABECA em azul-noite — as duas
+  // únicas coisas que ele ainda tem para perder, uma de cada cor, no canto
+  // de cima. Ficam sempre visíveis: sem elas o jogador não tinha como saber
+  // o que estava acontecendo com ele.
+  _barra(ctx, x, y, w, k, cor, corFraca, rotulo, piscar) {
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    // moldura
+    ctx.fillStyle = '#07060a';
+    ctx.fillRect(x - 1, y - 1, w + 2, 7);
+    ctx.fillStyle = '#221c1e';
+    ctx.fillRect(x, y, w, 5);
+    // preenchimento
+    const cheio = Math.round(w * clamp(k, 0, 1));
+    ctx.fillStyle = k < 0.3 ? corFraca : cor;
+    if (k < 0.3 && piscar) ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() * 0.009);
+    ctx.fillRect(x, y, cheio, 5);
+    // brilho de cima, para a barra nao ser um retangulo chapado
+    ctx.globalAlpha *= 0.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, cheio, 1);
+    ctx.restore();
+    text(ctx, rotulo, x - 4, y - 2, {
+      size: 7, font: 'type', weight: 'bold', color: PAL.uiFaint,
+      align: 'right', track: 1, alpha: 0.85,
+    });
+  }
+
   drawCh2UI(ctx) {
     const p = this.player;
 
     this.journal.drawToast(ctx);
     this.inv.drawToast(ctx);
 
-    // A vida so aparece quando ele apanha. Barra permanente avisaria o
-    // jogador de que ele e um personagem.
-    if (p.hurtT > 0 || p.hp < 100) {
-      const a = clamp(p.hurtT > 0 ? 1 : (p.hp < 60 ? 0.7 : 0), 0, 1);
-      if (a > 0.02) {
-        ctx.save();
-        ctx.globalAlpha = a * 0.55;
-        ctx.fillStyle = '#0c0a0b';
-        ctx.fillRect(14, VH - 20, 52, 4);
-        ctx.fillStyle = PAL.uiAccent;
-        ctx.fillRect(14, VH - 20, Math.round(52 * (p.hp / 100)), 4);
-        ctx.restore();
-      }
-    }
+    const bx = 44, bw = 62;
+    this._barra(ctx, bx, 10, bw, p.hp / 100, '#a8382c', '#e0503a', T('hud_hp'), true);
+    this._barra(ctx, bx, 20, bw, this.sanity.shown / 100, '#4a6a9e', '#7fa5d8', T('hud_san'), true);
 
     // Escondido: o folego, e como sair.
     if (this.escondido) {
@@ -13760,6 +15037,88 @@ class Game {
     }
   }
 
+  // -------------------------------------------------------------------
+  // O MAPA
+  //
+  // Ele pega a planta baixa no escritorio e depois nao tinha onde olhar
+  // para ela: o item existia e a tela nao. Aqui esta a tela — desenhada
+  // como a planta de verdade seria, com os setores em caixinha e o vinco
+  // do papel. So aparece o que ele ja pisou: mapa de galpao nao mostra o
+  // que voce nunca viu.
+  // -------------------------------------------------------------------
+
+  drawMapa(ctx) {
+    const a = this.mapaFade;
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = a * 0.75;
+    ctx.fillStyle = '#05040a';
+    ctx.fillRect(0, 0, VW, VH);
+    ctx.restore();
+
+    const W = 300, H = 158;
+    const ox = Math.round((VW - W) / 2), oy = Math.round((VH - H) / 2) + 6;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    // o papel
+    ctx.fillStyle = '#b8b09a';
+    ctx.fillRect(ox, oy, W, H);
+    ctx.fillStyle = '#a89f88';
+    ctx.fillRect(ox, oy + H - 5, W, 5);
+    // o vinco de quem dobrou em quatro e carregou no bolso
+    ctx.globalAlpha = a * 0.28;
+    ctx.fillStyle = '#7d7561';
+    ctx.fillRect(ox + Math.round(W / 2), oy, 1, H);
+    ctx.fillRect(ox, oy + Math.round(H / 2), W, 1);
+    ctx.restore();
+
+    text(ctx, T('map_title'), ox + 10, oy + 6, {
+      size: 8, font: 'type', weight: 'bold', color: '#4a4234', track: 2, alpha: a,
+    });
+
+    for (const s of MAPA_SETORES) {
+      const visto = this.flags.visto && this.flags.visto[s.k];
+      const aqui = this.level && this.level.key === s.k;
+      const x = ox + s.x, y = oy + s.y;
+      ctx.save();
+      ctx.globalAlpha = a * (visto ? 1 : 0.22);
+      ctx.fillStyle = aqui ? '#8d3128' : '#4a4234';
+      ctx.fillRect(x, y, s.w, 1);
+      ctx.fillRect(x, y + s.h - 1, s.w, 1);
+      ctx.fillRect(x, y, 1, s.h);
+      ctx.fillRect(x + s.w - 1, y, 1, s.h);
+      if (aqui) {
+        ctx.globalAlpha = a * (0.25 + 0.2 * Math.sin(performance.now() * 0.005));
+        ctx.fillStyle = '#8d3128';
+        ctx.fillRect(x + 1, y + 1, s.w - 2, s.h - 2);
+      }
+      ctx.restore();
+      if (visto) {
+        text(ctx, T(s.n), x + s.w / 2, y + s.h / 2 - 4, {
+          size: 7, font: 'type', weight: 'bold', color: aqui ? '#7a1c14' : '#3f3a2e',
+          align: 'center', track: 1, alpha: a,
+        });
+      }
+    }
+
+    // a marca a lapis na doca 3 — estava no item desde o comeco
+    const doca = MAPA_SETORES[2];
+    if (this.flags.visto && this.flags.visto.ch2_corridor) {
+      const x = ox + doca.x + doca.w + 4, y = oy + doca.y + 8;
+      text(ctx, '✕', x, y - 4, {
+        size: 9, font: 'type', weight: 'bold', color: '#7a1c14', alpha: a * 0.9,
+      });
+      text(ctx, T('map_mark'), x + 10, y - 2, {
+        size: 6, font: 'type', color: '#6b5a3a', alpha: a * 0.75,
+      });
+    }
+
+    text(ctx, T('map_hint'), VW / 2, oy + H + 8, {
+      size: 7, font: 'type', color: '#5a5249', align: 'center', track: 1, alpha: a, shadow: true,
+    });
+  }
+
   // Ele parado, sem perseguir mais. Apenas olhando ele ir embora — como
   // quem sabe que vai cobrar outro dia.
   drawCredorParado(ctx, cam) {
@@ -13773,27 +15132,71 @@ class Game {
   // salvar / carregar
   // -------------------------------------------------------------------
 
+  // -------------------------------------------------------------------
+  // SALVAR
+  //
+  // A primeira versao disto nao salvava: ela anotava a fase e o X e, ao
+  // carregar, TELEPORTAVA o personagem. Tudo o mais — a perseguicao, os
+  // itens ja pegos nas outras salas, as portas abertas — ficava do jeito
+  // que estivesse na sessao. Carregar no meio da fuga devolvia um galpao
+  // apagado, com a musica de tensao tocando, sem o Credor e com o portao
+  // da doca fechado: o jogo ficava impossivel de terminar.
+  //
+  // Agora o save carrega o MUNDO INTEIRO: o estado de cada setor, o que
+  // foi pego em cada um, e a perseguicao em curso.
+  // -------------------------------------------------------------------
+
+  // Estado de todos os setores, e nao so daquele em que ele esta.
+  _estadoDoMundo() {
+    const out = {};
+    for (const key of Object.keys(this.levels)) {
+      const lv = this.levels[key];
+      const usados = (lv.interactables || []).filter(i => i.disabled && i.id).map(i => i.id);
+      const pego = lv.pego ? Object.keys(lv.pego).filter(k => lv.pego[k]) : [];
+      if (usados.length || pego.length) out[key] = { usados, pego };
+    }
+    return out;
+  }
+
+  _aplicarMundo(mundo) {
+    if (!mundo) return;
+    for (const key of Object.keys(mundo)) {
+      const lv = this.levels[key];
+      if (!lv) continue;
+      const m = mundo[key];
+      for (const id of (m.usados || [])) {
+        const it = (lv.interactables || []).find(i => i.id === id);
+        if (it) it.disabled = true;
+      }
+      if (lv.pego) for (const id of (m.pego || [])) lv.pego[id] = true;
+    }
+  }
+
   saveSlot(i) {
     const lv = this.level;
+    const p = this.player;
     save.write(i, {
       locationName: T(lv.nameKey),
       playtime: this.playtime,
       thumb: gfx.snapshot(),
       state: {
+        v: 2,
         level: lv.key,
-        x: Math.round(this.player.x),
-        facing: this.player.facing,
+        x: Math.round(p.x),
+        facing: p.facing,
         flags: this.flags || {},
-        // Capitulo 2: o que ele carrega, o que ele anotou e o quanto de
-        // cabeca ainda sobrou.
         san: this.sanity.save(),
         jr: this.journal.save(),
         inv: this.inv.save(),
-        hp: Math.round(this.player.hp),
-        gun: !!this.player.hasGun,
-        ammo: this.player.ammo, res: this.player.reserve,
-        // As portas e os itens ja pegos nao voltam.
-        usados: (lv.interactables || []).filter(i => i.disabled && i.id).map(i => i.id),
+        hp: Math.round(p.hp),
+        gun: !!p.hasGun,
+        ammo: p.ammo, res: p.reserve,
+        cig: this.cigTentativas || 0,
+        esp: this.espelhoN || 0,
+        // o galpao inteiro, e nao so a sala onde ele parou
+        mundo: this._estadoDoMundo(),
+        // e a perseguicao, se estiver acontecendo
+        fuga: this.chase.save(),
       },
     });
     if (this.menu) this.menu.refresh();
@@ -13802,17 +15205,33 @@ class Game {
   loadSlot(i) {
     const d = save.read(i);
     if (!d || !d.state) { this.toMenu(); return; }
-    const s = d.state;
+    this.pendente = d.state;
     this.playtime = d.playtime || 0;
-    this.flags = s.flags || {};
     audio.stopMusic(0.8);
+    audio.stopAllLoops();
+    audio.stopDread(0.3);
     this.pause.active = false;
+    // Nunca cair direto no jogo: a tela de carregamento existe para o
+    // jogador largar o que estava fazendo antes e chegar preparado.
+    this.state = 'carregando';
+    this.loadT = 0;
+    gfx.fade = 0;
+    gfx.eyelid = 1;
+    gfx.letterbox = 0;
+  }
 
+  // Aplica de verdade o estado salvo. So roda quando a tela de
+  // carregamento termina.
+  _aplicarSave(s) {
+    const p = this.player;
+    this.flags = s.flags || {};
     this.resetChapter2();
     this.sanity.load(s.san);
     this.journal.load(s.jr);
     this.inv.load(s.inv);
-    const p = this.player;
+    this.cigTentativas = s.cig || 0;
+    this.espelhoN = s.esp || 0;
+
     p.hp = typeof s.hp === 'number' ? s.hp : 100;
     p.hasGun = !!s.gun;
     p.ammo = s.ammo === undefined ? 0 : s.ammo;
@@ -13820,16 +15239,78 @@ class Game {
     p.det.props.gun = p.hasGun ? 'holstered' : 'none';
     p.segurarPorrete(this.inv.hand === 'club');
     p.idleMode = this.flags.cap2 ? 'sit' : null;
+    p.hurtT = 0; p.invuln = 0;
+
+    // O mundo ANTES da fase: entrar num setor lê o estado dele.
+    this._aplicarMundo(s.mundo);
+    // Compatibilidade com o save antigo, que so guardava a sala atual.
+    if (!s.mundo && s.usados) {
+      const lv0 = this.levels[s.level];
+      if (lv0) for (const id of s.usados) {
+        const it = (lv0.interactables || []).find(x => x.id === id);
+        if (it) it.disabled = true;
+        if (lv0.pego) lv0.pego[id] = true;
+      }
+    }
+
+    // A perseguicao volta EXATAMENTE como estava — inclusive os setores
+    // que ja estavam no escuro.
+    this.chase.load(s.fuga, this.levels, s.level);
 
     this.enterLevel(s.level || 'alley', s.x, s.facing);
-    // itens ja pegos continuam pegos, na lista e no cenario
-    const lv = this.level;
-    for (const id of (s.usados || [])) {
-      if (lv.pego) lv.pego[id] = true;
-      const it = (lv.interactables || []).find(i => i.id === id);
-      if (it) it.disabled = true;
-    }
     this.state = 'play';
+    gfx.fade = 1;
+    this.transition = { t: 0, phase: 'in', outDur: 0.01, inDur: 1.1, action: null };
+  }
+
+  // -------------------------------------------------------------------
+  // a tela de carregamento
+  // -------------------------------------------------------------------
+
+  updateCarregando(dt) {
+    this.loadT += dt;
+    const DUR = 9.5;
+    const k = clamp(this.loadT / DUR, 0, 1);
+
+    gfx.begin('#000');
+    const ctx = gfx.s;
+
+    // uma frase que muda, como quem lembra o caso aos poucos
+    const linhas = ['load_1', 'load_2', 'load_3', 'load_4'];
+    const idx = Math.min(linhas.length - 1, Math.floor(k * linhas.length));
+    const dentro = (k * linhas.length) % 1;
+    const a = clamp(dentro * 6, 0, 1) * clamp((1 - dentro) * 6, 0, 1);
+    text(ctx, T(linhas[idx]), VW / 2, VH / 2 - 24, {
+      size: 11, font: 'type', weight: 'bold', color: '#6d6458',
+      align: 'center', alpha: a * 0.9,
+    });
+
+    // o mostrador: um traco que enche, e o nome do lugar
+    const w = 150, x = (VW - w) / 2, y = VH / 2 + 8;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#1a1618';
+    ctx.fillRect(x, y, w, 2);
+    ctx.fillStyle = PAL.uiAccent;
+    ctx.fillRect(x, y, Math.round(w * k), 2);
+    ctx.restore();
+    const nome = this.pendente && this.levels[this.pendente.level];
+    text(ctx, nome ? T(nome.nameKey) : '', VW / 2, y + 10, {
+      size: 8, font: 'type', weight: 'bold', color: '#4b453d',
+      align: 'center', track: 2, alpha: 0.9,
+    });
+    text(ctx, T('load_wait'), VW / 2, VH - 26, {
+      size: 7, font: 'type', color: '#3a352f', align: 'center', track: 2, alpha: 0.8,
+    });
+
+    gfx.fade = 0;
+    gfx.present(dt);
+
+    if (this.loadT >= DUR) {
+      const s = this.pendente;
+      this.pendente = null;
+      this._aplicarSave(s);
+    }
   }
 
   // -------------------------------------------------------------------

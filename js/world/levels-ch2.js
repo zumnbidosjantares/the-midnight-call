@@ -401,7 +401,14 @@ export function buildCorridor() {
   M.crate(g, 1140, GY, 1, 5181);
   M.crate(g, 1164, GY, 0, 5191);
   M.crate(g, 1146, GY - 17, 0, 5201);
-  M.debris(g, 1240, GY, 44, 5211);
+  // porta do arquivo morto
+  const dArq = M.doorFrame(g, 1180, GY, 5215);
+  inter.push({
+    x: dArq.x, y: dArq.y, w: dArq.w, h: dArq.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_arquivo', tox: 66, tofacing: 1, range: 30, isDoor: true,
+  });
+  rect(g, 1174, GY, 38, 3, '#2b2620');
+  M.debris(g, 1250, GY, 44, 5211);
   M.puddle(g, 700, GY + 12, 70, 5221);
   M.puddle(g, 1290, GY + 16, 52, 5231);
 
@@ -902,20 +909,16 @@ export function buildLockerRoom() {
   rect(g, 406, GY - 13, 5, 13, '#3a4048');
   rect(g, 480, GY - 13, 5, 13, '#3a4048');
 
-  // ★ O ESPELHO. A unica cena em primeira pessoa do jogo inteiro esta atras
-  // dele — e so para quem insistir tres vezes.
-  const ESP = 560;
-  M.crackedMirror(g, ESP, 44, 54, 62, 5671);
-  rect(g, ESP - 3, 42, 60, 2, '#5c5a52');
-  rect(g, ESP - 3, 106, 60, 3, '#4a4840');
-  // pia embaixo
-  rect(g, ESP - 6, 118, 66, 10, '#9a968c');
-  rect(g, ESP - 6, 118, 66, 2, '#b6b2a6');
-  rect(g, ESP + 20, 128, 6, 14, '#7f7b72');
+  // porta do banheiro — o espelho mudou de sala
+  const dW = M.doorFrame(g, 560, GY, 5671);
   inter.push({
-    x: ESP, y: 44, w: 54, h: 62, prompt: 'prompt_look',
-    action: 'mirror', range: 28, id: 'espelho',
+    x: dW.x, y: dW.y, w: dW.w, h: dW.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_wc', tox: 64, tofacing: 1, range: 30, isDoor: true,
   });
+  rect(g, 554, GY, 38, 3, '#2b2620');
+  // plaquinha de banheiro na porta
+  rect(g, 572, dW.y - 12, 12, 8, '#2a2620');
+  rect(g, 574, dW.y - 10, 8, 4, '#8a8272');
 
   // quadro de escala do mes
   rect(g, 660, 40, 76, 46, '#2a2620');
@@ -948,7 +951,7 @@ export function buildLockerRoom() {
   inter.push({ x: 756, y: GY - 44, w: 30, h: 18, prompt: 'prompt_use', lines: 'c2_radio', range: 24 });
 
   // porta de aco para a camara fria
-  const cd = coldDoor(g, 618, GY, 5721);
+  const cd = coldDoor(g, 650, GY, 5721);
   inter.push({
     x: cd.x, y: cd.y, w: cd.w, h: cd.h, prompt: 'prompt_open',
     action: 'goto', to: 'ch2_cold', tox: 70, tofacing: 1, range: 32, isDoor: true, sfx: 'heavy',
@@ -1008,6 +1011,241 @@ export function buildLockerRoom() {
       ctx.fillStyle = '#4a4a52'; ctx.fillRect(x + 9, y + 2, 4, 4);
     },
   }]);
+  return lvl;
+}
+
+// ---------------------------------------------------------------------------
+// 4b — O BANHEIRO
+//
+// Existe por um motivo só: o espelho estava pendurado a dois metros do chão
+// na parede do vestiário, e ninguém olha para um espelho que fica acima da
+// própria cabeça. Aqui ele está onde espelho fica — em cima da pia, na
+// altura do rosto de um homem de pé.
+// ---------------------------------------------------------------------------
+
+export function buildBathroom() {
+  const W = 420;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+
+  rect(g, 0, 0, W, VH, '#191c1e');
+  // azulejo branco encardido do chão ao teto
+  ditherV(g, 0, 20, W, GY - 20, '#5a5c56', '#43453f', 5);
+  for (let x = 0; x < W; x += 13) rect(g, x, 20, 1, GY - 20, '#33352f');
+  for (let y = 20; y < GY; y += 13) rect(g, 0, y, W, 1, '#33352f');
+  grainRect(g, 0, 20, W, GY - 20, ['#3d3f39', '#63655d'], 0.06, 6201);
+  rect(g, 0, 0, W, 20, '#101211');
+  // azulejos faltando, e o reboco atrás
+  for (const [mx, my] of [[70, 60], [83, 60], [212, 112], [316, 47], [329, 60]]) {
+    rect(g, mx, my, 12, 12, '#3a332c');
+    grainRect(g, mx, my, 12, 12, ['#2c2620', '#463d34'], 0.2, 6211 + mx);
+  }
+  M.asphalt(g, 0, GY, W, VH - GY, 6221, { hi: '#43443e', mid: '#33342f', dk: '#232420' });
+  rect(g, 0, GY, W, 1, '#0d0f0d');
+
+  const inter = [];
+  const lights = [];
+
+  const ex = M.doorFrame(g, 34, GY, 6231);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_locker', tox: 592, tofacing: -1, range: 30, isDoor: true,
+  });
+
+  // três cabines, uma com a porta arrancada
+  for (let i = 0; i < 3; i++) {
+    const cx = 240 + i * 58;
+    rect(g, cx, GY - 96, 3, 96, '#5a6b64');
+    rect(g, cx, GY - 96, 3, 96 - 60, '#6b7d75');
+    if (i !== 1) {
+      rect(g, cx + 3, GY - 92, 52, 88, '#4e5f58');
+      rect(g, cx + 3, GY - 92, 52, 2, '#63756d');
+      rect(g, cx + 46, GY - 52, 4, 4, '#8f959e');
+    } else {
+      rect(g, cx + 3, GY - 92, 52, 88, '#101413');
+      // vaso, lá no fundo do escuro
+      rect(g, cx + 22, GY - 26, 16, 26, '#8a8d86');
+      rect(g, cx + 20, GY - 30, 20, 6, '#9a9d96');
+    }
+  }
+  rect(g, 240, GY - 99, 178, 3, '#5a6b64');
+
+  // ---- a bancada de pias ----
+  const PIA = 96;
+  rect(g, PIA - 8, 150, 118, 8, '#9a968c');
+  rect(g, PIA - 8, 150, 118, 2, '#b6b2a6');
+  rect(g, PIA - 8, 158, 118, 4, '#6b6860');
+  for (const px of [PIA + 8, PIA + 74]) {
+    rect(g, px - 10, 152, 24, 6, '#8a8780');
+    rect(g, px - 2, 144, 4, 8, '#a8a49a');
+    rect(g, px - 4, 142, 8, 3, '#c2beb2');
+    rect(g, px + 8, 162, 4, 18, '#7f7b72');
+  }
+
+  // ★ O ESPELHO — pequeno, e na altura do rosto de quem está em pé.
+  // Um homem de 62px com os pés em 214 tem os olhos por volta de 165.
+  const ESP = 88, ESPY = 108;
+  M.crackedMirror(g, ESP, ESPY, 40, 40, 6241);
+  rect(g, ESP - 2, ESPY - 2, 44, 2, '#6b6860');
+  rect(g, ESP - 2, ESPY + 40, 44, 2, '#4a4840');
+  inter.push({
+    x: ESP, y: ESPY, w: 40, h: 40, prompt: 'prompt_look',
+    action: 'mirror', range: 26, id: 'espelho', prio: 1,
+  });
+
+  // luminária piscando em cima da pia
+  rect(g, ESP - 4, 88, 48, 5, '#2a3038');
+  rect(g, ESP, 93, 40, 2, '#dfe8f0');
+  lights.push({ x: ESP + 20, y: 96, r: 132, color: '#cfe0f0', i: 0.62, flick: 'bulb', falloff: 1.05 });
+  lights.push({ x: ESP + 20, y: 96, r: 22, color: '#ffffff', i: 0.5, flick: 'bulb' });
+  lights.push({ x: 300, y: 60, r: 128, color: '#8fa8c8', i: 0.34, falloff: 1.3 });
+  lights.push({ x: 200, y: 190, r: 120, color: '#6a7a86', i: 0.22, falloff: 1.4 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.15) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 10, '#040505');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#040505');
+
+  return new Level({
+    key: 'ch2_wc',
+    nameKey: 'loc_wc',
+    width: W, groundY: GY,
+    ambient: '#39414e',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.15 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.14,
+    minX: 30, maxX: W - 40,
+    spawn: { x: 64, facing: 1 },
+    bloom: 0.5,
+    indoor: true,
+    safe: true,
+    ambience: [{ n: 'roomtone', g: 0.1 }],
+    randomSfx: [{ fn: 'drip', min: 3, max: 8, vol: 0.9 }],
+    maxInimigos: 0,
+    esconderijos: [298],
+    enterBarks: ['b2_wc_1'],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 2b — ARQUIVO MORTO
+//
+// A gaveta do D não estava no arquivo do escritório. Ela está aqui — e
+// continua vazia.
+// ---------------------------------------------------------------------------
+
+export function buildArchive() {
+  const W = 620;
+
+  const main = makeBuffer(W, VH);
+  const g = main.x;
+  warehouseWall(g, W, 6301, { corte: 100 });
+  damp(g, [150, 420], 104);
+
+  const inter = [];
+  const lights = [];
+
+  const ex = M.doorFrame(g, 40, GY, 6311);
+  inter.push({
+    x: ex.x, y: ex.y, w: ex.w, h: ex.h, prompt: 'prompt_open',
+    action: 'goto', to: 'ch2_corridor', tox: 1180, tofacing: -1, range: 30, isDoor: true,
+  });
+
+  // corredor de arquivos de aço, do chão ao teto
+  for (let i = 0; i < 7; i++) {
+    const x = 130 + i * 62;
+    rect(g, x, GY - 108, 46, 108, '#39434e');
+    rect(g, x, GY - 108, 46, 2, '#4c5866');
+    rect(g, x + 44, GY - 108, 2, 108, '#232a32');
+    for (let j = 0; j < 6; j++) {
+      const dy = GY - 104 + j * 17;
+      // a gaveta aberta, e vazia
+      if (i === 3 && j === 3) {
+        rect(g, x + 3, dy, 40, 14, '#0b0e12');
+        rect(g, x + 3, dy, 40, 2, '#151a20');
+        rect(g, x + 1, dy + 2, 3, 12, '#414c58');
+        continue;
+      }
+      rect(g, x + 3, dy, 40, 14, '#414c58');
+      rect(g, x + 3, dy, 40, 1, '#556374');
+      rect(g, x + 17, dy + 5, 12, 3, '#8f959e');
+      rect(g, x + 6, dy + 4, 8, 5, '#b9b0a2');
+    }
+  }
+  inter.push({
+    x: 316, y: GY - 60, w: 46, h: 22, prompt: 'prompt_look',
+    lines: 'c2_gavetaD', range: 30, prio: 1,
+  });
+
+  M.debris(g, 480, GY, 50, 6321);
+  M.crate(g, 560, GY, 1, 6331);
+  // papel espalhado pelo chão, como se alguém tivesse procurado com pressa
+  {
+    const rnd = mulberry32(6341);
+    for (let i = 0; i < 80; i++) {
+      const x = 120 + rnd() * 460;
+      g.globalAlpha = 0.3 + rnd() * 0.4;
+      rect(g, x, GY + 2 + rnd() * 42, 4 + rnd() * 5, 3, '#8f8878');
+    }
+    g.globalAlpha = 1;
+  }
+
+  emergencyLamp(g, 300, 48);
+  lights.push({ x: 307, y: 58, r: 190, color: '#c98a5e', i: 0.66, falloff: 1.12 });
+  lights.push({ x: 307, y: 192, r: 130, color: '#a8804e', i: 0.28, falloff: 1.35 });
+  lights.push({ x: 90, y: 160, r: 120, color: '#7d6a52', i: 0.26, falloff: 1.4 });
+  lights.push({ x: 540, y: 160, r: 120, color: '#7d6a52', i: 0.24, falloff: 1.4 });
+
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.2) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 12, '#030202');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#030202');
+  rect(fore.x, 250, 0, 9, VH, '#050607');
+
+  const lvl = new Level({
+    key: 'ch2_arquivo',
+    nameKey: 'loc_arquivo',
+    width: W, groundY: GY,
+    ambient: '#262d3a',
+    layers: [{ c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.2 }],
+    lightDefs: lights,
+    interactables: inter,
+    weather: 'none',
+    reflect: 0.05,
+    minX: 30, maxX: W - 40,
+    spawn: { x: 66, facing: 1 },
+    bloom: 0.42,
+    indoor: true,
+    ambience: [{ n: 'hall', g: 0.08 }],
+    randomSfx: [{ fn: 'metalCreak', min: 10, max: 24, vol: 0.7 }],
+    spawnTipos: ['semrosto'],
+    ritmo: 48,
+    maxInimigos: 1,
+    esconderijos: [420],
+    enterBarks: ['b2_arq_1'],
+    barks: [{ x: 330, key: 'b2_arq_2', range: 60 }],
+  });
+
+  // A CHAVE DA ESCADA. Sem ela o mezanino não abre — e sem o mezanino a
+  // perseguição não começa. É o que garante que ninguém encare o Credor
+  // de mãos vazias.
+  itensSoltos(lvl, [{
+    id: 'chave', x: 331, y: GY - 52,
+    draw: (ctx, x, y) => {
+      ctx.fillStyle = '#b09258'; ctx.fillRect(x, y + 2, 10, 2);
+      ctx.fillRect(x + 9, y, 4, 6);
+      ctx.fillStyle = '#8a6a38'; ctx.fillRect(x, y + 4, 3, 2);
+      ctx.fillRect(x + 4, y + 4, 2, 2);
+    },
+  }]);
+  inter.push({
+    x: 326, y: GY - 58, w: 22, h: 16, prompt: 'prompt_take',
+    action: 'take_key', range: 24, id: 'chave', prio: 2,
+  });
+
   return lvl;
 }
 
@@ -1250,9 +1488,16 @@ export function buildMachineRoom() {
     rect(g, 866 + i * 2, GY - 14 - i * 14, 24, 3, '#3d434b');
     rect(g, 866 + i * 2, GY - 14 - i * 14, 24, 1, '#525a64');
   }
+  // A escada do mezanino fica TRANCADA. Sem a chave do arquivo — que está
+  // do outro lado do galpão — ninguém sobe. E como a perseguição só começa
+  // quando ele desce de lá, isso garante que o Credor nunca apareça com o
+  // detetive de mãos vazias.
+  rect(g, 878, GY - 46, 12, 20, '#2a3038');
+  rect(g, 881, GY - 40, 6, 8, '#b09258');
   inter.push({
     x: 880, y: GY - 44, w: 44, h: 44, prompt: 'prompt_open',
     action: 'goto', to: 'ch2_mezz', tox: 80, tofacing: 1, range: 34,
+    precisa: 'chave', semChave: 'b2_trancado',
   });
 
   for (const lx of [340, 700]) {
@@ -1521,8 +1766,10 @@ export function buildChapter2() {
   return {
     ch2_corridor: buildCorridor(),
     ch2_office: buildOffice(),
+    ch2_arquivo: buildArchive(),
     ch2_shelves: buildShelves(),
     ch2_locker: buildLockerRoom(),
+    ch2_wc: buildBathroom(),
     ch2_cold: buildColdStore(),
     ch2_machines: buildMachineRoom(),
     ch2_mezz: buildMezzanine(),

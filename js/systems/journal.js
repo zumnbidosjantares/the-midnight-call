@@ -167,10 +167,11 @@ export class Journal {
     // diz de quem e.
     const corpo = tx(e);
     const mostrado = corpo.slice(0, Math.ceil(corpo.length * this.write));
-    const linhas = wrap(mostrado, w - 28, { size: 11, font: 'serif' });
+    const linhas = wrap(mostrado, w - 28, { size: 10, font: 'type', weight: 'bold' });
     for (let i = 0; i < linhas.length; i++) {
       text(ctx, linhas[i], x + 14, y + 36 + i * 12, {
-        size: 11, font: 'serif', color: e.alheia ? '#7e211a' : '#2e2620', alpha: a,
+        size: 10, font: 'type', weight: 'bold',
+        color: e.alheia ? '#7e211a' : '#2e2620', alpha: a,
       });
     }
 

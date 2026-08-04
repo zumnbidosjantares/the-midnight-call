@@ -11,21 +11,19 @@
 import { clamp, VW } from '../core/gfx.js';
 import { audio } from '../core/audio.js';
 import { Detective } from '../art/detective.js';
+import { partesDe } from '../art/creatures.js';
 
 export const TIPOS = {
   // OS EMPILHADOS — corpo dobrado sobre si mesmo como cadeira empilhada,
   // andando de quatro. Vem das cadeiras arrumadas no meio do estrago do
   // bar: ordem imposta sobre destruicao.
   empilhado: {
-    // Tingimento forte demais apaga a sombra interna do boneco e a coisa
-    // vira um borrao claro rastejando. O que tem que se ler e um CORPO
-    // dobrado errado — para isso o desenho de baixo precisa continuar
-    // aparecendo por dentro da cor.
-    // E a mesma regra da paleta do jogo inteiro: a cena e MULTIPLICADA pela
-    // luz, entao cor "realista" vira preto. Estes tons parecem claros
-    // demais no codigo e saem certos na tela.
-    anim: 'crawl', vel: 26, hp: 3, dano: 15, alcance: 22, recarga: 1.5,
-    tint: '#6b5a62', tintK: 0.62, faceless: true, scaleX: 1.14, scaleY: 0.82,
+    anim: 'crawl', vel: 26, hp: 3, dano: 15, alcance: 24, recarga: 1.5,
+    scaleX: 1.14, scaleY: 0.82,
+    // Andando de quatro ele ocupa uns 34px de altura, nao 62. Sem declarar
+    // isso, o golpe e a bala passavam POR CIMA dele e nada acontecia — era
+    // o inimigo mais dificil de acertar do jogo, e por acidente.
+    altura: 34, largura: 26,
   },
   // OS SEM-ROSTO — gente normal, roupa normal, rosto ALISADO. Andam devagar,
   // cercam, e so machucam quem ficou sem saida. Sao as pessoas que ele nao
@@ -35,24 +33,24 @@ export const TIPOS = {
     // fazia eles brilharem no escuro e a coisa virava assombracao de
     // lencol — o medo aqui e outro: sao pessoas, e ele nao lembra a cara
     // de nenhuma.
-    anim: 'shamble', vel: 17, hp: 2, dano: 11, alcance: 19, recarga: 1.9,
-    tint: '#6e6a79', tintK: 0.7, faceless: true, scaleX: 1, scaleY: 1,
+    anim: 'shamble', vel: 17, hp: 2, dano: 11, alcance: 21, recarga: 1.9,
+    scaleX: 1, scaleY: 1, altura: 62, largura: 22,
     encara: true,
   },
   // O ECOADOR — nao ataca. Onde ele aparece, coisa ruim vem. Quando esta
   // perto, TOCA TELEFONE, e o som vem do nada.
   ecoador: {
     anim: 'shamble', vel: 13, hp: 0, dano: 0, alcance: 0, recarga: 0,
-    silhueta: '#05050a', alpha: 0.5, scaleX: 0.8, scaleY: 1.08,
+    alpha: 0.62, scaleX: 0.86, scaleY: 1.06, altura: 66, largura: 20,
     alarme: true, invulneravel: true,
   },
-  // O CREDOR — a conta com pernas. Alto demais, o sobretudo dele grande
-  // demais, arrastando no chao, e o cano do galpao na mao direita. Nao
-  // morre. Tiro faz ele parar; nada mais.
+  // O CREDOR — a conta com pernas. Avental de acougueiro por cima do
+  // sobretudo, cabeca de porco costurada em pano de saco, e uma motosserra
+  // que nao desliga. Nao morre. Tiro faz ele parar; nada mais.
   credor: {
-    anim: 'dragWalk', vel: 30, hp: 0, dano: 34, alcance: 24, recarga: 2.4,
-    silhueta: '#050406', scaleX: 1.04, scaleY: 1.34, invulneravel: true,
-    cano: true, pesado: true,
+    anim: 'dragWalk', vel: 30, hp: 0, dano: 34, alcance: 26, recarga: 2.4,
+    scaleX: 1.06, scaleY: 1.3, invulneravel: true, altura: 80, largura: 26,
+    pesado: true, serra: true,
   },
 };
 
@@ -76,21 +74,30 @@ export class Enemy {
     this._px = x;
 
     const d = this.det = new Detective();
-    // Contorno frio um pouco mais forte que o do detetive. Eles vivem no
-    // escuro, e sem essa casquinha de luz na borda somem no cenario — o
-    // susto tem que vir de ver, nao de nao ver.
-    d.rimAlpha = this.cfg.silhueta ? 0 : 0.34;
+    // Cada criatura tem as PECAS dela agora: cabeca, tronco, membros. Nao
+    // e mais o detetive recolorido — recolorir dava um clone dele com
+    // outra tinta, e o que o jogo precisa e que cada uma seja reconhecivel
+    // como uma ideia.
+    d.parts = partesDe(tipo);
+    // Contorno frio. Eles vivem no escuro, e sem essa casquinha de luz na
+    // borda somem no cenario — o susto tem que vir de ver, nao de nao ver.
+    d.rimAlpha = 0.34;
     d.rimColor = '#8fa8c8';
     d.reflect = 0;
-    d.faceless = !!this.cfg.faceless;
-    if (this.cfg.silhueta) d.silhouette = this.cfg.silhueta;
-    else { d.tint = this.cfg.tint; d.tintK = this.cfg.tintK; }
     d.scaleX = this.cfg.scaleX || 1;
     d.scaleY = this.cfg.scaleY || 1;
     d.alpha = this.alpha;
-    if (this.cfg.cano) d.props.pipe = 'hand';
     d.onEvent = (ev) => this._evento(ev);
     d.play(this.cfg.anim, { blend: 0 });
+  }
+
+  // Caixa do corpo em coordenadas de mundo. Cada criatura declara a sua:
+  // quem anda de quatro nao tem 62px de altura, e o jogo precisa saber
+  // disso para o golpe acertar.
+  caixa() {
+    const w = (this.cfg.largura || 22) / 2;
+    const h = this.cfg.altura || 62;
+    return { x0: this.x - w, x1: this.x + w, y0: this.y - h, y1: this.y };
   }
 
   // Som de passo com volume pela distancia. Fora do alcance nem toca: um
@@ -176,13 +183,20 @@ export class Enemy {
       return;
     }
 
-    if (dist > this.cfg.alcance - 4) {
+    // Para a uma distancia de braco, e NAO entra dentro do jogador. Antes
+    // eles atravessavam o corpo dele: o sinal de dx invertia, o bicho
+    // ficava girando, e o golpe do jogador — que so olha para a frente —
+    // nunca achava ninguem.
+    const parada = this.cfg.alcance * 0.8;
+    if (dist > parada) {
       this.facing = dir;
       d.setFacing(dir);
       this.x += dir * this.cfg.vel * dt;
       if (level) this.x = clamp(this.x, level.minX - 30, level.maxX + 30);
       if (d.anim !== this.cfg.anim) d.play(this.cfg.anim, { blend: 0.2 });
       if (this.cfg.encara && Math.random() < dt * 0.08) this.encaraT = 1.4 + Math.random() * 1.6;
+    } else if (d.anim !== 'idle' && this.cd > 0.4) {
+      d.play('idle', { blend: 0.25 });
     }
     d.update(dt);
   }
@@ -335,17 +349,36 @@ export class Director {
     for (const e of this.lista) e.draw(ctx, cam);
   }
 
-  // Inimigo mais perto do jogador dentro de um alcance, opcionalmente so
-  // do lado para onde ele esta virado.
-  maisPerto(x, alcance, facing) {
+  // Quem esta dentro de uma caixa. Substitui o "mais perto em X" antigo,
+  // que era a raiz do combate quebrado: ele ignorava a ALTURA, entao um
+  // bicho de quatro no chao e um homem em pe eram a mesma coisa para o
+  // golpe. Agora e sobreposicao de retangulo, como tem que ser.
+  dentroDe(cx) {
+    const out = [];
+    for (const e of this.lista) {
+      if (e.state === 'dead' || e.cfg.alarme) continue;
+      const b = e.caixa();
+      if (b.x1 < cx.x0 || b.x0 > cx.x1 || b.y1 < cx.y0 || b.y0 > cx.y1) continue;
+      out.push(e);
+    }
+    return out;
+  }
+
+  // A bala: uma reta saindo da boca do cano. Testa a altura da linha na
+  // distancia de cada inimigo — mirar para baixo agora ACERTA quem esta
+  // rastejando, que antes era impossivel.
+  naLinhaDoTiro(ox, oy, facing, angGraus, alcance = 240) {
+    const tan = Math.tan(-angGraus * Math.PI / 180);
     let melhor = null, bd = 1e9;
     for (const e of this.lista) {
-      if (e.state === 'dead') continue;
-      if (e.cfg.alarme) continue;         // no Ecoador nao se bate
-      const dx = e.x - x;
-      if (facing && Math.sign(dx) !== facing && Math.abs(dx) > 8) continue;
-      const d = Math.abs(dx);
-      if (d < alcance && d < bd) { bd = d; melhor = e; }
+      if (e.state === 'dead' || e.cfg.alarme) continue;
+      const dx = (e.x - ox) * facing;
+      if (dx < -6 || dx > alcance) continue;
+      const y = oy + tan * dx;
+      const b = e.caixa();
+      // margem de 5px: a mira e uma nocao, nao um laser
+      if (y < b.y0 - 5 || y > b.y1 + 5) continue;
+      if (dx < bd) { bd = dx; melhor = e; }
     }
     return melhor;
   }

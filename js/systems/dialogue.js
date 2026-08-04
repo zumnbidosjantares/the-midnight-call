@@ -111,7 +111,7 @@ export class Dialogue {
 
   _wrapCur() {
     const l = this.lines[this.idx];
-    this.wrapped = wrap(l.text, BOX_W - 24, { size: 10, font: 'ui' });
+    this.wrapped = wrap(l.text, BOX_W - 24, { size: 10, font: 'type', weight: 'bold' });
     this.total = l.text.length;
   }
 
@@ -213,7 +213,7 @@ export class Dialogue {
     let ty = y + 10;
     if (l.name) {
       text(ctx, l.name, BOX_X + 12, y - 12, {
-        size: 10, font: 'ui', weight: 'bold', color: PAL.uiAccent, track: 1,
+        size: 10, font: 'type', weight: 'bold', color: PAL.uiAccent, track: 1,
         shadow: true, alpha: a,
       });
     }
@@ -224,7 +224,8 @@ export class Dialogue {
       if (shown <= 0) break;
       const part = ln.length <= shown ? ln : ln.slice(0, shown);
       text(ctx, part, BOX_X + 12, ty, {
-        size: 10, font: l.name ? 'ui' : 'ui', color: l.name ? PAL.uiText : '#b9b0a2',
+        size: 10, font: 'type', weight: 'bold',
+        color: l.name ? '#ddd4c2' : '#c4bbab',
         shadow: true, shadowColor: '#000', alpha: a,
       });
       shown -= ln.length;
@@ -283,7 +284,7 @@ export class Dialogue {
         });
       }
       text(ctx, label, x + 18, y + 5 + i * lh, {
-        size: 9, font: 'ui', weight: sel ? 'bold' : 'normal', color: cor, alpha: a, track: 1,
+        size: 9, font: 'type', weight: 'bold', color: cor, alpha: a, track: 1,
       });
     }
   }

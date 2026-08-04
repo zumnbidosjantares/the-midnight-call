@@ -52,9 +52,12 @@ export class Sanity {
     const antes = this.state;
     this.value = clamp(this.value - n, 0, 100);
     if (forte || n >= 6) {
-      this.pulse = Math.min(1, this.pulse + 0.5 + n * 0.02);
+      this.pulse = Math.min(1, this.pulse + 0.35 + n * 0.012);
       audio.heartbeat(0.5 + Math.min(0.5, n * 0.03));
-      gfx.shake(1.2 + n * 0.06, 0.3);
+      // Tremor so nos baques grandes, e curto. O tremor continuo do estado
+      // VAZANDO foi removido: ele fazia a tela chacoalhar o tempo todo e
+      // era impossivel andar em linha reta.
+      if (n >= 8) gfx.shake(1.0 + n * 0.03, 0.22);
     }
     if (this.state !== antes && this.onEvent) this.onEvent('worse');
   }
@@ -119,21 +122,17 @@ export class Sanity {
   }
 
   // Efeitos de imagem. Chamado depois da luz, antes do present().
+  //
+  // CALIBRAGEM: a vinheta chegava a 2,15 e fechava a tela inteira — o
+  // jogador nao conseguia ver o que estava acontecendo durante a fuga,
+  // que e justamente quando ele mais precisa ver. O teto agora e 1,35, e
+  // o pulso do baque entra com um quarto da forca que tinha.
   apply() {
     const v = this.shown;
-    // vinheta fecha conforme ele piora
     const k = clamp((100 - v) / 100, 0, 1);
-    gfx.vignetteAmount = 0.9 + k * 0.75 + this.pulse * 0.5;
+    gfx.vignetteAmount = clamp(0.9 + k * 0.34 + this.pulse * 0.12, 0.9, 1.35);
     // o grao sobe pouco: acima de um ponto ele come o rosto (B-16)
-    gfx.grainExtra = k * 0.012;
-  }
-
-  // Tremor continuo de imagem no estado VAZANDO para baixo. Nao e o shake
-  // do impacto — e mais fraco e nunca para, que e o pior.
-  jitter() {
-    const st = this.state;
-    if (st < SAN_LEAK) return 0;
-    return st === SAN_GONE ? 0.55 : 0.25;
+    gfx.grainExtra = k * 0.006;
   }
 
   save() { return { v: Math.round(this.value), on: this.enabled }; }

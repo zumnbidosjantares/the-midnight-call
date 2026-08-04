@@ -13,20 +13,22 @@
 // numa cadeira que nao existe mais.
 
 import { Detective } from '../art/detective.js';
+import { partesDe } from '../art/creatures.js';
 
 export const NPCS = {
+  // O ZELADOR. Macacao verde desbotado e um esfregao que ele nunca larga —
+  // nem sentado, nem falando com voce. Ele esta no turno dele, e o turno
+  // dele acabou ha dez anos.
   vigia: {
-    level: 'ch2_office', x: 506, facing: -1,
-    anim: 'sitChair', tint: '#4a4436', tintK: 0.6,
+    level: 'ch2_office', x: 508, facing: -1,
+    anim: 'sitChair', arte: 'zelador',
     talk: 'vigia', prompt: 'prompt_talk',
-    // uniforme desbotado; nada nele reage ao estado do lugar
-    luz: null,
   },
+  // A TELEFONISTA. Cabelo preso, vestido de trabalho vinho, gola branca.
   operadora: {
-    level: 'ch2_mezz', x: 636, facing: -1,
-    anim: 'switchboard', tint: '#5a3040', tintK: 0.62,
+    level: 'ch2_mezz', x: 638, facing: -1,
+    anim: 'switchboard', arte: 'operadora',
     talk: 'operadora', prompt: 'prompt_talk',
-    luz: null,
   },
 };
 
@@ -38,9 +40,11 @@ export class Npc {
     this.facing = c.facing;
     this.falado = false;
     const d = this.det = new Detective();
-    d.tint = c.tint;
-    d.tintK = c.tintK;
-    d.rimAlpha = 0;
+    // Peças próprias. Antes eles eram o detetive tingido — literalmente a
+    // mesma pessoa, um sentado e o outro quase de quatro. Agora cada um
+    // tem cabeça, tronco e roupa dele.
+    d.parts = partesDe(c.arte);
+    d.rimAlpha = 0.16;
     d.reflect = 0;
     d.facing = c.facing;
     d.flipT = 1;

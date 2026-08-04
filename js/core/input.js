@@ -22,6 +22,7 @@ const BINDINGS = {
   // Capitulo 2
   journal:  ['KeyQ'],
   bag:      ['Tab'],
+  map:      ['KeyM'],
   light:    ['KeyF'],
   breath:   ['ShiftLeft', 'ShiftRight'],
 };

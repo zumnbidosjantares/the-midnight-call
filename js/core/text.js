@@ -16,6 +16,15 @@ const FONTS = {
   serif:  'Georgia,"Times New Roman",serif',
   title:  'Impact,Haettenschweiler,"Arial Black","Franklin Gothic Heavy",sans-serif',
   mono:   'Consolas,"Courier New",monospace',
+  // Maquina de escrever. E a fonte de TODA fala do jogo — o que ele diz
+  // sozinho, o que os outros dizem, e o que ele escreve no caderno.
+  //
+  // Georgia a 10px passava por um corte duro de alpha e perdia metade dos
+  // tracos finos: sobrava um borrao ilegivel. Courier tem haste grossa e
+  // uniforme, que e exatamente o que sobrevive a esse corte — e ainda por
+  // cima e a letra de relatorio policial, que e o que ele passou a vida
+  // escrevendo.
+  type:   '"Courier New",Courier,"DejaVu Sans Mono","Liberation Mono",monospace',
 };
 
 const cache = new Map();

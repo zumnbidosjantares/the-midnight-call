@@ -174,6 +174,41 @@ const STR = {
   loc_machines:   { pt: 'SALA DE MAQUINAS',     en: 'MACHINE ROOM' },
   loc_mezz:       { pt: 'MEZANINO',             en: 'MEZZANINE' },
   loc_dock:       { pt: 'DOCA 3',               en: 'DOCK 3' },
+  loc_wc:         { pt: 'BANHEIRO',             en: 'WASHROOM' },
+  loc_arquivo:    { pt: 'ARQUIVO MORTO',        en: 'DEAD FILES' },
+
+  b2_wc_1:    { pt: 'Azulejo branco. Alguém já achou que isso aqui fosse limpo.',
+                en: 'White tile. Somebody once thought this place was clean.' },
+  b2_arq_1:   { pt: 'Arquivo morto. Nome apropriado.',
+                en: 'Dead files. Fitting name.' },
+  b2_arq_2:   { pt: 'Alguém procurou alguma coisa aqui. Com pressa.',
+                en: 'Somebody searched in here. In a hurry.' },
+  b2_chave_1: { pt: 'Uma chave. Na gaveta que estava faltando lá no escritório.',
+                en: 'A key. In the drawer that was missing from the office.' },
+  b2_chave_2: { pt: 'Claro que estava aqui.',
+                en: 'Of course it was here.' },
+  b2_trancado:{ pt: 'Trancado. Precisa de chave.',
+                en: 'Locked. Needs a key.' },
+
+  // ---------- tela de carregamento ----------
+  load_1: { pt: 'Duas e quatorze da manhã.',            en: 'Two fourteen in the morning.' },
+  load_2: { pt: 'O telefone tocou. Ele atendeu.',       en: 'The phone rang. He answered.' },
+  load_3: { pt: 'Não existe aposentadoria pra consciência.',
+            en: 'There is no retirement for a conscience.' },
+  load_4: { pt: 'Ela bate ponto todos os dias.',        en: 'It clocks in every day.' },
+  load_wait: { pt: 'CARREGANDO',                        en: 'LOADING' },
+
+  hud_hp:  { pt: 'CORPO',    en: 'BODY' },
+  hud_san: { pt: 'CABECA',   en: 'MIND' },
+
+  // ---------- o mapa ----------
+  map_title:  { pt: 'PLANTA BAIXA — GALPAO',  en: 'FLOOR PLAN — WAREHOUSE' },
+  map_hint:   { pt: 'M  FECHAR',              en: 'M  CLOSE' },
+  map_here:   { pt: 'VOCE ESTA AQUI',         en: 'YOU ARE HERE' },
+  map_none:   { pt: 'Sem mapa. Deve ter um em algum escritório.',
+                en: 'No map. There must be one in an office somewhere.' },
+  map_mark:   { pt: 'alguém marcou a doca 3 a lápis',
+                en: 'someone pencilled a mark on dock 3' },
 
   speaker_me:     { pt: 'EU',      en: 'ME' },
   talk_leave:     { pt: 'Deixa pra lá.', en: 'Never mind.' },
@@ -681,6 +716,12 @@ export const LINES = {
     { pt: 'Nenhum dos cabos vai a lugar nenhum.',
       en: 'None of the cords go anywhere.' },
   ],
+  c2_gavetaD: [
+    { pt: 'A gaveta do D. Aberta, e vazia.',
+      en: 'The D drawer. Open, and empty.' },
+    { pt: 'Tinha alguma coisa aqui. Não tem mais.',
+      en: 'There was something in here. Not anymore.' },
+  ],
   c2_railing: [
     { pt: 'Daqui dá pra ver o galpão inteiro.',
       en: 'From up here you can see the whole warehouse.' },
@@ -705,7 +746,7 @@ export const LINES = {
 
 export const TALKS = {
   vigia: {
-    speaker: { pt: 'VIGIA', en: 'NIGHT WATCHMAN' },
+    speaker: { pt: 'ZELADOR', en: 'CARETAKER' },
     start: 'a',
     nodes: {
       a: {
@@ -821,8 +862,8 @@ export const JOURNAL = {
                en: 'Every door in this warehouse locks from the outside.' },
   j_clock:   { cat: 'clue', pt: 'Relógio de ponto parado em 02h14. Mesma hora da ligação.',
                en: 'Punch clock stopped at 2:14. Same time as the call.' },
-  j_vigia:   { cat: 'people', pt: 'O vigia. Fala de um turno que acabou há dez anos. Sabe o meu nome, e eu não disse.',
-               en: 'The watchman. Talks about a shift that ended ten years ago. Knows my name, and I never said it.' },
+  j_vigia:   { cat: 'people', pt: 'O zelador. Fala de um turno que acabou há dez anos. Sabe o meu nome, e eu não disse.',
+               en: 'The caretaker. Talks about a shift that ended ten years ago. Knows my name, and I never said it.' },
   j_conv:    { cat: 'clue', pt: 'Cada coisa de que eu preciso aparece no minuto em que eu preciso.',
                en: 'Everything I need turns up the minute I need it.' },
   j_ammo:    { cat: 'clue', pt: 'Achei munição antes de achar arma. Nessa ordem.',

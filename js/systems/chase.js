@@ -53,18 +53,55 @@ export class Chase {
     this.apagou = 0;
     this.estado = 'cacar';
     this.levelKey = deLevel;
+    this.jogadorLevel = deLevel;
     this.lastX = deX;
-    this.chegada = 6;          // ele nao aparece junto: primeiro se ouve
+    this.chegada = 8;          // ele nao aparece junto: primeiro se ouve
+    this.dano = 0;
     this.credor = new Enemy('credor', deX, 214);
     this.levels = levels;
     audio.startDread();
+    // A motosserra comeca a roncar AGORA, no outro lado do galpao, e nao
+    // para mais ate o fim do capitulo.
+    audio.startLoop('serra', { gain: 0.04, fade: 3 });
   }
 
   parar() {
     this.ativo = false;
     this.credor = null;
     audio.stopDread(1.2);
+    audio.stopLoop('serra', 1.6);
     this._restaurar();
+  }
+
+  // Estado salvavel. Sem isto, carregar um save feito no meio da fuga
+  // devolvia o jogador a um galpao apagado, com a musica de tensao tocando
+  // e SEM o Credor — e com o portao da doca fechado, ou seja, sem saida.
+  save() {
+    if (!this.ativo) return null;
+    return {
+      lvl: this.levelKey, x: Math.round(this.credor ? this.credor.x : 0),
+      lastX: Math.round(this.lastX), apagou: this.apagou,
+      t: Math.round(this.t), estado: this.estado,
+    };
+  }
+
+  load(d, levels, levelKeyDoJogador) {
+    if (!d) { this.ativo = false; this.credor = null; return; }
+    this.comecar(levels, d.lvl, d.x || 0);
+    this.t = d.t || 0;
+    this.lastX = d.lastX || 0;
+    this.estado = d.estado || 'cacar';
+    this.jogadorLevel = levelKeyDoJogador;
+    if (this.credor) this.credor.x = d.x || 0;
+    // reaplica o apagao dos setores que ja estavam no escuro
+    this.apagou = 0;
+    for (let i = 0; i < (d.apagou || 0) && i < ORDEM_APAGAR.length; i++) {
+      this._apagarSetor(ORDEM_APAGAR[i]);
+      this.apagou++;
+    }
+    // Se ele estava noutro setor, mantem a distancia — carregar um save
+    // nunca pode devolver o jogador com o Credor colado nele.
+    if (this.levelKey !== levelKeyDoJogador) this.chegada = 9;
   }
 
   // As luzes de emergencia do galpao inteiro comecam a apagar SETOR POR
@@ -102,16 +139,36 @@ export class Chase {
       gfx.shake(1.4, 0.3);
     }
 
+    // ---- trocou de setor: ele NAO vem junto ----
+    //
+    // Este era o pior defeito da perseguicao. `chegada` era acertado uma
+    // vez, no comeco, e nunca mais: depois da primeira chegada ele ficava
+    // em zero, e trocar de sala punha o Credor em cima do jogador no mesmo
+    // quadro. Fugir nao servia para nada.
+    //
+    // Agora cada porta atravessada compra tempo — pouco, mas compra. E e
+    // esse tempo que transforma o mapa numa ferramenta em vez de numa
+    // sentenca.
+    if (levelKey !== this.jogadorLevel) {
+      this.jogadorLevel = levelKey;
+      if (this.levelKey !== levelKey) {
+        this.chegada = 7 + Math.random() * 4;
+        this.estado = 'cacar';
+      }
+    }
+
     // ---- ele nao esta na sua fase: esta vindo ----
     if (this.levelKey !== levelKey) {
       this.chegada -= dt;
-      // O som chega antes dele. Sempre.
+      // O som chega antes dele. Sempre. A motosserra fica mais alta
+      // conforme ele se aproxima da porta.
+      audio.setLoopGain('serra', clamp(0.10 - this.chegada * 0.008, 0.02, 0.1), 0.6);
       this.buscaT -= dt;
       if (this.buscaT <= 0) {
         this.buscaT = 1.4 + Math.random() * 1.6;
-        audio.dragMetal(clamp(0.5 - this.chegada * 0.03, 0.12, 0.5));
+        audio.dragMetal(clamp(0.4 - this.chegada * 0.02, 0.1, 0.4));
       }
-      audio.setDread(clamp(0.25 - this.chegada * 0.02, 0.1, 0.5));
+      audio.setDread(clamp(0.22 - this.chegada * 0.015, 0.08, 0.42));
       if (this.chegada <= 0) {
         this.levelKey = levelKey;
         // Entra pela porta por onde VOCE entrou, do lado de fora da tela.
@@ -137,8 +194,12 @@ export class Chase {
 
     if (this.estado === 'cacar') {
       const alvo = invisivel ? this.lastX : player.x;
-      const dir = Math.sign(alvo - c.x) || 1;
-      if (Math.abs(alvo - c.x) > 6) {
+      const dir = Math.sign(alvo - c.x) || c.facing;
+      // Zona morta de 14px. Sem ela, com o Credor em cima do jogador o
+      // sinal de `dir` trocava a cada quadro, `setFacing` disparava a
+      // virada toda vez, e ele ficava GIRANDO no lugar para sempre — foi
+      // exatamente o que travou a camara fria.
+      if (Math.abs(alvo - c.x) > 14) {
         c.facing = dir;
         c.det.setFacing(dir);
         // Perto ele acelera um pouco. E o "quase consegue".
@@ -176,14 +237,26 @@ export class Chase {
 
     // ---- tensao pela DISTANCIA, nunca pelo relogio ----
     const k = escondido ? clamp(1 - dist / 300, 0, 1) * 0.8 : clamp(1 - dist / 340, 0, 1);
-    audio.setDread(k);
-    if (k > 0.6 && !escondido) gfx.shake(k * 0.8, 0.2);
+    audio.setDread(k * 0.85);
+    // A motosserra sobe com a proximidade — e ela nunca desliga.
+    audio.setLoopGain('serra', 0.05 + k * 0.16, 0.35);
+    // Tremor SO quando ele esta em cima de voce, e fraco. Antes era a cada
+    // quadro acima de 0.6 e a tela inteira balancava a fuga inteira.
+    if (k > 0.86 && !escondido) gfx.shake(1.1, 0.18);
 
-    // ---- o cano ----
-    if (!escondido && dist < c.cfg.alcance && this.onDano) {
+    // ---- a motosserra ----
+    //
+    // Ele PRECISA machucar. O gancho de dano nunca chegou a ser ligado no
+    // jogo, entao o Credor chegava perto, encostava, e nao acontecia nada
+    // — ele era um susto ambulante sem consequencia nenhuma.
+    if (this.dano > 0) this.dano -= dt;
+    if (!escondido && dist < c.cfg.alcance && this.dano <= 0 && this.onDano) {
+      this.dano = 1.6;
+      audio.punchHit(1.2);
       this.onDano(c.cfg.dano, c.x);
-      // depois de acertar ele para um instante, e da para correr
-      c.stun = 1.3;
+      // Depois de acertar ele para um instante — e e essa janela que da
+      // para correr. Sem ela a coisa vira uma sentenca, nao uma fuga.
+      c.stun = 1.5;
       c.det.play('hurt', { restart: true, blend: 0.06 });
     }
   }

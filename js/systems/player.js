@@ -11,6 +11,7 @@ import { Detective } from '../art/detective.js';
 import { clamp, gfx } from '../core/gfx.js';
 import { input } from '../core/input.js';
 import { audio } from '../core/audio.js';
+import { t as T } from '../i18n.js';
 
 const ACC = 620;
 const FRICTION = 1000;
@@ -376,23 +377,40 @@ export class Player {
   // `agora` corta o que estiver na tela e a fila inteira. Serve para o que
   // ele precisa dizer no instante em que ve — uma poca de sangue nao pode
   // esperar tres falas sobre cadeiras empilhadas.
-  say(key, dur = 2.6, agora = false) {
+  // Quanto tempo uma fala fica na tela.
+  //
+  // Antes era 2,6s para tudo. Uma frase de quatro palavras sobrava na tela
+  // e uma de quinze sumia antes de ser lida — e, entrando numa sala, duas
+  // ou tres falas engatilhadas passavam antes de o jogador terminar o
+  // fade-in. Agora o tempo sai do TAMANHO do que ele diz, com um piso
+  // generoso: ninguem le a 12 caracteres por segundo.
+  _duracao(key) {
+    const s = T(key) || '';
+    return clamp(2.2 + s.length * 0.062, 2.6, 7.0);
+  }
+
+  say(key, dur, agora = false) {
     if (agora) { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
     else {
       if (this.floatText && this.floatText.key === key) return;
       if (this.barkQueue.some(b => b.key === key)) return;
+      // Fila curta de proposito. Ele fala sozinho porque nao tem com quem
+      // falar, nao porque e tagarela — acumular seis frases faz o jogador
+      // parar de ler todas.
+      if (this.barkQueue.length >= 2) return;
     }
-    this.barkQueue.push({ key, dur });
+    this.barkQueue.push({ key, dur: dur || this._duracao(key) });
   }
 
   sayAll(keys, agora = false) {
-    for (let i = 0; i < keys.length; i++) this.say(keys[i], 2.6, agora && i === 0);
+    for (let i = 0; i < keys.length; i++) this.say(keys[i], 0, agora && i === 0);
   }
 
   _updateBarks(dt) {
+    if (this.barkDelay > 0) { this.barkDelay -= dt; return; }
     if (this.floatText) {
       this.floatText.t += dt;
-      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.5; }
+      if (this.floatText.t >= this.floatText.dur) { this.floatText = null; this.barkGap = 0.9; }
     } else if (this.barkGap > 0) {
       this.barkGap -= dt;
     } else if (this.barkQueue.length) {
@@ -401,7 +419,16 @@ export class Player {
     }
   }
 
-  clearBarks() { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
+  clearBarks() {
+    this.floatText = null;
+    this.barkQueue.length = 0;
+    this.barkGap = 0;
+    this.barkDelay = 0;
+  }
+
+  // Ao entrar numa sala a primeira fala espera o fade-in acabar. Sem isso
+  // ela nasce e morre atras da tela preta.
+  atrasarFala(s) { this.barkDelay = s; }
 
   // Alpha da falinha em cima da cabeca: entra rapido, fica, some devagar.
   floatAlpha() {
@@ -457,6 +484,22 @@ export class Player {
     gfx.shake(3.4, 0.35);
     if (this.onHurt) this.onHurt(n, this.hp);
     return true;
+  }
+
+  // Caixa do corpo, em coordenadas de mundo. O jogo inteiro so tinha
+  // distancia em X, e por isso um bicho andando de quatro — que ocupa 30px
+  // de altura e nao 62 — era quase impossivel de acertar: o golpe "passava"
+  // em X e ninguem checava se havia corpo naquela altura.
+  caixa() {
+    return { x0: this.x - 10, x1: this.x + 10, y0: this.y - 60, y1: this.y };
+  }
+
+  // Caixa do golpe: um retangulo na frente dele, na altura do peito ate o
+  // chao. Vai baixo de proposito, para o porrete alcancar quem rasteja.
+  caixaGolpe() {
+    const f = this.facing;
+    const x0 = f > 0 ? this.x + 2 : this.x - 44;
+    return { x0, x1: x0 + 42, y0: this.y - 54, y1: this.y + 4 };
   }
 
   segurarPorrete(sim) {

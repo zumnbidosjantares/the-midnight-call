@@ -790,6 +790,11 @@ export class Detective {
     // contorno some. E assim que a figura negra e feita — o mesmo boneco
     // articulado, sem nenhuma informacao dentro.
     this.silhouette = null;
+    // Troca de peças. Uma criatura só declara o que muda nela; tudo que
+    // faltar cai nas peças do detetive. Peça declarada como `null` não é
+    // desenhada — é assim que os inimigos ficam sem gola, sem aba de
+    // sobretudo e sem coldre.
+    this.parts = null;
     // Recolorir o boneco inteiro: e assim que os NPCs e os Sem-Rosto usam o
     // mesmo esqueleto sem virarem clones do detetive.
     this.tint = null;
@@ -798,6 +803,12 @@ export class Detective {
     this.faceless = false;
     this.scaleX = 1;
     this.scaleY = 1;
+  }
+
+  // Peça `n`, respeitando a troca da criatura.
+  _p(n) {
+    if (this.parts && Object.prototype.hasOwnProperty.call(this.parts, n)) return this.parts[n];
+    return P[n];
   }
 
   play(name, opts = {}) {
@@ -983,6 +994,7 @@ export class Detective {
   _renderRig(g) {
     const p = this.pose;
     const R = a => -a * DEG;
+    const S = (ctx, peca) => { if (peca) stamp(ctx, peca); };
 
     g.save();
     g.translate(ORX + p.hx, ORY + p.hy);
@@ -990,11 +1002,11 @@ export class Detective {
     // ---- perna de tras ----
     g.save();
     g.translate(-LEG_X, HIP_Y);
-    g.rotate(R(p.lBt)); stamp(g, P.dThigh);
+    g.rotate(R(p.lBt)); S(g, this._p('dThigh'));
     g.translate(0, THIGH_LEN);
-    g.rotate(R(p.lBs)); stamp(g, P.dShin);
+    g.rotate(R(p.lBs)); S(g, this._p('dShin'));
     g.translate(0, SHIN_LEN);
-    g.rotate(R(p.lBf - p.lBt - p.lBs)); stamp(g, P.dFoot);
+    g.rotate(R(p.lBf - p.lBt - p.lBs)); S(g, this._p('dFoot'));
     g.restore();
 
     const backArmFront = p.aBu > 42;   // soco de reverso passa para a frente
@@ -1005,32 +1017,38 @@ export class Detective {
     // ---- perna da frente ----
     g.save();
     g.translate(LEG_X, HIP_Y);
-    g.rotate(R(p.lFt)); stamp(g, P.thigh);
+    g.rotate(R(p.lFt)); S(g, this._p('thigh'));
     g.translate(0, THIGH_LEN);
-    g.rotate(R(p.lFs)); stamp(g, P.shin);
+    g.rotate(R(p.lFs)); S(g, this._p('shin'));
     g.translate(0, SHIN_LEN);
-    g.rotate(R(p.lFf - p.lFt - p.lFs)); stamp(g, P.foot);
+    g.rotate(R(p.lFf - p.lFt - p.lFs)); S(g, this._p('foot'));
     g.restore();
 
     // ---- aba do sobretudo (por cima das pernas, por baixo do tronco) ----
-    g.save();
-    g.translate(0, HIP_Y);
-    g.rotate(R(this.skirt));
-    stamp(g, P.coatSkirt);
-    g.restore();
+    const aba = this._p('coatSkirt');
+    if (aba) {
+      g.save();
+      g.translate(0, HIP_Y);
+      g.rotate(R(this.skirt));
+      stamp(g, aba);
+      g.restore();
+    }
 
     // ---- coldre no quadril ----
-    g.save();
-    g.translate(6, HIP_Y + 1);
-    stamp(g, P.holster);
-    if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
-    g.restore();
+    const coldre = this._p('holster');
+    if (coldre) {
+      g.save();
+      g.translate(6, HIP_Y + 1);
+      stamp(g, coldre);
+      if (this.props.gun === 'holstered') { g.translate(1, 0); stamp(g, P.gunButt); }
+      g.restore();
+    }
 
     // ---- tronco ----
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
-    stamp(g, P.torso);
+    S(g, this._p('torso'));
     g.restore();
 
     // ---- cabeca (com a gola atras dela) ----
@@ -1038,16 +1056,19 @@ export class Detective {
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
-    g.save();
-    g.translate(0, 4);
-    stamp(g, P.collar);
-    g.restore();
+    const gola = this._p('collar');
+    if (gola) {
+      g.save();
+      g.translate(0, 4);
+      stamp(g, gola);
+      g.restore();
+    }
     // A cabeca so gira em passos de 7 graus e no maximo 14. Girar um sprite
     // de 14px em angulo qualquer reamostra o rosto e deforma olho e nariz —
     // era isso que "desmanchava a cara do nada".
     g.rotate(R(Math.round(clamp(p.head, -14, 14) / 7) * 7));
     g.translate(1, -1);
-    stamp(g, this.faceless ? P.headBlank : P.head);
+    S(g, this.faceless ? this._p('headBlank') : this._p('head'));
     if (this.props.cig === 'mouth') {
       g.save();
       g.translate(7, -5);
@@ -1067,18 +1088,18 @@ export class Detective {
     const up = front ? p.aFu : p.aBu;
     const fo = front ? p.aFf : p.aBf;
     const R = a => -a * DEG;
-    const sUp = dark ? P.dUpperArm : P.upperArm;
-    const sFo = dark ? P.dForearm : P.forearm;
-    const sHa = dark ? P.dHand : P.hand;
+    const sUp = this._p(dark ? 'dUpperArm' : 'upperArm');
+    const sFo = this._p(dark ? 'dForearm' : 'forearm');
+    const sHa = this._p(dark ? 'dHand' : 'hand');
 
     g.save();
     g.translate(0, HIP_Y);
     g.rotate(R(p.torso));
     g.translate(0, SHOULDER_OFF);
     g.translate(front ? ARM_X : -ARM_X_BACK, 2);
-    g.rotate(R(up)); stamp(g, sUp);
+    g.rotate(R(up)); if (sUp) stamp(g, sUp);
     g.translate(0, UPPER_LEN);
-    g.rotate(R(fo)); stamp(g, sFo);
+    g.rotate(R(fo)); if (sFo) stamp(g, sFo);
     g.translate(0, FORE_LEN);
 
     // A arma vem ANTES da mao, para os dedos ficarem por cima do cabo. E
@@ -1093,7 +1114,12 @@ export class Detective {
       g.restore();
     }
 
-    stamp(g, sHa);
+    if (sHa) stamp(g, sHa);
+
+    // O que a criatura carrega e nunca solta: o fio do telefone, a
+    // motosserra, o esfregao. Sai da mao seguindo o antebraco.
+    const naMao = this.parts && this.parts.naMao;
+    if (front && naMao) { g.save(); g.translate(0, 2); stamp(g, naMao); g.restore(); }
 
     // Ripa e cano saem da mao seguindo o antebraco: o eixo "para fora da
     // mao" ja e o +y local aqui dentro, entao nao ha rotacao a fazer — foi

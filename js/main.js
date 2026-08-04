@@ -34,6 +34,20 @@ import { PauseMenu } from './ui/pause.js';
 import { SlotPicker, OptionsPanel, screenDim, panelBox } from './ui/panels.js';
 import { t as T, setLang, getLang, LINES, line as L, TALKS } from './i18n.js';
 
+// A planta baixa do galpao, do jeito que ela e desenhada no papel que ele
+// arranca do quadro de avisos. As coordenadas sao do papel, nao do mundo:
+// o mapa e um desenho de alguem, e nao uma miniatura fiel.
+const MAPA_SETORES = [
+  { k: 'ch2_office',   x: 46,  y: 20,  w: 52,  h: 26, n: 'loc_office' },
+  { k: 'ch2_mezz',     x: 118, y: 20,  w: 74,  h: 26, n: 'loc_mezz' },
+  { k: 'ch2_dock',     x: 22,  y: 92,  w: 60,  h: 24, n: 'loc_dock' },
+  { k: 'ch2_corridor', x: 22,  y: 56,  w: 172, h: 26, n: 'loc_corridor' },
+  { k: 'ch2_shelves',  x: 202, y: 56,  w: 76,  h: 40, n: 'loc_shelves' },
+  { k: 'ch2_locker',   x: 202, y: 106, w: 76,  h: 28, n: 'loc_locker' },
+  { k: 'ch2_cold',     x: 118, y: 106, w: 74,  h: 28, n: 'loc_cold' },
+  { k: 'ch2_machines', x: 202, y: 20,  w: 76,  h: 26, n: 'loc_machines' },
+];
+
 const settings = {
   lang: 'pt',
   master: 0.8, music: 0.55, sfx: 0.85, voice: 1.0,
@@ -211,6 +225,7 @@ class Game {
       case 'menu': this.updateMenu(dt); break;
       case 'cutscene': this.updateCutscene(dt); break;
       case 'chapcard': this.updateChapCard(dt); break;
+      case 'carregando': this.updateCarregando(dt); break;
       case 'play': this.updatePlay(dt); break;
       case 'endcard': this.updateEndCard(dt); break;
       case 'lab': this.updateLab(dt); break;
@@ -389,6 +404,12 @@ class Game {
       lv._apagada = false;
     }
     this.player.det.alpha = 1;
+    this.mapaAberto = false;
+    // A primeira fala espera o fade-in acabar, senao ela nasce e morre
+    // atras da tela preta e o jogador nunca a le.
+    this.player.atrasarFala(1.0);
+    this.flags.visto = this.flags.visto || {};
+    this.flags.visto[lv.key] = true;
     this.entrouCh2(lv);
   }
 
@@ -410,11 +431,23 @@ class Game {
     // galpao tem que custar alguma coisa: enquanto o casaco esta aberto,
     // ele tapa parte da tela.
     if (cap2 && !paused && !this.scene && !this.dialogue.active && !this.transition) {
-      if (input.pressed('journal') && this.flags.caderno) { this.journal.toggle(); this.inv.open = false; }
-      if (input.pressed('bag')) { this.inv.toggle(); this.journal.open = false; }
+      if (input.pressed('journal') && this.flags.caderno) {
+        this.journal.toggle(); this.inv.open = false; this.mapaAberto = false;
+      }
+      if (input.pressed('bag')) {
+        this.inv.toggle(); this.journal.open = false; this.mapaAberto = false;
+      }
+      if (input.pressed('map')) {
+        if (this.inv.has('map')) {
+          this.mapaAberto = !this.mapaAberto;
+          this.journal.open = false; this.inv.open = false;
+          audio.pageTurn(0.9);
+        } else this.player.say('map_none', 0, true);
+      }
     }
     if (cap2) { this.journal.update(paused ? 0 : dt); this.inv.update(paused ? 0 : dt); }
-    const uiAberta = this.journal.open || this.inv.open;
+    this.mapaFade = clamp((this.mapaFade || 0) + (this.mapaAberto ? dt * 8 : -dt * 9), 0, 1);
+    const uiAberta = this.journal.open || this.inv.open || this.mapaAberto;
 
     if (!paused) {
       lv.update(sim);
@@ -531,10 +564,13 @@ class Game {
     if (fa > 0) {
       const ft = this.player.floatText;
       const alto = this.promptA > 0.15 ? 96 : 80;
+      // Fonte de maquina de escrever, em negrito, com contorno preto: e a
+      // unica combinacao que sobrevive ao corte duro de alpha a 10px e
+      // continua legivel em cima de tijolo escuro.
       text(gfx.s, T(ft.key), this.player.x - cam.ix,
         this.player.y - cam.iy - alto - Math.min(6, ft.t * 5), {
-        size: 10, font: 'serif', color: '#cfc6b8', align: 'center',
-        alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.8,
+        size: 10, font: 'type', weight: 'bold', color: '#e4dccc', align: 'center',
+        alpha: fa, outline: true, outlineColor: '#000000', outlineAlpha: 0.95,
       });
     }
 
@@ -551,7 +587,7 @@ class Game {
     };
 
     this.dialogue.draw(gfx.s);
-    if (cap2) { this.journal.draw(gfx.s); this.inv.draw(gfx.s); }
+    if (cap2) { this.journal.draw(gfx.s); this.inv.draw(gfx.s); this.drawMapa(gfx.s); }
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
     gfx.present(dt);
@@ -691,6 +727,14 @@ class Game {
       return;
     }
     if (it.action === 'goto') {
+      // Porta que pede chave. E o que impede o jogador de topar com o
+      // Credor antes de ter com que se defender.
+      if (it.precisa && !this.flags[it.precisa]) {
+        audio.doorSlam(0.4);
+        gfx.shake(1.4, 0.18);
+        this.player.say(it.semChave || 'b2_trancado', 0, true);
+        return;
+      }
       audio.doorCreak(it.sfx === 'heavy' ? 0.5 : 0.9);
       if (it.sfx === 'heavy') audio.metalCreak(1);
       this.fadeTo(() => {
@@ -996,6 +1040,7 @@ class Game {
     switch (it.action) {
       case 'take_club':
         it.disabled = true;
+        this.level.pego.porrete = true;
         this.inv.hand = 'club';
         p.segurarPorrete(true);
         audio.leather(0.7);
@@ -1007,6 +1052,7 @@ class Game {
 
       case 'take_journal':
         it.disabled = true;
+        this.level.pego.caderno = true;
         this.flags.caderno = true;
         audio.pageTurn(1);
         p.sayAll(['b2_diary_1', 'b2_diary_2', 'b2_diary_3'], true);
@@ -1018,12 +1064,14 @@ class Game {
 
       case 'take_map':
         it.disabled = true;
+        this.level.pego.mapa = true;
         this.pegar('map');
         p.sayAll(['b2_map_1', 'b2_map_2'], true);
         return true;
 
       case 'take_ammo':
         it.disabled = true;
+        this.level.pego.municao = true;
         this.pegar('ammo');
         p.reserve = 18;
         // A jogada mais importante do capitulo: municao ANTES da arma. O
@@ -1034,6 +1082,7 @@ class Game {
 
       case 'take_cigs':
         it.disabled = true;
+        this.level.pego.maco = true;
         this.pegar('cigs');
         this.pegar('lighter');
         p.sayAll(['b2_cig_1', 'b2_cig_2', 'b2_cig_3'], true);
@@ -1042,7 +1091,16 @@ class Game {
 
       case 'take_gun':
         it.disabled = true;
+        this.level.pego.pistola = true;
         this.pegarPistola();
+        return true;
+
+      case 'take_key':
+        it.disabled = true;
+        this.level.pego.chave = true;
+        this.flags.chave = true;
+        audio.reloadClick(1.2);
+        p.sayAll(['b2_chave_1', 'b2_chave_2'], true);
         return true;
 
       case 'mirror':
@@ -1181,8 +1239,12 @@ class Game {
   golpeDePorrete() {
     const p = this.player;
     audio.whoosh(1.1);
-    const alvo = this.director.maisPerto(p.x, 34, p.facing);
-    if (!alvo) return;
+    // Sobreposicao de caixa, e nao "quem esta mais perto em X". A caixa do
+    // golpe desce ate o chao de proposito: e assim que a ripa alcanca quem
+    // rasteja, que antes era praticamente inatingivel.
+    const atingidos = this.director.dentroDe(p.caixaGolpe());
+    if (!atingidos.length) return;
+    const alvo = atingidos[0];
     const r = alvo.levarDano(1, p.x);
     if (r === 'fake') {
       // Nao estava la. E ele nao comenta.
@@ -1234,11 +1296,23 @@ class Game {
 
   sairEsconderijo() {
     const p = this.player;
+    if (!this.escondido) return;
+    // Empurra ele para fora do esconderijo, na direcao contraria a de quem
+    // esta cacando: sair para dentro do Credor nao e sair.
+    const c = this.chase.ativo && this.chase.credor && this.chase.levelKey === this.level.key
+      ? this.chase.credor.x : p.x - 40;
+    const fora = Math.sign(p.x - c) || 1;
+    p.x = clamp(p.x + fora * 16, this.level.minX, this.level.maxX);
+    p.facing = fora;
+    p.det.setFacing(fora);
     this.escondido = null;
     p.frozen = false;
     p.controllable = true;
+    p.lockTime = 0;
+    p.state = 'idle';
     p.det.alpha = 1;
     p.det.play('idle', { blend: 0.3 });
+    audio.leather(0.5);
   }
 
   updateEsconderijo(dt) {
@@ -1260,7 +1334,15 @@ class Game {
       this.batidaT = lerp(1.1, 0.36, k);
       audio.heartbeat(0.4 + k * 0.6);
     }
-    if (input.pressed('interact')) this.sairEsconderijo();
+    // Sair NUNCA pode falhar. Antes so o E servia, e se ele fosse comido
+    // por qualquer outra coisa o jogador ficava preso no esconderijo com
+    // um Credor girando em cima dele — sem morrer e sem poder sair.
+    // Agora qualquer intencao de se mexer tira ele de la.
+    if (input.pressed('interact') || input.pressed('confirm')
+        || input.pressed('left') || input.pressed('right')
+        || input.pressed('attack') || input.pressed('cancel')) {
+      this.sairEsconderijo();
+    }
     return prendendo;
   }
 
@@ -1313,9 +1395,16 @@ class Game {
 
     // ---- o Diretor ----
     this.director.update(dt, { player: p, level: lv, cam: this.cam, sanity: this.sanity });
+    const cxP = p.caixa();
     for (const e of this.director.lista) {
       if (e.state === 'dead') continue;
-      if (e.acertou() && !this.escondido) p.takeDamage(e.cfg.dano, e.x);
+      if (!e.acertou() || this.escondido) continue;
+      // O golpe dele tambem passa a valer por caixa: quem rasteja bate na
+      // canela, quem esta em pe bate no peito, e os dois contam.
+      const b = e.caixa();
+      const perto = Math.abs(e.x - p.x) <= e.cfg.alcance + 8;
+      const alturaOk = b.y0 <= cxP.y1 && b.y1 >= cxP.y0;
+      if (perto && alturaOk) p.takeDamage(e.cfg.dano, e.x);
     }
     // Ver um deles ja custa, mesmo sem encostar.
     const dInimigo = this.director.distanciaMaisProximo(p.x);
@@ -1330,6 +1419,8 @@ class Game {
 
     // ---- a perseguicao ----
     if (this.chase.ativo) {
+      this.chase.onDano = (n, deX) => p.takeDamage(n, deX);
+      this.chase.onFala = (k) => p.say(k, 0, true);
       this.chase.update(dt, {
         player: p, level: lv, levelKey: lv.key,
         escondido: !!this.escondido, prendendo,
@@ -1346,9 +1437,6 @@ class Game {
     // jogador a temer o proprio medidor.
     if (lv.frio) this.sanity.drain(dt * (this.isqueiroT > 0 ? 0.35 : 0.9));
     this.sanity.apply();
-    const jt = this.sanity.jitter();
-    if (jt > 0) gfx.shake(jt, 0.1);
-
     if (p.hp <= 0) this.derrubado();
 
     this.updateFrio(dt, lv);
@@ -1393,10 +1481,13 @@ class Game {
   // O tiro precisa saber em quem bateu. O jogador dispara; o jogo procura
   // alguem na frente do cano.
   tiro(x, facing, ang) {
-    const alvo = this.director.maisPerto(x, 210, facing);
+    // A bala vira uma reta de verdade, saindo da boca do cano. O teste
+    // antigo descartava qualquer tiro com mais de 22 graus — ou seja,
+    // mirar para baixo, que e o unico jeito de acertar quem esta no chao,
+    // era garantia de errar.
+    const oy = this.player.y - 48;
+    const alvo = this.director.naLinhaDoTiro(x + facing * 20, oy, facing, ang, 240);
     if (!alvo) return;
-    // Mira so no eixo vertical: acima de uns 20 graus a bala passa por cima.
-    if (Math.abs(ang) > 22) return;
     const r = alvo.levarDano(3, x);
     if (r === 'fake') {
       // Voce gastou a bala do mesmo jeito.
@@ -1435,26 +1526,43 @@ class Game {
   // interface do capitulo
   // -------------------------------------------------------------------
 
+  // As duas barras. CORPO em vermelho seco, CABECA em azul-noite — as duas
+  // únicas coisas que ele ainda tem para perder, uma de cada cor, no canto
+  // de cima. Ficam sempre visíveis: sem elas o jogador não tinha como saber
+  // o que estava acontecendo com ele.
+  _barra(ctx, x, y, w, k, cor, corFraca, rotulo, piscar) {
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    // moldura
+    ctx.fillStyle = '#07060a';
+    ctx.fillRect(x - 1, y - 1, w + 2, 7);
+    ctx.fillStyle = '#221c1e';
+    ctx.fillRect(x, y, w, 5);
+    // preenchimento
+    const cheio = Math.round(w * clamp(k, 0, 1));
+    ctx.fillStyle = k < 0.3 ? corFraca : cor;
+    if (k < 0.3 && piscar) ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() * 0.009);
+    ctx.fillRect(x, y, cheio, 5);
+    // brilho de cima, para a barra nao ser um retangulo chapado
+    ctx.globalAlpha *= 0.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, cheio, 1);
+    ctx.restore();
+    text(ctx, rotulo, x - 4, y - 2, {
+      size: 7, font: 'type', weight: 'bold', color: PAL.uiFaint,
+      align: 'right', track: 1, alpha: 0.85,
+    });
+  }
+
   drawCh2UI(ctx) {
     const p = this.player;
 
     this.journal.drawToast(ctx);
     this.inv.drawToast(ctx);
 
-    // A vida so aparece quando ele apanha. Barra permanente avisaria o
-    // jogador de que ele e um personagem.
-    if (p.hurtT > 0 || p.hp < 100) {
-      const a = clamp(p.hurtT > 0 ? 1 : (p.hp < 60 ? 0.7 : 0), 0, 1);
-      if (a > 0.02) {
-        ctx.save();
-        ctx.globalAlpha = a * 0.55;
-        ctx.fillStyle = '#0c0a0b';
-        ctx.fillRect(14, VH - 20, 52, 4);
-        ctx.fillStyle = PAL.uiAccent;
-        ctx.fillRect(14, VH - 20, Math.round(52 * (p.hp / 100)), 4);
-        ctx.restore();
-      }
-    }
+    const bx = 44, bw = 62;
+    this._barra(ctx, bx, 10, bw, p.hp / 100, '#a8382c', '#e0503a', T('hud_hp'), true);
+    this._barra(ctx, bx, 20, bw, this.sanity.shown / 100, '#4a6a9e', '#7fa5d8', T('hud_san'), true);
 
     // Escondido: o folego, e como sair.
     if (this.escondido) {
@@ -1484,6 +1592,88 @@ class Game {
     }
   }
 
+  // -------------------------------------------------------------------
+  // O MAPA
+  //
+  // Ele pega a planta baixa no escritorio e depois nao tinha onde olhar
+  // para ela: o item existia e a tela nao. Aqui esta a tela — desenhada
+  // como a planta de verdade seria, com os setores em caixinha e o vinco
+  // do papel. So aparece o que ele ja pisou: mapa de galpao nao mostra o
+  // que voce nunca viu.
+  // -------------------------------------------------------------------
+
+  drawMapa(ctx) {
+    const a = this.mapaFade;
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = a * 0.75;
+    ctx.fillStyle = '#05040a';
+    ctx.fillRect(0, 0, VW, VH);
+    ctx.restore();
+
+    const W = 300, H = 158;
+    const ox = Math.round((VW - W) / 2), oy = Math.round((VH - H) / 2) + 6;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    // o papel
+    ctx.fillStyle = '#b8b09a';
+    ctx.fillRect(ox, oy, W, H);
+    ctx.fillStyle = '#a89f88';
+    ctx.fillRect(ox, oy + H - 5, W, 5);
+    // o vinco de quem dobrou em quatro e carregou no bolso
+    ctx.globalAlpha = a * 0.28;
+    ctx.fillStyle = '#7d7561';
+    ctx.fillRect(ox + Math.round(W / 2), oy, 1, H);
+    ctx.fillRect(ox, oy + Math.round(H / 2), W, 1);
+    ctx.restore();
+
+    text(ctx, T('map_title'), ox + 10, oy + 6, {
+      size: 8, font: 'type', weight: 'bold', color: '#4a4234', track: 2, alpha: a,
+    });
+
+    for (const s of MAPA_SETORES) {
+      const visto = this.flags.visto && this.flags.visto[s.k];
+      const aqui = this.level && this.level.key === s.k;
+      const x = ox + s.x, y = oy + s.y;
+      ctx.save();
+      ctx.globalAlpha = a * (visto ? 1 : 0.22);
+      ctx.fillStyle = aqui ? '#8d3128' : '#4a4234';
+      ctx.fillRect(x, y, s.w, 1);
+      ctx.fillRect(x, y + s.h - 1, s.w, 1);
+      ctx.fillRect(x, y, 1, s.h);
+      ctx.fillRect(x + s.w - 1, y, 1, s.h);
+      if (aqui) {
+        ctx.globalAlpha = a * (0.25 + 0.2 * Math.sin(performance.now() * 0.005));
+        ctx.fillStyle = '#8d3128';
+        ctx.fillRect(x + 1, y + 1, s.w - 2, s.h - 2);
+      }
+      ctx.restore();
+      if (visto) {
+        text(ctx, T(s.n), x + s.w / 2, y + s.h / 2 - 4, {
+          size: 7, font: 'type', weight: 'bold', color: aqui ? '#7a1c14' : '#3f3a2e',
+          align: 'center', track: 1, alpha: a,
+        });
+      }
+    }
+
+    // a marca a lapis na doca 3 — estava no item desde o comeco
+    const doca = MAPA_SETORES[2];
+    if (this.flags.visto && this.flags.visto.ch2_corridor) {
+      const x = ox + doca.x + doca.w + 4, y = oy + doca.y + 8;
+      text(ctx, '✕', x, y - 4, {
+        size: 9, font: 'type', weight: 'bold', color: '#7a1c14', alpha: a * 0.9,
+      });
+      text(ctx, T('map_mark'), x + 10, y - 2, {
+        size: 6, font: 'type', color: '#6b5a3a', alpha: a * 0.75,
+      });
+    }
+
+    text(ctx, T('map_hint'), VW / 2, oy + H + 8, {
+      size: 7, font: 'type', color: '#5a5249', align: 'center', track: 1, alpha: a, shadow: true,
+    });
+  }
+
   // Ele parado, sem perseguir mais. Apenas olhando ele ir embora — como
   // quem sabe que vai cobrar outro dia.
   drawCredorParado(ctx, cam) {
@@ -1497,27 +1687,71 @@ class Game {
   // salvar / carregar
   // -------------------------------------------------------------------
 
+  // -------------------------------------------------------------------
+  // SALVAR
+  //
+  // A primeira versao disto nao salvava: ela anotava a fase e o X e, ao
+  // carregar, TELEPORTAVA o personagem. Tudo o mais — a perseguicao, os
+  // itens ja pegos nas outras salas, as portas abertas — ficava do jeito
+  // que estivesse na sessao. Carregar no meio da fuga devolvia um galpao
+  // apagado, com a musica de tensao tocando, sem o Credor e com o portao
+  // da doca fechado: o jogo ficava impossivel de terminar.
+  //
+  // Agora o save carrega o MUNDO INTEIRO: o estado de cada setor, o que
+  // foi pego em cada um, e a perseguicao em curso.
+  // -------------------------------------------------------------------
+
+  // Estado de todos os setores, e nao so daquele em que ele esta.
+  _estadoDoMundo() {
+    const out = {};
+    for (const key of Object.keys(this.levels)) {
+      const lv = this.levels[key];
+      const usados = (lv.interactables || []).filter(i => i.disabled && i.id).map(i => i.id);
+      const pego = lv.pego ? Object.keys(lv.pego).filter(k => lv.pego[k]) : [];
+      if (usados.length || pego.length) out[key] = { usados, pego };
+    }
+    return out;
+  }
+
+  _aplicarMundo(mundo) {
+    if (!mundo) return;
+    for (const key of Object.keys(mundo)) {
+      const lv = this.levels[key];
+      if (!lv) continue;
+      const m = mundo[key];
+      for (const id of (m.usados || [])) {
+        const it = (lv.interactables || []).find(i => i.id === id);
+        if (it) it.disabled = true;
+      }
+      if (lv.pego) for (const id of (m.pego || [])) lv.pego[id] = true;
+    }
+  }
+
   saveSlot(i) {
     const lv = this.level;
+    const p = this.player;
     save.write(i, {
       locationName: T(lv.nameKey),
       playtime: this.playtime,
       thumb: gfx.snapshot(),
       state: {
+        v: 2,
         level: lv.key,
-        x: Math.round(this.player.x),
-        facing: this.player.facing,
+        x: Math.round(p.x),
+        facing: p.facing,
         flags: this.flags || {},
-        // Capitulo 2: o que ele carrega, o que ele anotou e o quanto de
-        // cabeca ainda sobrou.
         san: this.sanity.save(),
         jr: this.journal.save(),
         inv: this.inv.save(),
-        hp: Math.round(this.player.hp),
-        gun: !!this.player.hasGun,
-        ammo: this.player.ammo, res: this.player.reserve,
-        // As portas e os itens ja pegos nao voltam.
-        usados: (lv.interactables || []).filter(i => i.disabled && i.id).map(i => i.id),
+        hp: Math.round(p.hp),
+        gun: !!p.hasGun,
+        ammo: p.ammo, res: p.reserve,
+        cig: this.cigTentativas || 0,
+        esp: this.espelhoN || 0,
+        // o galpao inteiro, e nao so a sala onde ele parou
+        mundo: this._estadoDoMundo(),
+        // e a perseguicao, se estiver acontecendo
+        fuga: this.chase.save(),
       },
     });
     if (this.menu) this.menu.refresh();
@@ -1526,17 +1760,33 @@ class Game {
   loadSlot(i) {
     const d = save.read(i);
     if (!d || !d.state) { this.toMenu(); return; }
-    const s = d.state;
+    this.pendente = d.state;
     this.playtime = d.playtime || 0;
-    this.flags = s.flags || {};
     audio.stopMusic(0.8);
+    audio.stopAllLoops();
+    audio.stopDread(0.3);
     this.pause.active = false;
+    // Nunca cair direto no jogo: a tela de carregamento existe para o
+    // jogador largar o que estava fazendo antes e chegar preparado.
+    this.state = 'carregando';
+    this.loadT = 0;
+    gfx.fade = 0;
+    gfx.eyelid = 1;
+    gfx.letterbox = 0;
+  }
 
+  // Aplica de verdade o estado salvo. So roda quando a tela de
+  // carregamento termina.
+  _aplicarSave(s) {
+    const p = this.player;
+    this.flags = s.flags || {};
     this.resetChapter2();
     this.sanity.load(s.san);
     this.journal.load(s.jr);
     this.inv.load(s.inv);
-    const p = this.player;
+    this.cigTentativas = s.cig || 0;
+    this.espelhoN = s.esp || 0;
+
     p.hp = typeof s.hp === 'number' ? s.hp : 100;
     p.hasGun = !!s.gun;
     p.ammo = s.ammo === undefined ? 0 : s.ammo;
@@ -1544,16 +1794,78 @@ class Game {
     p.det.props.gun = p.hasGun ? 'holstered' : 'none';
     p.segurarPorrete(this.inv.hand === 'club');
     p.idleMode = this.flags.cap2 ? 'sit' : null;
+    p.hurtT = 0; p.invuln = 0;
+
+    // O mundo ANTES da fase: entrar num setor lê o estado dele.
+    this._aplicarMundo(s.mundo);
+    // Compatibilidade com o save antigo, que so guardava a sala atual.
+    if (!s.mundo && s.usados) {
+      const lv0 = this.levels[s.level];
+      if (lv0) for (const id of s.usados) {
+        const it = (lv0.interactables || []).find(x => x.id === id);
+        if (it) it.disabled = true;
+        if (lv0.pego) lv0.pego[id] = true;
+      }
+    }
+
+    // A perseguicao volta EXATAMENTE como estava — inclusive os setores
+    // que ja estavam no escuro.
+    this.chase.load(s.fuga, this.levels, s.level);
 
     this.enterLevel(s.level || 'alley', s.x, s.facing);
-    // itens ja pegos continuam pegos, na lista e no cenario
-    const lv = this.level;
-    for (const id of (s.usados || [])) {
-      if (lv.pego) lv.pego[id] = true;
-      const it = (lv.interactables || []).find(i => i.id === id);
-      if (it) it.disabled = true;
-    }
     this.state = 'play';
+    gfx.fade = 1;
+    this.transition = { t: 0, phase: 'in', outDur: 0.01, inDur: 1.1, action: null };
+  }
+
+  // -------------------------------------------------------------------
+  // a tela de carregamento
+  // -------------------------------------------------------------------
+
+  updateCarregando(dt) {
+    this.loadT += dt;
+    const DUR = 9.5;
+    const k = clamp(this.loadT / DUR, 0, 1);
+
+    gfx.begin('#000');
+    const ctx = gfx.s;
+
+    // uma frase que muda, como quem lembra o caso aos poucos
+    const linhas = ['load_1', 'load_2', 'load_3', 'load_4'];
+    const idx = Math.min(linhas.length - 1, Math.floor(k * linhas.length));
+    const dentro = (k * linhas.length) % 1;
+    const a = clamp(dentro * 6, 0, 1) * clamp((1 - dentro) * 6, 0, 1);
+    text(ctx, T(linhas[idx]), VW / 2, VH / 2 - 24, {
+      size: 11, font: 'type', weight: 'bold', color: '#6d6458',
+      align: 'center', alpha: a * 0.9,
+    });
+
+    // o mostrador: um traco que enche, e o nome do lugar
+    const w = 150, x = (VW - w) / 2, y = VH / 2 + 8;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#1a1618';
+    ctx.fillRect(x, y, w, 2);
+    ctx.fillStyle = PAL.uiAccent;
+    ctx.fillRect(x, y, Math.round(w * k), 2);
+    ctx.restore();
+    const nome = this.pendente && this.levels[this.pendente.level];
+    text(ctx, nome ? T(nome.nameKey) : '', VW / 2, y + 10, {
+      size: 8, font: 'type', weight: 'bold', color: '#4b453d',
+      align: 'center', track: 2, alpha: 0.9,
+    });
+    text(ctx, T('load_wait'), VW / 2, VH - 26, {
+      size: 7, font: 'type', color: '#3a352f', align: 'center', track: 2, alpha: 0.8,
+    });
+
+    gfx.fade = 0;
+    gfx.present(dt);
+
+    if (this.loadT >= DUR) {
+      const s = this.pendente;
+      this.pendente = null;
+      this._aplicarSave(s);
+    }
   }
 
   // -------------------------------------------------------------------

@@ -125,9 +125,11 @@ BOTÃO ESQUERDO ........ atirar               R ................... recarregar
 
 --- Capítulo 2 ---
 TAB ................... abre o casaco (inventário) — NÃO pausa o jogo
-Q ..................... abre o caderno       F ................... isqueiro
-SHIFT (escondido) ..... prender a respiração
+Q ..................... abre o caderno       M ................... o mapa
+F ..................... isqueiro             SHIFT (escondido) ... prender a respiração
 ARRASTAR / R .......... mover e girar item dentro do casaco
+E (no casaco) ......... usar o item sob o cursor
+E · ENTER · ESC · A · D · J ................. sair de um esconderijo
 
 ESC ................... pausar / voltar      DELETE .............. apagar save
 ESC ou ENTER (segurar)  pular a cutscene     F1 .................. depuração
@@ -381,27 +383,39 @@ respirando por baixo.
 gente e continua sem rosto. Como a cena é multiplicada pela luz, preto continua
 preto debaixo de qualquer lâmpada.
 
-### Os inimigos do Capítulo 2 — mesma ideia, levada mais longe
+### Os inimigos — a ficha médica de um detetive
 
-**Nenhum deles tem uma peça de arte nova.** São todos o mesmo boneco, usado
-errado — que é exatamente o que as coisas são.
+**`js/art/creatures.js`.** Na sessão 09 eles eram o detetive recolorido, e o
+resultado era honesto: dois NPCs que eram *a mesma pessoa*, um sentado e o
+outro quase de quatro. Agora cada criatura tem **as peças dela** — cabeça,
+tronco, membros — e herda as animações do rig de graça.
 
-| Quem | Como é feito |
-|---|---|
-| **Os Empilhados** | `crawl`: tronco a −64°, os braços viram as patas da frente. Rosto alisado (`faceless`), corpo recolorido, 14% mais largo e 18% mais baixo |
-| **Os Sem-Rosto** | `shamble` + `P.headBlank` — a MESMA cabeça, com o mesmo cabelo, e nenhum traço dentro dela. A silhueta continua de gente, e é isso que assusta |
-| **O Ecoador** | silhueta preta a 50% de alpha, 20% mais estreita. Não ataca e não morre |
-| **O Credor** | silhueta preta, 34% mais alto, com `props.pipe` na mão da frente. O sobretudo é o mesmo — grande demais |
+A regra: nenhum pode ser um monstro genérico. Cada um tem que ser
+reconhecível como **uma ideia**, e a ideia tem que ser um trauma que a
+profissão dele produz.
 
-Duas técnicas novas em `pixel.js` sustentam isso:
+| Quem | O trauma | O desenho |
+|---|---|---|
+| **Os Sem-Rosto** | as pessoas que ele não conseguiu salvar, e de quem já não lembra a cara | Roupa de trabalho comum. Crânio, cabelo e silhueta de gente — e **nenhum traço dentro do rosto**. Uma mancha escura no peito, onde ele não estancou nada |
+| **Os Empilhados** | os corpos. Guardados com pressa, e mal | Dobrado sobre si mesmo, andando de quatro. Lençol de necrotério ainda amarrado, costelas marcando por baixo, e uma **etiqueta amarela amarrada no pé** |
+| **O Ecoador** | a ligação que chegou tarde | Vulto magro e translúcido com um **fone de telefone preto no lugar do rosto**, arrastando um fio que não termina em lugar nenhum. Não ataca: TOCA |
+| **O Credor** | a conta | Avental de açougueiro ensanguentado por cima do sobretudo, **cabeça de porco costurada em pano de saco**, e uma **motosserra** que nunca desliga |
 
-- **`tintPass`** — recolore o boneco inteiro *sem apagar a sombra interna*. Com
-  `k = 0.6` o desenho de baixo continua aparecendo por dentro da cor, então
-  o corpo mantém volume. Tingimento forte demais (0.78) transformava o
-  Empilhado num borrão claro rastejando; foi corrigido na sessão 09.
-- **buffer próprio para o tingimento** — sem ele, tingir e ter luz de contorno
-  brigavam pelo mesmo buffer, e os inimigos ficavam sem a casquinha de luz
-  que os separa do escuro.
+> A motosserra começa a roncar no instante em que a fuga começa, do outro
+> lado do galpão, e o volume dela **é a distância dele**. O jogador ouve o
+> Credor muito antes de ver — que é a regra de ouro da perseguição.
+
+**As duas pessoas** também têm desenho próprio: o **zelador** de macacão
+verde desbotado que não larga o esfregão nem sentado, e a **telefonista** de
+cabelo preso e vestido vinho com gola branca.
+
+Duas técnicas sustentam a troca:
+
+- **`det.parts`** — o rig procura cada peça no conjunto da criatura e cai no
+  detetive para o que não estiver definido. Peça `null` simplesmente não é
+  desenhada: é assim que os Sem-Rosto não têm gola nem coldre.
+- **`tintPass`** (`pixel.js`) — continua existindo para recolorir sem apagar
+  a sombra interna, com buffer próprio para não brigar com a luz de contorno.
 
 ### Ócio: o que ele faz parado
 
@@ -682,6 +696,17 @@ salva texto diferente**.
 | B-39 | A ripa encostava no chão e sumia dentro do assoalho | Sprite de 15px saindo de uma mão que fica a ~20px do chão | 12px | 09 |
 | B-40 | O casaco pendurado no gancho não aparecia | Ele era desenhado num ponto que a chama do isqueiro não alcança — o jogador ouvia "um casaco, marrom" e não via nada | Luz fraca própria no gancho enquanto `casaco > 0` | 09 |
 | B-41 | O portão da doca lia "13" | Uma barra vertical desenhada ao lado do "3" | Barra removida | 09 |
+| B-42 | 🔥 **O save não salvava — só teleportava** | O save guardava fase, X e os itens pegos **da sala atual**. Tudo o mais era o que estivesse na sessão. Carregar no meio da fuga devolvia o galpão apagado, com a música de tensão, **sem o Credor**, sem o porrete e com o portão da doca fechado: o capítulo ficava impossível de terminar | Save versão 2: estado de **todos** os setores (`_estadoDoMundo`), a perseguição inteira (`chase.save/load`, inclusive quais setores já estavam no escuro), inventário, caderno, sanidade, vida, munição e tentativas de cigarro | 10 |
+| B-43 | 🔥 **Preso no esconderijo, com o Credor girando em cima** | Duas falhas somadas: `dir` invertia de sinal a cada quadro quando ele estava exatamente em cima do jogador, e `setFacing` refazia a virada — daí o giro. E sair só respondia ao `E` | Zona morta de 14px no alvo do Credor; sair agora aceita **E, ENTER, ESC, A, D e J**, e empurra o jogador 16px na direção contrária à de quem está caçando | 10 |
+| B-44 | 🔥 **O porrete e a bala não acertavam** | Tudo era distância em X. Um bicho andando de quatro ocupa 34px de altura e não 62, e ninguém checava altura nenhuma. Pior: o tiro **descartava qualquer ângulo acima de 22°**, ou seja, mirar para baixo — o único jeito de acertar quem está no chão — era erro garantido | Cada criatura declara `altura`/`largura`; o golpe virou sobreposição de caixa (`caixaGolpe` desce até o chão) e a bala virou uma reta de verdade testada contra a caixa (`naLinhaDoTiro`) | 10 |
+| B-45 | 🔥 **O Credor não matava** | `chase.onDano` nunca foi ligado no jogo. Ele chegava, encostava e não acontecia nada | Ligado, com recarga de 1,6s e um `stun` de 1,5s nele depois de acertar — é essa janela que dá para correr | 10 |
+| B-46 | 🔥 **Trocar de sala não adiantava: ele já estava lá** | `chegada` era acertado uma vez, no começo. Depois da primeira chegada ficava em zero, e cada porta atravessada punha o Credor em cima do jogador no mesmo quadro | `chegada` volta a 7–11s **toda vez** que o jogador muda de setor | 10 |
+| B-47 | 🔥 O efeito da perseguição tapava a tela | Vinheta chegava a 2,15 (0,9 + k·0,75 + pulso·0,5) e o tremor da sanidade disparava **a cada quadro** no estado VAZANDO | Vinheta com teto de 1,35, pulso com um quarto da força, grão pela metade, e o tremor contínuo **removido** — agora só há tremor em baque grande (≥8 de dano) | 10 |
+| B-48 | **O mouse não existia no inventário** | `body.playing { cursor: none }` esconde o ponteiro do sistema, e não havia cursor desenhado. O inventário era de arrastar e ninguém via o que arrastava | Cursor de pixel desenhado dentro do jogo, vermelho enquanto arrasta; se o mouse ainda não se moveu, ele começa no meio da tela | 10 |
+| B-49 | O mapa era um item sem tela | Nunca foi feita a interface | `M` abre a planta baixa: papel dobrado, setores em caixinha, só o que ele já pisou, o atual em vermelho e a marca a lápis na doca 3 | 10 |
+| B-50 | O espelho ficava acima da cabeça dele | Pendurado em y=44 na parede do vestiário — dois metros do chão | Mudou de sala: agora é um **banheiro**, com o espelho em cima da pia, na altura do rosto de um homem em pé | 10 |
+| B-51 | As falas sumiam antes de dar para ler | 2,6s fixos para qualquer frase, e a fila engatilhava três de uma vez ao entrar numa sala | Duração pelo **tamanho do texto** (2,6s a 7,0s), respiro de 0,9s entre falas, fila com teto de 2, e a primeira espera 1s pelo fade-in acabar | 10 |
+| B-52 | Texto ilegível em várias falas | Georgia a 10px atravessa o corte duro de alpha e perde os traços finos | Fonte `type` (Courier, negrito) em toda fala, diálogo, caderno e interface — haste grossa é o que sobrevive ao corte, e é a letra de relatório policial | 10 |
 
 ### 12.3 — 🔍 Erros de método (meus, registrados para não repetir)
 
@@ -692,6 +717,7 @@ salva texto diferente**.
 | M-03 | **Deixei o servidor de captura na porta 8137**, a mesma do `ABRIR_JOGO.bat`, e derrubei o jogo do jogador no meio de uma sessão. Usar 8140 |
 | M-04 | **Repeti o B-23 inteiro** (sessão 09): construí o corredor de carga com luz calibrada para uma sala, num espaço 3× maior. A lição já estava escrita neste documento e eu não a apliquei. **A regra agora é numérica, não é sensibilidade:** lâmpada forte a cada ~400px e preenchimento fraco a cada ~200px na altura do chão, em qualquer fase maior que 800px |
 | M-05 | **Escrevi números de sanidade sem medir** (sessão 09). Trinta segundos de jogo levavam o medidor de 100 a 16. Números de ritmo têm que ser medidos rodando, e não escolhidos porque "parecem certos" — é o mesmo erro do M-02 com outra roupa |
+| M-06 | **Declarei a sessão 09 "testada" tendo testado só o que não trava** (sessão 10). Meus scripts percorreram os oito setores e não acharam um erro sequer — porque script não salva no meio da fuga, não se esconde de nada, não erra um golpe e não repara que o mouse é invisível. Os quatro bugs fatais estavam todos em coisas que só uma **pessoa jogando** faz. "Zero erros no laço" nunca foi sinônimo de "funciona": só quer dizer que nada explodiu. Testar sozinho vale para regressão, não para validação — **é do jogador que vem a validação, e eu preciso dizer isso em vez de escrever ✅** |
 
 **Severidade:** 🔥 Crítico · 🟠 Alto · 🟡 Médio · 🔵 Cosmético
 
@@ -699,7 +725,7 @@ salva texto diferente**.
 
 ## 13. ⚠️ RESSALVAS — O QUE PRECISA MUDAR
 
-### 13.1 — Corrigido na sessão 09
+### 13.1 — Corrigido nas sessões 09 e 10
 
 | # | Ressalva | Status |
 |---|---|---|
@@ -707,6 +733,11 @@ salva texto diferente**.
 | R-15 | O corredor de carga estava preto | 🟢 B-31 |
 | R-16 | A sanidade zerava em meio minuto | 🟢 B-32 |
 | R-17 | Item pego continuava no cenário | 🟢 B-33 |
+| R-18 | O Capítulo 2 nunca tinha sido jogado por uma pessoa | 🟢 Foi, na sessão 10 — e trouxe doze problemas, quatro fatais |
+| R-20 | O inventário nunca tinha visto um mouse | 🟢 B-48 |
+| R-21 | Os NPCs eram o detetive com outra cor | 🟢 Zelador e telefonista com peças próprias |
+| R-22 | Os inimigos não eram ideia nenhuma | 🟢 `creatures.js` — cada um é um trauma da profissão |
+| R-23 | O Credor era a mesma silhueta preta do Cap. 1 | 🟢 Máscara de porco, avental e motosserra |
 
 ### 13.2 — 🟠 Precisa de atenção AGORA
 
@@ -715,9 +746,10 @@ salva texto diferente**.
 | R-03 | **Áudio da narração não corresponde ao roteiro** | Exportar a gravação nova e substituir `assets/audio/narrator.mp3` |
 | R-04 | **QTE precisa de teste humano** | Jogar a fuga do galpão e confirmar que o cano quebra num esforço razoável |
 | R-05 | **`assets/reference/` está num repositório público** | São artes conceituais e capturas de terceiros. **Apagar** ou tornar o repositório privado |
-| R-18 | 🔥 **O Capítulo 2 inteiro nunca foi jogado por uma pessoa** | Tudo foi percorrido por script. Ritmo, dificuldade do combate, duração real e o quanto a sanidade incomoda são coisas que só mão humana mede. **É o próximo passo** |
-| R-19 | **A duração de 1 hora é uma estimativa, não uma medida** | Cronometrar uma partida de verdade. Se der 25 minutos, faltam objetos para examinar, não faltam corredores |
-| R-20 | **O inventário nunca foi arrastado com um mouse de verdade** | Só por script. Conferir se pegar/soltar/girar responde bem |
+| R-19 | **A duração de 1 hora continua sendo estimativa** | Cronometrar uma partida de verdade. Se der 25 minutos, faltam objetos para examinar, não faltam corredores |
+| R-24 | 🔥 **Nada da sessão 10 foi jogado por uma pessoa ainda** | Salvar no meio da fuga, sair de um esconderijo com o Credor em cima, bater num Empilhado, arrastar item no casaco: tudo isso foi verificado por script e por captura de tela. **Foi exatamente esse tipo de coisa que escondeu os quatro bugs fatais da sessão 09** (ver M-06) |
+| R-25 | **O save vive no `localStorage`, não numa pasta** | Você pediu uma pasta `saves/` no jogo. Um jogo que roda por `file://` **não pode escrever no disco** — o navegador proíbe, e é por isso que ele roda com dois cliques sem instalar nada. O `localStorage` é permanente e sobrevive a fechar o jogo, mas é do navegador: limpar dados do site apaga. **Se quiser arquivo de verdade, dá para fazer botões EXPORTAR/IMPORTAR** que baixam e leem um `.save` — diga e eu faço |
+| R-26 | **O fim do capítulo nunca foi visto por uma pessoa** | Ele existe: chegar na doca 3 durante a fuga dispara as três falas e o Credor parado olhando. Só nunca foi alcançado jogando |
 
 ### 13.3 — 🟡 Precisa de atenção, mas não urgente
 
@@ -752,15 +784,21 @@ salva texto diferente**.
 ### O Capítulo 2, como ficou
 
 ```
-1 CORREDOR DE CARGA  1700px  revela a escala. O PORRETE.        Sem-Rosto
-2 ESCRITORIO          560px  o CADERNO, o MAPA, o VIGIA.        respiro
-3 SETOR B: ESTANTES  1500px  primeiro combate. A MUNICAO.       Empilhados + Sem-Rosto
-4 VESTIARIO          1150px  o MACO. ★ O ESPELHO.               respiro
-5 CAMARA FRIA         900px  o isqueiro. A alucinacao.          Empilhados
-6 SALA DE MAQUINAS    950px  a PISTOLA, e a emboscada.          Sem-Rosto
-7 MEZANINO           1000px  a TELEFONISTA.                     ninguem
-8 DOCA 3              760px  a saida, e quem fica olhando.      ninguem
+ 1 CORREDOR DE CARGA  1700px  revela a escala. O PORRETE.        Sem-Rosto
+ 2 ESCRITORIO          560px  o CADERNO, o MAPA, o ZELADOR.      respiro
+2b ARQUIVO MORTO       620px  a gaveta do D. A CHAVE.            Sem-Rosto
+ 3 SETOR B: ESTANTES  1500px  primeiro combate. A MUNICAO.       Empilhados + Sem-Rosto
+ 4 VESTIARIO          1150px  o MACO.                            respiro
+4b BANHEIRO            420px  ★ O ESPELHO.                       respiro
+ 5 CAMARA FRIA         900px  o isqueiro. A alucinacao.          Empilhados
+ 6 SALA DE MAQUINAS    950px  a PISTOLA, e a emboscada.          Sem-Rosto
+ 7 MEZANINO           1000px  a TELEFONISTA.                     ninguem
+ 8 DOCA 3              760px  a saida, e quem fica olhando.      ninguem
 ```
+
+> A escada do mezanino fica **trancada**. A chave está no arquivo morto, do
+> outro lado do galpão — e como a perseguição só começa quando ele desce de
+> lá, isso garante que o Credor nunca apareça com o detetive de mãos vazias.
 
 ### Sistemas novos, e o que cada um ainda deve
 
@@ -989,6 +1027,45 @@ sombra interna. **Diálogo com escolhas.** **Onze sons novos**, e os loops
 **Erros de método:** M-04 (repeti o B-23 inteiro), M-05 (números de ritmo
 escritos sem medir).
 
+### Sessão 10 — 04/08/2026 · ~3h · a sessão do primeiro teste humano
+
+Luiz jogou o Capítulo 2 e trouxe **doze problemas**, quatro deles capazes de
+travar a partida. Esta sessão é inteira sobre eles.
+
+🔥 **O save não salvava.** Ele anotava a fase e o X e teleportava o
+personagem; o resto do mundo ficava como estivesse. Carregar no meio da fuga
+devolvia um galpão apagado, com a música de tensão tocando, sem o Credor,
+sem o porrete e com a saída fechada. Agora o save carrega o **mundo inteiro**
+— todos os setores, todos os itens já pegos, e a perseguição em curso.
+Mais uma **tela de carregamento** de 9,5s, com quatro frases da narração.
+
+🔥 **Preso no esconderijo.** O Credor parava em cima do jogador e girava para
+sempre (o sinal da direção invertia a cada quadro), e sair só respondia ao
+`E`. Zona morta de 14px, e agora seis teclas diferentes tiram você de lá.
+
+🔥 **O combate não acertava.** Tudo era distância em X — quem anda de quatro
+tem 34px de altura e ninguém checava altura nenhuma. E o tiro descartava
+qualquer ângulo acima de 22°, ou seja, mirar para baixo era erro garantido.
+Caixas de colisão de verdade, e a bala virou uma reta.
+
+🔥 **O Credor não matava.** O gancho de dano nunca tinha sido ligado.
+
+🎨 **Design novo para tudo que é gente ou quase.** `js/art/creatures.js`:
+os Sem-Rosto (as pessoas que ele não salvou), os Empilhados (os corpos, com
+lençol e etiqueta no pé), o Ecoador (fone de telefone no lugar do rosto) e
+o Credor (avental de açougueiro, cabeça de porco em pano de saco,
+motosserra que nunca desliga). Mais o zelador e a telefonista.
+
+Também: **duas barras** no topo (CORPO e CABEÇA), **o mapa** em `M`, **cursor
+no inventário**, **fonte de máquina de escrever** em todo texto falado,
+falas com duração pelo tamanho do texto, o efeito da perseguição reduzido,
+**duas salas novas** (o banheiro — onde o espelho agora fica na altura do
+rosto — e o arquivo morto), e **a chave** que tranca a escada do mezanino
+até ele estar armado.
+
+**Bugs corrigidos:** B-42 a B-52.
+**Erro de método:** M-06.
+
 ---
 
 ## 18. GLOSSÁRIO
@@ -1018,6 +1095,7 @@ escritos sem medir).
 
 ---
 
-> **Última atualização:** 04/08/2026 — Sessão 09
-> **Próximo passo:** 🔥 **jogar o Capítulo 2 do início ao fim, com as mãos.**
-> Nada dele foi tocado por uma pessoa ainda — ver R-18, R-19 e R-20.
+> **Última atualização:** 04/08/2026 — Sessão 10
+> **Próximo passo:** 🔥 **jogar de novo, e principalmente: salvar no meio da
+> fuga, esconder-se com ele em cima, e chegar até a doca 3.** Foram esses os
+> quatro caminhos que travaram da última vez — ver R-24 e M-06.
