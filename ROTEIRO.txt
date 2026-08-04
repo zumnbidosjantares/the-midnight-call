@@ -46,9 +46,11 @@ Ele vai. E descobre que o lugar estava esperando por ele.
 2. O PROTAGONISTA
 -------------------------------------------------------------------------------
 
-NOME ............... [ESCREVER AQUI]
-                     (nota: sem o nome eu não consigo escrever diálogo nenhum,
-                      nem terminar a tela de save. É a primeira coisa que trava.)
+NOME ............... DAVID
+                     Pronúncia INGLESA — "DÊI-vid", não "Davi".
+                     (⚠ CONFIRMAR: entendi isso do áudio do dia 04/08. Se eu
+                      entendi errado, é só riscar e escrever o certo.)
+                     Sobrenome: [ESCREVER AQUI]
 
 IDADE .............. Aparenta 45 a 50. Cansado antes da conta.
 
@@ -645,7 +647,7 @@ TÍTULO DO CAPÍTULO — sugestões minhas
   5. "INVENTÁRIO"
      Duplo sentido: o sistema novo, e o que sobrou dele.
 
-  ESCOLHIDO: [ESCREVER AQUI]
+  ESCOLHIDO: >>> "GENTILEZA" <<<  (confirmado em 04/08)
 
 
 -------------------------------------------------------------------------------
@@ -804,8 +806,9 @@ TEMPO:  ~7 min
       "Não é a minha família. Acho que não é."
 
     ARQUIVO DE AÇO
-      "Pastas de A a M. As de N até Z sumiram."
-      (nota: o nome dele começa com uma letra entre N e Z. Pista muda.)
+      "Pastas de A a C. E de E até Z."
+      "Só a gaveta do D não está aqui."
+      (nota: PISTA MUDA. David. Ele não comenta. O jogador que perceba.)
 
     CANECA
       "Café pela metade. Ainda morno."
@@ -896,8 +899,13 @@ TEMPO:  ~8 min
 
     "Isso já não é sorte. Isso é recado."
 
-  A PARTIR DAQUI: o comportamento do cigarro muda conforme a sanidade.
-  (ver PARTE VII)
+  ⚠ MUDANÇA IMPORTANTE (decidida em 04/08):
+
+  O cigarro NÃO volta a ser animação de parado. Ele vira ITEM DE INVENTÁRIO.
+
+  E ele NÃO CONSEGUE FUMAR até o Capítulo 3.
+
+  Ver PARTE VII.B — "A ESCADA DO CIGARRO".
 
   COISAS PARA EXAMINAR (aqui tem MUITAS — é o setor de personagem):
 
@@ -918,13 +926,70 @@ TEMPO:  ~8 min
     MÁQUINA DE CAFÉ
       "Sem copo. Sem energia. Sem chance."
 
-    ESPELHO DO VESTIÁRIO
-      (nota: ele SE RECUSA a olhar, igual ao espelho do bar. Se o jogador
-       insistir três vezes, ele olha — e perde sanidade. Vale a pena
-       recompensar a teimosia com algo horrível.)
+    ESPELHO DO VESTIÁRIO  ★★★ SEQUÊNCIA ESPECIAL — VER ABAIXO ★★★
       1ª vez: "Não."
       2ª vez: "Eu disse não."
-      3ª vez: (ele olha) [ESCREVER AQUI — o que ele vê?]
+      3ª vez: A CÂMERA VIRA PRIMEIRA PESSOA.
+
+  ==========================================================================
+  ★ O ESPELHO — A ÚNICA CENA EM PRIMEIRA PESSOA DO JOGO
+  ==========================================================================
+  CONFIRMADO em 04/08. Ideia do Luiz.
+
+  Se o jogador insistir três vezes no espelho, o jogo inteiro MUDA DE CÂMERA.
+
+  COMO ACONTECE:
+
+    1ª interação
+      DAVID: "Não."
+
+    2ª interação
+      DAVID: "Eu disse não."
+      (nota: aqui o jogo já está avisando. Quem insiste, escolheu.)
+
+    3ª interação
+      Ele para de resistir. Vira o corpo para o espelho.
+
+      A CÂMERA DESCE E ENTRA NA CABEÇA DELE.
+      Corte para PRIMEIRA PESSOA.
+
+      O jogo lateral acaba. De repente você está DENTRO dele, olhando um
+      espelho de vestiário rachado, com a luz da lâmpada tremendo em cima.
+
+      E o que está refletido é ele.
+
+      COMPLETAMENTE DESFIGURADO.
+
+      Não é ferimento. Não é maquiagem de monstro. É a cara de alguém que
+      foi desmontado e remontado errado — e ainda assim é reconhecivelmente
+      ELE. O sobretudo é o mesmo. A gravata é a mesma. O rosto não.
+
+      ESSA É A FORMA COMO ELE SE ENXERGA.
+
+      O reflexo não se mexe junto com ele. Fica parado. Olhando.
+
+      Silêncio absoluto — corta TODO o áudio do jogo, até a chuva e o
+      ambiente. Só o zumbido.
+
+      Dura poucos segundos. Depois a câmera recua e volta para a lateral,
+      e o espelho está normal de novo.
+
+      DAVID: (voz sem força) [ESCREVER AQUI — a fala depois]
+             sugestão minha: "...era isso que eu não queria ver."
+
+  CUSTO: perde MUITA sanidade. Talvez o maior dreno único do jogo.
+
+  RECOMPENSA: uma página no diário que só existe se você olhar. E é uma das
+  peças da revelação final.
+
+  POR QUE FUNCIONA: o jogo inteiro é lateral. O jogador nunca viu o rosto
+  dele de frente, em tamanho grande, em nenhum momento. A primeira vez que
+  vê é assim. Isso não dá para repetir — é uma carta que só se joga uma vez.
+
+  (nota técnica: isso exige desenhar um retrato dele em resolução alta e uma
+   versão desfigurada. É a única arte do jogo que não é o rig articulado.
+   Vale o trabalho.)
+  ==========================================================================
 
     BILHETE NA PORTA DO ARMÁRIO
       "'Volto às seis.'"
@@ -1045,22 +1110,112 @@ TEMPO:  ~6 min
 
     (ele dá um passo)
 
-  O QUE ACONTECE: [ESCREVER AQUI]
+  ==========================================================================
+  QUEM É ESSA FIGURA? — cinco propostas
+  ==========================================================================
 
-  Sugestões minhas, escolha uma ou nenhuma:
+  O que ela precisa cumprir:
+    · Não pode ser claramente fantasma nem claramente pessoa
+    · Tem que ser DIEGETICAMENTE a mente dele
+    · Tem que deixar UMA pista que o jogador atento pega e o desatento não
+    · Não pode explicar nada
 
-    (a) Ela se vira. E o rosto dela está pela metade — exatamente como no
-        cartaz molhado. Não é ferimento: é como se a metade que a chuva
-        apagou simplesmente não existisse nela.
+  ------------------------------------------------------------------------
+  OPÇÃO 1 — A TELEFONISTA          ★ minha recomendação
+  ------------------------------------------------------------------------
+  Uma mulher sentada a uma mesa no mezanino, com uma MESA TELEFÔNICA antiga
+  daquelas de plugue e cabo. Fone no ouvido. Trabalhando.
 
-    (b) Ela não se vira nunca. Fala de costas, calmamente, e sabe o nome
-        dele. Quando ele chega perto, não tem ninguém.
+  Ela plugga e desplugga cabos que não estão ligados em lugar nenhum.
 
-    (c) Ela se vira e é alguém do passado dele — ligada ao caso de sete anos.
-        Aí ela vira a chave do jogo inteiro, e não só do capítulo.
+    TELEFONISTA: "Um momento, vou transferir."
+    DAVID:       "Transferir pra quem?"
+    TELEFONISTA: (sem olhar) "Pro senhor."
 
-  (nota: eu recomendo (a) ou (b) para o Capítulo 2, e guardar (c) para o 3.
-   Gastar o caso de sete anos agora é cedo demais.)
+  Ela é a origem da ligação das 2h14. E quando ele pergunta quem ligou:
+
+    DAVID:       "Quem foi que me ligou?"
+    TELEFONISTA: "O senhor mesmo."
+
+    (pausa)
+
+    TELEFONISTA: "O senhor foi o único que atendeu."
+
+  POR QUE ESSA: amarra TRÊS pontas soltas de uma vez —
+    · o telefone do bar com o fio cortado
+    · a ligação das 2h14 que não podia existir
+    · a frase órfã "o senhor foi o único que atendeu" (que ficou solta
+      quando o monólogo de abertura foi reescrito)
+  E entrega a maior pista do jogo numa frase de três palavras, sem explicar
+  nada. Quem pegar, pegou.
+
+  ------------------------------------------------------------------------
+  OPÇÃO 2 — O HOMEM DO SOBRETUDO
+  ------------------------------------------------------------------------
+  Um homem sentado na beirada do mezanino, pernas para fora, de costas.
+  Sobretudo IGUAL AO DELE. Fumando.
+
+  Ele oferece um cigarro. David recusa.
+
+    HOMEM: "Eu também dizia isso."
+    DAVID: "Dizia o quê?"
+    HOMEM: "Hoje não."
+
+  Nunca mostra o rosto. Quando David dá a volta para ver, não tem ninguém —
+  só uma guimba acesa na beirada.
+
+  POR QUE ESSA: é o David que cedeu. Planta o Credor (mesmo sobretudo) e
+  amarra na escada do cigarro. Se você quiser o capítulo mais coeso com o
+  que já existe, é essa.
+  RISCO: entrega o Credor cedo demais.
+
+  ------------------------------------------------------------------------
+  OPÇÃO 3 — O ENTREVISTADO
+  ------------------------------------------------------------------------
+  Um homem sentado numa cadeira no meio da passarela, sob uma luminária, na
+  pose exata de um interrogatório. Calmo. Esperando.
+
+  Ele responde perguntas. Mas as respostas são sobre a vida do DAVID.
+
+    DAVID:        "Seu nome."
+    ENTREVISTADO: "O senhor sabe."
+    DAVID:        "Onde você estava naquela noite?"
+    ENTREVISTADO: "No mesmo lugar que o senhor."
+
+  POR QUE ESSA: David está interrogando a si mesmo, e o jogo mostra isso sem
+  dizer. É a mais literária das cinco.
+  RISCO: pode ficar óbvio demais rápido demais.
+
+  ------------------------------------------------------------------------
+  OPÇÃO 4 — A DESAPARECIDA DO CARTAZ
+  ------------------------------------------------------------------------
+  A mulher do cartaz do beco. Ela se vira — e o rosto está pela METADE.
+  Não é ferimento: é que a metade que a chuva apagou no cartaz simplesmente
+  não existe nela.
+
+  POR QUE ESSA: visualmente é a mais forte, e fecha o cartaz do Capítulo 1.
+  RISCO: é a mais "monstro". Pode quebrar a ambiguidade que o jogo mantém.
+
+  ------------------------------------------------------------------------
+  OPÇÃO 5 — NINGUÉM
+  ------------------------------------------------------------------------
+  Tem uma pessoa parada lá. David fala com ela. Ela responde. A conversa
+  inteira acontece.
+
+  E no diário, depois, a página diz:
+    "Falei sozinho no mezanino por quatro minutos."
+
+  POR QUE ESSA: é a mais cruel e a mais barata de produzir. O jogador viu e
+  ouviu a pessoa. O diário diz que não tinha ninguém. Quem o jogador acredita?
+  RISCO: só funciona uma vez no jogo inteiro. Talvez valha guardar.
+
+  ------------------------------------------------------------------------
+  ESCOLHIDA: [ESCREVER AQUI]
+  ------------------------------------------------------------------------
+
+  (nota: dá para usar mais de uma ao longo do jogo. Minha sugestão de ordem:
+   Telefonista no Cap. 2 · Homem do Sobretudo no Cap. 3 · Entrevistado no 4 ·
+   Ninguém guardado para o momento certo.)
 
 
 ===============================================================================
@@ -1289,23 +1444,88 @@ PARTE VII — SISTEMA DE SANIDADE
   │              │ para até você mandar andar.                            │
   └──────────────┴────────────────────────────────────────────────────────┘
 
-  ------- A ELEGÂNCIA DO CIGARRO -------
+===============================================================================
+PARTE VII.B — A ESCADA DO CIGARRO
+===============================================================================
+  CONFIRMADO em 04/08. É um dos fios mais importantes do jogo inteiro.
 
-  FUMAR RESTAURA SANIDADE. E quanto pior ele está, mais ele fuma.
+  A ideia: o cigarro deixa de ser uma animação de parado e vira ITEM. E o
+  jogador vai carregar esse item por HORAS sem conseguir usar.
 
-  Isso resolve sozinho a coisa que você descreveu: o cigarro é a forma como
-  a mente dele se RECUSA A ACEITAR o que está vendo. É anestesia.
+  Toda vez que ele tentar usar, David recusa. E a recusa VAI MUDANDO.
 
-  E como restaura sanidade, o jogador vai fumar de propósito — e vai
-  gastar cigarro, que é recurso finito. O vício vira mecânica.
+  Isso transforma um item de inventário numa barra de progresso emocional.
+  O jogador vai testar o cigarro de vez em quando só para ver se mudou —
+  e é assim que ele percebe que o personagem está cedendo.
 
-  Detalhe cruel: enquanto ele fuma, ele fica PARADO E VULNERÁVEL.
-  Você tem que escolher a hora.
+  ------------------------------------------------------------------------
+  OS DEGRAUS
+  ------------------------------------------------------------------------
 
-  (nota: você falou "caso a sanidade esteja muito alta". Eu escrevi ao
-   contrário — quanto MAIS BAIXA a sanidade, mais ele fuma — porque casa com
-   "se recusar a aceitar o que está vendo". Se você quis o oposto, me diz que
-   eu inverto. Ver pergunta 4 no fim do arquivo.)
+  DEGRAU 0 — CAPÍTULO 1
+    Ele TEM cigarro no bolso, e é animação de parado: tira, olha, joga fora.
+    "hoje não..."
+    Depois do sequestro, perde tudo. Fica sem ter o que recusar.
+
+  DEGRAU 1 — CAPÍTULO 2 (acha o maço no vestiário)
+    Vira ITEM. Recusa seca, imediata, sem hesitação.
+      "Não."
+      "Eu não vou fumar isso."
+      "Não é hoje."
+      "Guarda isso."
+    (nota: ele nem tira do maço. A recusa é automática, quase reflexo.)
+
+  DEGRAU 2 — FIM DO CAPÍTULO 2 / COMEÇO DO 3
+    Ele começa a HESITAR. A fala fica mais longa.
+      "...ah. Talvez."
+      (pausa)
+      "Não. Melhor não."
+
+      "Eu podia. Ninguém ia saber."
+      "Eu ia saber."
+
+  DEGRAU 3 — MEIO DO CAPÍTULO 3
+    Ele chega a TIRAR do maço. Segura. Devolve.
+      "..."
+      (tira um, olha)
+      "Não hoje. Não ainda."
+
+  DEGRAU 4 — LIBERADO (momento a definir no Cap. 3)
+    Ele acende. E fuma.
+    A PARTIR DAQUI o cigarro é consumível que restaura sanidade.
+
+    A fala da primeira vez é uma das mais importantes do jogo:
+      [ESCREVER AQUI]
+      sugestão minha: "Sete anos." (traga) "Sete anos sem."
+
+  DEGRAU 5 — SANIDADE BAIXA, DEPOIS DE LIBERADO
+    Fuma compulsivamente. Um atrás do outro. Não para até você mandar andar.
+    É aqui que fica feio de ver.
+
+  ------------------------------------------------------------------------
+  POR QUE ISSO É BOM
+  ------------------------------------------------------------------------
+
+  1. O jogador tenta usar dezenas de vezes ao longo de horas. Cada tentativa
+     é uma linha de diálogo. É caracterização de graça, distribuída.
+
+  2. Quando finalmente liberar, o jogador vai SENTIR que ganhou alguma coisa
+     — e vai levar um tempo para perceber que o personagem PERDEU.
+
+  3. O item ocupa espaço no inventário o tempo todo, sem servir para nada.
+     Ele vai pensar em largar. E não vai conseguir.
+
+  ------------------------------------------------------------------------
+  ATÉ O DEGRAU 4, COMO SE RESTAURA SANIDADE?
+  ------------------------------------------------------------------------
+  [ESCREVER AQUI — a definir]
+
+  Opções que eu jogo na mesa:
+    - escrever no diário (já previsto, funciona)
+    - setores com luz forte (o vestiário é o exemplo)
+    - café? Há uma máquina de café no refeitório e ele já reclama dela
+    - simplesmente ficar parado num lugar seguro por um tempo
+    - conversar com NPC — o que é irônico, já que eles são a mente dele
 
 
 ===============================================================================
@@ -1356,42 +1576,122 @@ PARTE VIII — SISTEMA DE INVENTÁRIO
 
 
 ===============================================================================
+PARTE VIII.B — AS MIGALHAS
+===============================================================================
+  Como avisar o jogador de que é tudo a mente dele, sem nunca dizer.
+
+  A REGRA: o jogo NUNCA confirma. Ele só deixa de fazer sentido de um jeito
+  específico, sempre o mesmo. Quem prestar atenção monta sozinho. Quem não
+  prestar, leva o susto no fim — e ao reler o diário, encontra tudo lá.
+
+  ------------------------------------------------------------------------
+  AS SETE FAMÍLIAS DE MIGALHA
+  ------------------------------------------------------------------------
+
+  1. COISAS QUE SABEM O NOME DELE ANTES DE ELE DIZER
+     Nenhum NPC pergunta o nome. Todos já sabem.
+     Ninguém comenta isso. Nunca.
+       "O senhor sabe."   "O senhor mesmo."   "Boa noite, David."
+
+  2. O RELÓGIO QUE SEMPRE MARCA 02h14
+     Relógio de ponto do galpão: 02h14.
+     Relógio do escritório: 02h14.
+     O relógio de pulso dele: 02h14 — e o ponteiro de segundos ANDA.
+     (nota: só nesse detalhe o jogador percebe que não é bateria fraca.)
+
+  3. NÚMEROS QUE NÃO FECHAM
+     "Contei duas vezes. Deu vinte e quatro na segunda."
+     Contar duas vezes a mesma coisa dá números diferentes. Sempre.
+     Portas, ganchos, degraus, armários. Nunca comentado.
+
+  4. A CONVENIÊNCIA (já é regra do capítulo)
+     Cada item na hora exata em que ele precisa.
+
+  5. OS ESPAÇOS IMPOSSÍVEIS
+     Parede arrebentada de dentro para fora, e do outro lado não há cômodo.
+     Uma porta que dá no mesmo corredor de onde você veio.
+     Um corredor mais comprido na volta do que na ida.
+
+  6. AS COISAS AINDA QUENTES
+     Café pela metade, ainda morno. Sangue fresco num prédio abandonado
+     há seis anos. Guimba acesa. Sempre algo que acabou de acontecer, e
+     nunca ninguém.
+
+  7. AS PÁGINAS QUE ELE NÃO ESCREVEU
+     (ver PARTE V) — a migalha que só aparece quando a sanidade cai.
+
+  ------------------------------------------------------------------------
+  A DOSAGEM
+  ------------------------------------------------------------------------
+  Cap. 1 → duas migalhas, escondidas (fio cortado, parede impossível)
+  Cap. 2 → seis a oito, ainda negáveis
+  Cap. 3 → o jogador já desconfia; as migalhas ficam agressivas
+  Cap. 4 → não são mais migalhas. É o jogo se assumindo.
+
+  ------------------------------------------------------------------------
+  A REGRA DE OURO
+  ------------------------------------------------------------------------
+  DAVID NUNCA COMENTA UMA MIGALHA DIRETAMENTE.
+
+  Ele comenta a CONVENIÊNCIA (porque é piada, e piada é defesa dele). Mas
+  ele nunca diz "isso é impossível" duas vezes seguidas, nunca junta duas
+  pistas em voz alta, e NUNCA especula sobre estar louco.
+
+  No instante em que ele suspeitar em voz alta, o jogador para de saber mais
+  do que ele — e é essa vantagem que segura o jogo em pé.
+
+
+===============================================================================
 PARTE IX — PERGUNTAS PARA VOCÊ
 ===============================================================================
 
   Respondi tudo que dava para decidir sozinho. Estas eu não devo decidir.
 
-  1. NOME DO DETETIVE ...................... [ESCREVER AQUI]
+  ------------------------------------------------------------------------
+  JÁ RESPONDIDO (04/08)
+  ------------------------------------------------------------------------
+  ✓ Nome do detetive ............. DAVID (pronúncia inglesa) — ⚠ confirmar
+  ✓ Título do Capítulo 2 ......... "GENTILEZA"
+  ✓ O Credor ..................... APROVADO
+  ✓ Páginas que ele não escreveu . APROVADO
+  ✓ Fumar restaura sanidade ...... APROVADO (mas travado até o Cap. 3)
+  ✓ Cigarro vira item, não animação de parado
+  ✓ O espelho em 1ª pessoa ....... APROVADO — ele se vê desfigurado
 
-  2. TÍTULO DO CAPÍTULO 2
-     (minha 1ª escolha: "GENTILEZA") ....... [ESCREVER AQUI]
+  ------------------------------------------------------------------------
+  AINDA EM ABERTO
+  ------------------------------------------------------------------------
+
+  1. SOBRENOME DO DAVID .............................. [ESCREVER AQUI]
+
+  2. A FIGURA DO MEZANINO
+     Qual das cinco? (Telefonista / Homem do Sobretudo /
+     Entrevistado / Desaparecida / Ninguém) .......... [ESCREVER AQUI]
 
   3. O NPC DO ESCRITÓRIO
-     Aceita o Vigia? .................... [ESCREVER AQUI]
+     Aceita o Vigia? ................................. [ESCREVER AQUI]
 
-  4. O CIGARRO E A SANIDADE
-     Eu escrevi: sanidade BAIXA = fuma mais (anestesia).
-     Você disse "sanidade muito alta". Qual dos dois? .... [ESCREVER AQUI]
+  4. QUAIS INIMIGOS ENTRAM NO CAP. 2
+     (Empilhados / Sem-Rosto / Ecoador) .............. [ESCREVER AQUI]
 
-  5. A FIGURA ESPECIAL DO MEZANINO
-     É a desaparecida do cartaz? Opção (a), (b) ou (c)? .. [ESCREVER AQUI]
+  5. ATÉ O CAPÍTULO 3, COMO SE RESTAURA SANIDADE?
+     (o cigarro está travado) ........................ [ESCREVER AQUI]
 
-  6. O PERSEGUIDOR
-     Aceita "O CREDOR", vestindo um sobretudo igual ao dele
-     e arrastando o mesmo cano? ......................... [ESCREVER AQUI]
+  6. A FALA DEPOIS DO ESPELHO
+     (sugestão: "...era isso que eu não queria ver.") . [ESCREVER AQUI]
 
-  7. PÁGINAS NO DIÁRIO QUE ELE NÃO ESCREVEU
-     E a revelação de que a letra é dele mesmo, de 7 anos atrás?
-     ................................................... [ESCREVER AQUI]
+  7. A FALA DA PRIMEIRA TRAGADA (Cap. 3)
+     (sugestão: "Sete anos." — traga — "Sete anos sem.") [ESCREVER AQUI]
 
-  8. QUAIS INIMIGOS ENTRAM NO CAP. 2
-     (Empilhados / Sem-Rosto / Ecoador) ................. [ESCREVER AQUI]
+  8. A ALUCINAÇÃO DA CÂMARA FRIA
+     O que está pendurado no gancho? ................. [ESCREVER AQUI]
 
-  9. O ESPELHO DO VESTIÁRIO
-     Se o jogador insistir 3 vezes, o que ele vê? ....... [ESCREVER AQUI]
+  9. O PREÇO DA PISTOLA
+     Aceita: pegar a arma acende todas as máquinas e
+     traz três inimigos pela porta? .................. [ESCREVER AQUI]
 
   10. FIM DO CAPÍTULO
-      Onde é a saída, e o que acontece? ................. [ESCREVER AQUI]
+      Onde é a saída, e o que acontece? .............. [ESCREVER AQUI]
 
 
 ===============================================================================
