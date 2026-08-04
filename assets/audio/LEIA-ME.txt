@@ -1,5 +1,5 @@
-AUDIO DA NARRACAO — onde colocar
-================================
+AUDIO DA NARRACAO
+=================
 
 Coloque o audio do narrador NESTA PASTA com um destes nomes:
 
@@ -10,32 +10,73 @@ Coloque o audio do narrador NESTA PASTA com um destes nomes:
     narracao.mp3
     narrador.mp3
     intro.mp3
+    intro.wav
 
 O jogo procura por eles nessa ordem quando abre. Se achar, a cutscene de
-abertura usa o audio de verdade e as legendas seguem o tempo dele.
-Se NAO achar nenhum, a cutscene roda pelos tempos escritos a mao em
-js/i18n.js (const NARRATION) e continua funcionando normalmente.
+abertura usa o audio e so freia o carro quando a fala acaba. Se NAO achar,
+a cutscene roda pelos tempos escritos em js/i18n.js e continua funcionando.
 
-AJUSTANDO AS LEGENDAS AO SEU AUDIO
-----------------------------------
+
+ATENCAO — O MP3 QUE ESTA AQUI AGORA NAO E O ROTEIRO ATUAL
+---------------------------------------------------------
+O texto das legendas veio de "roteiro legenda.txt" (copia guardada aqui do
+lado como roteiro-narracao.srt). Esse roteiro tem 18 falas e dura 77s.
+O narrator.mp3 que esta nesta pasta tem 60,76s e NAO corresponde a ele:
+
+  - a fala 16 do roteiro comeca em 62s, depois do fim do arquivo
+  - forcando o audio a se dividir em 18 blocos e comparando a duracao de
+    cada bloco com a de cada fala, a correlacao deu 0,15 (ou seja, nenhuma)
+  - a primeira fala do roteiro e uma palavra so ("Engracado..."), mas o
+    audio abre com 8 segundos de fala continua
+
+EXPORTE A GRAVACAO NOVA E SUBSTITUA O narrator.mp3. Ai as legendas batem.
+
+
+COMO O JOGO LIDA COM ISSO SOZINHO
+---------------------------------
+Os tempos em js/i18n.js foram escritos para uma gravacao de
+NARRATION_REF_DUR = 77 segundos. Quando o jogo abre, ele le a duracao real
+do arquivo e reescalona todas as legendas na mesma proporcao.
+
+  gravacao de 77s   -> escala 1.00, nada muda
+  gravacao de 60,76s -> escala 0,79, tudo comprime
+
+Isso salva o caso de a gravacao sair um pouco mais rapida ou mais lenta.
+NAO salva o caso de ser outro texto — para isso nao tem jeito automatico.
+
+
+AJUSTANDO UMA LEGENDA A MAO
+---------------------------
 Abra js/i18n.js e procure por  export const NARRATION = [
 
 Cada linha tem:
-    { t: 5.6, d: 4.6, pt: '...', en: '...' }
+    { t: 8.0, d: 8.0, pt: '...', en: '...' }
 
     t = segundo em que a legenda APARECE
     d = quantos segundos ela FICA na tela
 
-Depois ajuste tambem:
-    export const NARRATION_END = 54.0
-que e o segundo em que a fala termina. O carro so comeca a frear quando a
-narracao acaba, entao esse numero controla a duracao da cutscene inteira.
+Se voce trocar o audio por um de outra duracao, mude tambem
+NARRATION_REF_DUR para a duracao da gravacao para a qual voce escreveu os
+tempos.
 
-(Se o audio existir, o jogo usa a duracao real do arquivo e ignora
-NARRATION_END — mas os tempos t/d das legendas continuam valendo.)
+
+MIXAGEM DA VOZ
+--------------
+A gravacao atual e muito baixa: pico em -14 dBFS, media em -41 dBFS. Por
+isso a voz passa por um ganho de 4x (+12 dB) com limitador dentro do
+WebAudio — o volume de um elemento <audio> nao passa de 1.0 e nao daria
+para levantar por la. O ganho fica em js/core/audio.js, constante
+GANHO_VOZ.
+
+Se voce exportar a narracao mais alta (normalizada perto de -3 dBFS),
+BAIXE o GANHO_VOZ para algo perto de 1.2, senao vai soar comprimido.
+
+Enquanto a voz fala, o jogo abaixa chuva e vento para quase nada e corta os
+efeitos para 30%. Tudo volta sozinho quando a fala acaba.
+
 
 OUTROS SONS
 -----------
 Todo o resto do som do jogo (chuva, vento, passo, soco, porta, isqueiro,
-musica do menu) e sintetizado em tempo real pelo proprio jogo, em
-js/core/audio.js. Nao ha arquivos de audio para esses.
+musica do menu) e sintetizado em tempo real em js/core/audio.js. Nao ha
+arquivos de audio para esses.

@@ -376,6 +376,86 @@ The detective's name, then NPCs and dialogue choices.
 
 ---
 
+## Session 03 — 2026-08-04
+
+**Duration:** ~40 min (estimate) · **Tokens:** ~70k (estimate)
+
+### The voice was inaudible — and it is the file, not the mix
+
+Measured `narrator.mp3`: **peak −14.1 dBFS, overall RMS −40.7 dBFS.** It has
+5x of headroom before clipping. No mix change alone would have saved it.
+
+Fixes:
+- The narration now plays **through WebAudio** instead of straight out of
+  the `<audio>` element, so it can be amplified past 1.0 (an element's
+  `volume` caps there). Chain: source → **gain ×4 (+12 dB)** → limiter
+  (−6 dB threshold, 12:1) → voice bus. The limiter matters: +12 dB on a
+  −14 dBFS peak would clip the loud syllables without it.
+- **Ambience ducks while the voice speaks.** Rain 0.10 → 0.030, wind
+  0.03 → 0.010, SFX bus to 30%. Everything ramps back the moment the
+  narration ends, in step with the car braking. Also restored on skip, so
+  the rest of the game is never left muffled.
+- Car pass-by one-shots turned down (0.5 → 0.35 and 0.7 → 0.55).
+
+**Bug fixed along the way:** the SFX duck and the SFX volume slider were
+writing to the same `AudioParam`, so a ramp from one would cancel an
+assignment from the other depending on ordering. The duck now lives on its
+own gain node in series after the bus. If you touch this again: reading
+`.value` on a param of a node with no active source is misleading in
+Chrome — the automation is not advanced until something is actually
+rendering through it.
+
+### The supplied subtitle script does not match the supplied audio
+
+`roteiro legenda.txt` arrived with 18 cues. Three independent checks say it
+is **not the script in `narrator.mp3`**:
+
+1. The script runs to 76.5s; cue 16 starts at 62s. The file is **60.76s**.
+2. Forcing an 18-group segmentation of the audio and correlating group
+   durations against the 18 cue durations gives **r = 0.149** — no
+   relationship. A real match would be 0.7+.
+3. Cue 1 is a single word (*"Engraçado..."*) followed by a pause, but the
+   audio opens with **~8 seconds of continuous speech** at every detection
+   threshold tested (0.002 → 0.008, pause minimums 0.15s → 0.6s).
+
+**Correcting an over-claim from Session 02.** Last session I concluded the
+audio *was* my own placeholder script, citing two boundary matches at
+0.00s. Those two were zero by construction — the first and last boundaries
+of a cumulative mapping always coincide. The mean error was 0.94s against
+an expected ~1.8s for random points, which is barely better than chance. I
+should not have called it proof.
+
+### What was done anyway
+
+- His 18 lines are now the narration text, with EN translations, using his
+  own timings (each cue holds until the next enters, so no flicker).
+- Added **`NARRATION_REF_DUR`** (77s) and automatic rescaling: the cutscene
+  reads the real audio duration and scales every cue by the same factor.
+  A 60.76s file gives scale 0.789; a matching file gives 1.00 and changes
+  nothing. Protects against a render coming out slightly faster or slower.
+  It cannot protect against a different script.
+- Copied his script to `assets/audio/roteiro-narracao.srt` so it travels
+  with the project.
+- Verified every accented character survives the alpha-cut font renderer:
+  `ç í ó ê ã á` all render clean at 12px.
+
+### Open
+
+- **Waiting on the correct narration export.** Drop it in as
+  `assets/audio/narrator.mp3` and the subtitles line up. If the new file is
+  not ~77s, update `NARRATION_REF_DUR` to whatever duration the timings
+  were written for.
+- If the new recording is louder (normalised near −3 dBFS), drop
+  `GANHO_VOZ` in `js/core/audio.js` from 4.0 to about 1.2 or it will sound
+  squashed.
+- Everything from Session 01's open list.
+
+### Next session starts with
+
+The detective's name, then NPCs and dialogue choices.
+
+---
+
 ## Template for the next entry
 
 ```

@@ -20,6 +20,12 @@ const CANDIDATE_NARRATION = [
   'assets/audio/intro.wav',
 ];
 
+// A narracao gravada e MUITO mais baixa que o som sintetizado do jogo
+// (pico em -14 dBFS, media em -41 dBFS). Sem amplificar, ela some embaixo
+// da chuva. O ganho abaixo e aplicado dentro do WebAudio — o volume de um
+// elemento <audio> nao passa de 1.0, entao nao daria para levantar por la.
+const GANHO_VOZ = 4.0;
+
 class Audio {
   constructor() {
     this.ready = false;
@@ -27,6 +33,8 @@ class Audio {
     this.loops = {};
     this.narration = null;
     this.narrationEl = null;
+    this.narrChain = null;
+    this.sfxDuck = 1;          // 1 = normal, <1 = abafado para a voz passar
     this.musicOn = false;
     this._nextNote = 0;
     this._step = 0;
@@ -46,8 +54,16 @@ class Audio {
     this.busMusic = c.createGain(); this.busMusic.gain.value = this.vol.music;
     this.busSfx   = c.createGain(); this.busSfx.gain.value = this.vol.sfx;
     this.busVoice = c.createGain(); this.busVoice.gain.value = this.vol.voice;
+
+    // No de abafamento SEPARADO do volume dos efeitos. Se os dois mexessem
+    // no mesmo parametro, a rampa do duck e a atribuicao do controle de
+    // volume brigariam — uma cancela a outra dependendo da ordem.
+    this.duckSfxNode = c.createGain();
+    this.duckSfxNode.gain.value = this.sfxDuck;
+
     this.busMusic.connect(this.master);
-    this.busSfx.connect(this.master);
+    this.busSfx.connect(this.duckSfxNode);
+    this.duckSfxNode.connect(this.master);
     this.busVoice.connect(this.master);
 
     // reverb: impulso sintetico (ruido com decaimento exponencial)
@@ -71,9 +87,24 @@ class Audio {
     if (!this.ready) return;
     this.master.gain.value = this.vol.master;
     this.busMusic.gain.value = this.vol.music;
-    this.busSfx.gain.value = this.vol.sfx;
+    this.busSfx.gain.value = this.vol.sfx;   // o duck vive no proprio no
     this.busVoice.gain.value = this.vol.voice;
-    if (this.narrationEl) this.narrationEl.volume = Math.min(1, this.vol.master * this.vol.voice);
+    // Se a voz passa pelo WebAudio, quem manda no volume dela e o busVoice.
+    // Mexer no .volume do elemento aqui aplicaria o corte duas vezes.
+    if (this.narrationEl && !this.narrChain) {
+      this.narrationEl.volume = Math.min(1, this.vol.master * this.vol.voice);
+    }
+  }
+
+  // Abaixa os efeitos para a voz passar por cima. k = 1 volta ao normal.
+  duckSfx(k, ramp = 0.8) {
+    this.sfxDuck = k;
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    const g = this.duckSfxNode.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(Math.max(0.0001, k), t + ramp);
   }
 
   _impulse(dur, decay) {
@@ -474,10 +505,37 @@ class Audio {
     return null;
   }
 
+  // A voz vai pelo WebAudio para poder ser amplificada acima de 1.0. Um
+  // limitador logo depois do ganho segura os picos: sem ele, +12 dB numa
+  // fala que ja tem pico em -14 dBFS estouraria nos trechos mais altos.
   playNarration() {
     if (!this.narration) return null;
     const el = new window.Audio(this.narration);
-    el.volume = Math.min(1, this.vol.master * this.vol.voice);
+    el.preload = 'auto';
+
+    if (this.ensure()) {
+      try {
+        const src = this.ctx.createMediaElementSource(el);
+        const ganho = this.ctx.createGain();
+        ganho.gain.value = GANHO_VOZ;
+        const lim = this.ctx.createDynamicsCompressor();
+        lim.threshold.value = -6;
+        lim.knee.value = 2;
+        lim.ratio.value = 12;
+        lim.attack.value = 0.003;
+        lim.release.value = 0.18;
+        src.connect(ganho); ganho.connect(lim); lim.connect(this.busVoice);
+        this.narrChain = { src, ganho, lim };
+        el.volume = 1;
+      } catch (e) {
+        // navegador recusou o roteamento: cai no volume simples do elemento
+        this.narrChain = null;
+        el.volume = Math.min(1, this.vol.master * this.vol.voice);
+      }
+    } else {
+      el.volume = Math.min(1, this.vol.master * this.vol.voice);
+    }
+
     el.play().catch(() => {});
     this.narrationEl = el;
     return el;
@@ -487,6 +545,14 @@ class Audio {
     if (this.narrationEl) {
       try { this.narrationEl.pause(); this.narrationEl.currentTime = 0; } catch (e) {}
       this.narrationEl = null;
+    }
+    if (this.narrChain) {
+      try {
+        this.narrChain.src.disconnect();
+        this.narrChain.ganho.disconnect();
+        this.narrChain.lim.disconnect();
+      } catch (e) { /* ja desconectado */ }
+      this.narrChain = null;
     }
   }
 

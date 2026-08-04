@@ -94,48 +94,64 @@ export function t(key) {
 // ---------------------------------------------------------------------------
 // NARRACAO DE ABERTURA
 //
-// Estes tempos NAO foram escritos no olho: sairam da analise do proprio
-// arquivo assets/audio/narrator.mp3. O envelope de volume do audio foi
-// medido em janelas de 20ms, o que separou 17 blocos de fala com as pausas
-// entre eles; as 17 frases deste roteiro foram encaixadas nesses blocos.
-// Duas fronteiras bateram com erro 0.00s e o resto ficou entre 0.17s e
-// 0.68s — abaixo do que o olho percebe numa legenda.
+// Texto e tempos vindos de "roteiro legenda.txt", escrito pelo Luiz.
+// Os tempos sao os do roteiro: cada legenda entra na marca dele e fica na
+// tela ate a proxima entrar (assim nao pisca buraco entre as falas).
 //
-// t = segundo em que a legenda aparece (ja com 0.25s de antecedencia sobre
-//     a voz, que e como legenda de cinema se comporta)
-// d = quanto tempo fica na tela — cada uma dura ate a proxima entrar, para
-//     nao piscar buraco entre as falas
+// ESCALA AUTOMATICA: estes tempos foram escritos para uma gravacao de
+// NARRATION_REF_DUR segundos. Se o arquivo em assets/audio/ tiver outra
+// duracao, a cutscene reescalona tudo na mesma proporcao — ver subScale em
+// js/systems/cutscene.js. Se a gravacao bater com a referencia, a escala e
+// 1.0 e nada muda.
 //
-// SE VOCE TROCAR O AUDIO, estes numeros precisam ser refeitos.
-// Audio atual: 60.76s, 36.84s de fala em 17 blocos.
+// Para reescrever a mao: t = segundo em que a legenda aparece, d = quanto
+// tempo ela fica na tela.
 // ---------------------------------------------------------------------------
 
+export const NARRATION_REF_DUR = 77.0;
+
 export const NARRATION = [
-  { t:  0.49, d: 3.36, pt: 'Todo detetive tem um caso que nao fecha.',
-                       en: 'Every detective has the one case that never closes.' },
-  { t:  3.85, d: 6.78, pt: 'O meu tem sete anos e um nome que eu nao digo em voz alta.',
-                       en: 'Mine is seven years old, and has a name I do not say out loud.' },
-  { t: 10.63, d: 5.51, pt: 'Perdi o distintivo. Depois a casa. Depois o resto.',
-                       en: 'I lost the badge. Then the house. Then everything after that.' },
-  { t: 16.14, d: 7.12, pt: 'Sobrou o telefone. E ele nunca tocava.',
-                       en: 'All that was left was the phone. And it never rang.' },
-  { t: 23.25, d: 3.48, pt: 'Ate hoje, duas e quatorze da manha.',
-                       en: 'Until tonight. Two fourteen in the morning.' },
-  { t: 26.74, d: 6.26, pt: 'Uma voz de mulher. Sem nome. Sem pressa.',
-                       en: 'A woman\'s voice. No name. In no hurry.' },
-  { t: 33.00, d: 8.33, pt: '"O senhor foi o unico que atendeu", ela disse.',
-                       en: '"You were the only one who answered," she said.' },
-  { t: 41.33, d: 6.98, pt: 'Deu um endereco. Um bar fechado ha seis anos.',
-                       en: 'She gave me an address. A bar that closed six years ago.' },
-  { t: 48.32, d: 5.45, pt: 'Eu devia ter desligado. Todo mundo devia.',
-                       en: 'I should have hung up. Anyone would have.' },
-  { t: 53.77, d: 7.19, pt: 'Mas quem nao tem nada nao tem medo de perder.',
-                       en: 'But a man with nothing has nothing left to lose.' },
+  { t:  0.0, d: 3.0, pt: 'Engraçado...',
+                     en: 'Funny...' },
+  { t:  3.0, d: 5.0, pt: 'Passei metade da vida perseguindo monstros.',
+                     en: 'I spent half my life chasing monsters.' },
+  { t:  8.0, d: 8.0, pt: 'E a outra metade tentando descobrir por que eles nunca saíam do meu caminho.',
+                     en: 'And the other half trying to work out why they never got out of my way.' },
+  { t: 16.0, d: 4.0, pt: 'Demorei anos pra entender.',
+                     en: 'It took me years to understand.' },
+  { t: 20.0, d: 4.0, pt: 'Eles... eles nunca estiveram na minha frente.',
+                     en: 'They... they were never in front of me.' },
+  { t: 24.0, d: 4.0, pt: 'Eles vinham comigo.',
+                     en: 'They were walking with me.' },
+  { t: 28.0, d: 4.6, pt: 'Tem gente que acredita que o tempo cura...',
+                     en: 'Some people believe time heals...' },
+  { t: 32.6, d: 1.4, pt: 'Mentira.',
+                     en: 'It does not.' },
+  { t: 34.0, d: 6.0, pt: 'O tempo só aprende a esconder as feridas... até você olhar no espelho.',
+                     en: 'Time only learns to hide the wounds... until you look in a mirror.' },
+  { t: 40.0, d: 4.0, pt: 'Tem noites em que eu ainda escuto.',
+                     en: 'There are nights I still hear it.' },
+  { t: 44.0, d: 3.0, pt: 'Não são vozes...',
+                     en: 'Not voices...' },
+  { t: 47.0, d: 2.0, pt: 'Silêncios.',
+                     en: 'Silences.' },
+  { t: 49.0, d: 3.5, pt: 'Os silêncios que eu deixei pra trás.',
+                     en: 'The silences I left behind.' },
+  { t: 52.5, d: 5.5, pt: 'Não... Não existe aposentadoria pra consciência.',
+                     en: 'No... There is no retirement for a conscience.' },
+  { t: 58.0, d: 4.0, pt: 'Ela bate ponto todos os dias.',
+                     en: 'It clocks in every single day.' },
+  { t: 62.0, d: 7.0, pt: 'Hoje, talvez seja o primeiro dia em muito tempo que eu parei de fugir.',
+                     en: 'Tonight might be the first time in a long while that I stopped running.' },
+  { t: 69.0, d: 5.0, pt: 'Se existe uma conta esperando por mim...',
+                     en: 'If there is a bill waiting for me...' },
+  { t: 74.0, d: 3.0, pt: 'Já passou da hora de pagar.',
+                     en: 'It is long past time I paid it.' },
 ];
 
 // So vale quando NAO existe arquivo de audio. Com audio, o jogo usa a
 // duracao real do arquivo.
-export const NARRATION_END = 60.8;
+export const NARRATION_END = NARRATION_REF_DUR;
 
 // ---------------------------------------------------------------------------
 // MONOLOGOS DE EXAMINAR — testam o sistema de dialogo antes de existir NPC.

@@ -11,7 +11,7 @@ import { input } from '../core/input.js';
 import { PAL } from '../art/palette.js';
 import { text } from '../core/text.js';
 import { drawSubtitle } from './dialogue.js';
-import { NARRATION, NARRATION_END, t as T, getLang } from '../i18n.js';
+import { NARRATION, NARRATION_END, NARRATION_REF_DUR, t as T, getLang } from '../i18n.js';
 
 const CRUISE = 150;      // px/s do carro em movimento
 const DECEL_T = 3.4;     // segundos de freada
@@ -63,14 +63,17 @@ export class Opening {
     this.rain.groundY = R.CURB_Y + 6;
 
     audio.ensure();
-    audio.startLoop('rain', { gain: 0.16, fade: 2 });
-    audio.startLoop('wind', { gain: 0.05, fade: 3 });
+    audio.startLoop('rain', { gain: 0.10, fade: 2 });
+    audio.startLoop('wind', { gain: 0.03, fade: 3 });
 
     // A voz NAO comeca junto com a cena: ela espera o fade-in acabar. Se
     // comecasse em t=0 as primeiras palavras cairiam numa tela ainda preta
     // e a primeira legenda apareceria meio apagada junto com o fade.
     this.narrEl = null;
     this.narrStarted = false;
+    this._ambienteVoltou = false;
+    this.subScale = 1;
+    this._escalaPronta = false;
   }
 
   _comecarNarracao() {
@@ -78,6 +81,21 @@ export class Opening {
     this.narrStarted = true;
     this.narrTimer = 0;
     this.narrEl = audio.playNarration();
+    // Enquanto a voz fala, o mundo abaixa. Chuva e vento quase somem e os
+    // efeitos ficam a 30%: e uma narracao em off, nao um som do ambiente.
+    audio.setLoopGain('rain', 0.030, 1.2);
+    audio.setLoopGain('wind', 0.010, 1.2);
+    audio.duckSfx(0.30, 1.0);
+  }
+
+  // A chuva volta junto com o carro freando: a cena "acorda" quando ele
+  // para de falar.
+  _voltarAmbiente() {
+    if (this._ambienteVoltou) return;
+    this._ambienteVoltou = true;
+    audio.setLoopGain('rain', 0.24, 2.6);
+    audio.setLoopGain('wind', 0.05, 2.6);
+    audio.duckSfx(1, 2.2);
   }
 
   // -1 enquanto a voz nao comecou: nenhuma legenda casa com esse valor.
@@ -99,6 +117,10 @@ export class Opening {
   finish(skip) {
     this.finished = true;
     audio.stopNarration();
+    // Sem isto o jogo inteiro continuaria com os efeitos abafados depois de
+    // pular a abertura.
+    this._voltarAmbiente();
+    audio.duckSfx(1, 0.3);
     gfx.letterbox = 0;
     this.player.det.visible = true;
   }
@@ -120,11 +142,22 @@ export class Opening {
       }
     } else this.skipHold = Math.max(0, this.skipHold - dt * 2);
 
+    // Escala das legendas: os tempos foram escritos para uma gravacao de
+    // NARRATION_REF_DUR segundos. Com outro arquivo, tudo se estica ou
+    // encolhe na mesma proporcao. A duracao so fica conhecida depois que o
+    // navegador le o cabecalho do mp3, por isso o calculo e preguicoso.
+    if (this.subScale === undefined) this.subScale = 1;
+    if (!this._escalaPronta && this.narrEl && isFinite(this.narrEl.duration) && this.narrEl.duration > 1) {
+      this._escalaPronta = true;
+      this.subScale = clamp(this.narrEl.duration / NARRATION_REF_DUR, 0.6, 1.6);
+    }
+
     // legenda ativa
     const nt = this.narrationTime;
+    const k = this.subScale;
     let sub = null;
     for (const s of NARRATION) {
-      if (nt >= s.t && nt < s.t + s.d) { sub = s; break; }
+      if (nt >= s.t * k && nt < (s.t + s.d) * k) { sub = s; break; }
     }
     if (sub !== this.curSub) { this.curSub = sub; }
     this.subAlpha = clamp(this.subAlpha + (sub ? dt * 4 : -dt * 4), 0, 1);
@@ -149,7 +182,8 @@ export class Opening {
           // Coloca a boca do beco na tela na hora certa, independente de
           // quanto tempo a narracao durou.
           this.destWorldX = scrollFinal * PAR_NEAR + 153;
-          audio.carPassBy(0.5);
+          this._voltarAmbiente();
+          audio.carPassBy(0.35);
         }
         break;
 
@@ -161,7 +195,6 @@ export class Opening {
           this.phase = 'stop'; this.pt = 0;
           this.rain.wind = -34;
           this.rain.intensity = 1;
-          audio.setLoopGain('rain', 0.24);
         }
         break;
       }
@@ -193,7 +226,7 @@ export class Opening {
       case 'closedoor':
         this.doorAngle = lerp(1.15, 0, easeInOut(clamp(this.pt / 0.45, 0, 1)));
         this.player.det.update(dt);
-        if (this.pt > 0.6) { this.phase = 'cardrive'; this.pt = 0; audio.carPassBy(0.7); }
+        if (this.pt > 0.6) { this.phase = 'cardrive'; this.pt = 0; audio.carPassBy(0.55); }
         break;
 
       case 'cardrive': {
