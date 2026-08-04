@@ -83,6 +83,12 @@ export class NoteScene {
         break;
 
       case 'approach': {
+        // Ele fala enquanto ela vem. O jogador ja viu; ele nao. Cada frase
+        // chega mais perto de perceber, e a ultima chega tarde demais.
+        if (this.pt > 0.6 && !this._f1) { this._f1 = 1; this.player.say('bark_note_1', 2.4, true); }
+        if (this.pt > 3.6 && !this._f2) { this._f2 = 1; this.player.say('bark_note_2', 2.4, true); }
+        if (this.dist < 90 && !this._f3) { this._f3 = 1; this.player.say('bark_note_3', 2.4, true); }
+
         // anda devagar, e desacelera de leve chegando perto: a ultima parte
         // demora mais do que o jogador espera
         const d = this.dist;
@@ -146,6 +152,9 @@ export class NoteScene {
           gfx.eyelid = 1;
           gfx.letterbox = 0;
           this.finished = true;
+          // So agora ele fala. Antes disso as falas apareciam por tras das
+          // palpebras fechadas e o jogador nao lia nenhuma.
+          if (this.onAwake) this.onAwake();
         }
         break;
       }

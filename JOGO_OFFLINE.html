@@ -1387,6 +1387,116 @@ class Audio {
     o.start(t); o.stop(t + dur + 0.2);
   }
 
+  // ---------------- sons pontuais de ambiente ----------------
+  // Sao estes, e nao um loop, que dizem em que lugar voce esta: uma gota
+  // que cai a cada oito segundos num galpao vazio conta mais do que
+  // qualquer textura de fundo.
+
+  drip(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(900 + Math.random() * 500, t);
+    o.frequency.exponentialRampToValueAtTime(260, t + 0.09);
+    const g = this._env(o, t, 0.001, 0.12, 0.12 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.2);
+  }
+
+  metalCreak(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.3;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 22;
+    const base = 300 + Math.random() * 500;
+    f.frequency.setValueAtTime(base, t);
+    f.frequency.linearRampToValueAtTime(base * 1.5, t + 0.9);
+    f.frequency.linearRampToValueAtTime(base * 1.2, t + 1.8);
+    s.connect(f);
+    const g = this._env(f, t, 0.3, 1.6, 0.10 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 2, 2.2); s.stop(t + 2.2);
+  }
+
+  chainRattle(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const s = c.createBufferSource();
+      s.buffer = this.noiseBuf;
+      const f = c.createBiquadFilter();
+      f.type = 'bandpass'; f.Q.value = 16;
+      f.frequency.value = 2200 + Math.random() * 1800;
+      s.connect(f);
+      const g = this._env(f, t + i * 0.045 * (0.6 + Math.random()), 0.001, 0.05, 0.07 * vol);
+      g.connect(this.verb);
+      s.start(t + i * 0.05, Math.random() * 3, 0.1); s.stop(t + i * 0.05 + 0.12);
+    }
+  }
+
+  // longe, do lado de fora, alguem fechando alguma coisa pesada
+  distantThump(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(90, t);
+    o.frequency.exponentialRampToValueAtTime(34, t + 0.3);
+    const g = this._env(o, t, 0.01, 0.4, 0.16 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.5);
+  }
+
+  // cano velho arrebentando: metal cedendo e depois agua com pressao
+  pipeBurst(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 8;
+    f.frequency.setValueAtTime(1600, t);
+    f.frequency.exponentialRampToValueAtTime(420, t + 0.25);
+    s.connect(f);
+    const g = this._env(f, t, 0.002, 0.3, 0.4 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 0.5); s.stop(t + 0.5);
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(50, t + 0.2);
+    this._env(o, t, 0.001, 0.25, 0.4 * vol);
+    o.start(t); o.stop(t + 0.35);
+    // jato de agua depois
+    const j = c.createBufferSource();
+    j.buffer = this.noiseBuf;
+    const jf = c.createBiquadFilter();
+    jf.type = 'highpass'; jf.frequency.value = 2200;
+    j.connect(jf);
+    this._env(jf, t + 0.1, 0.15, 1.4, 0.13 * vol);
+    j.start(t + 0.1, Math.random() * 2, 1.8); j.stop(t + 1.8);
+  }
+
+  // esforco: puxar, forcar, arrebentar
+  strain(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.35;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 12;
+    f.frequency.setValueAtTime(420 + Math.random() * 200, t);
+    f.frequency.linearRampToValueAtTime(700, t + 0.3);
+    s.connect(f);
+    this._env(f, t, 0.03, 0.34, 0.13 * vol);
+    s.start(t, Math.random() * 2, 0.5); s.stop(t + 0.5);
+  }
+
   uiMove() {
     if (!this.ensure()) return;
     const c = this.ctx, t = c.currentTime;
@@ -1445,7 +1555,12 @@ class Audio {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(opt.gain, t + (opt.fade || 1.5));
 
-    if (name === 'rain') {
+    if (name === 'hall') {
+      // ar parado de galpao: grave largo, sem chuva nenhuma
+      src.playbackRate.value = 0.18;
+      f.type = 'lowpass'; f.frequency.value = 150;
+      src.connect(f); f.connect(g);
+    } else if (name === 'rain') {
       src.playbackRate.value = 1.7;
       f.type = 'highpass'; f.frequency.value = 950;
       const f2 = c.createBiquadFilter();
@@ -2771,6 +2886,31 @@ const ANIM = {
     ],
   },
 
+  // Sentado no chao, impaciente: joelhos dobrados, bracos apoiados neles,
+  // e a perna batendo. Sem cigarro para ocupar a mao, so resta o pe.
+  sitImpatient: {
+    dur: 2.6, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.18, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -104, lFf: 20, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.34, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.52, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -104, lFf: 20, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.66, p: pose({ hy: 19.4, torso: 7, head: -9, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 44, aFf: -60, aBu: 39, aBf: -55 }) },
+      { t: 0.86, p: pose({ hy: 19.4, torso: 8, head: 9, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 45, aFf: -61, aBu: 39, aBf: -55 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+    ],
+  },
+
+  // puxando as algemas contra o cano — o QTE de escapar
+  strainCuffs: {
+    dur: 0.44, loop: true, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+      { t: 0.45, p: pose({ hy: 17, torso: -16, head: -2, lFt: 66, lFs: -44, lFf: 6, lBt: 58, lBs: -40, lBf: 6, aFu: -150, aFf: 6, aBu: -155, aBf: 5 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+    ],
+  },
+
   // parado olhando para tras — reservado para os sustos
   lookback: {
     dur: 1.60, loop: false,
@@ -3709,25 +3849,30 @@ function boardedWindow(ctx, x, y, w, h, seed) {
   rect(ctx, x - 2, y - 2, w + 4, 1, '#2b2320');
 }
 
+// Porta de tamanho gente. O detetive tem 62px; uma porta real e uns 15%
+// mais alta que um homem, entao 74. A versao antiga tinha 46 e ele parecia
+// ter que entrar de quatro.
 function doorFrame(ctx, x, gy, seed, opt = {}) {
-  const w = 26, h = 46;
+  const w = 32, h = 74;
   const y = gy - h;
   // batente
-  rect(ctx, x - 3, y - 3, w + 6, h + 3, '#1d1815');
-  rect(ctx, x - 3, y - 3, w + 6, 2, '#2e2620');
+  rect(ctx, x - 4, y - 4, w + 8, h + 4, '#1d1815');
+  rect(ctx, x - 4, y - 4, w + 8, 2, '#2e2620');
+  rect(ctx, x - 4, y - 4, 2, h + 4, '#251e19');
   // vao escuro
   rect(ctx, x, y, w, h, '#07080a');
   if (!opt.open) {
-    woodPanel(ctx, x, y, w, h, seed, { pw: 9, hi: '#43301f', mid: '#31220f', dk: '#1e1409' });
+    woodPanel(ctx, x, y, w, h, seed, { pw: 11, hi: '#43301f', mid: '#31220f', dk: '#1e1409' });
     // almofadas
-    rect(ctx, x + 3, y + 4, w - 6, 15, '#241806');
-    rect(ctx, x + 4, y + 5, w - 8, 13, '#3a2712');
-    rect(ctx, x + 3, y + 24, w - 6, 17, '#241806');
-    rect(ctx, x + 4, y + 25, w - 8, 15, '#3a2712');
-    // macaneta
-    rect(ctx, x + w - 6, y + 24, 3, 3, PAL.brass);
-    rect(ctx, x + w - 6, y + 24, 2, 1, '#d9c07a');
-    grainRect(ctx, x, y, w, h, ['#1a1108', PAL.rust], 0.06, seed + 2);
+    rect(ctx, x + 4, y + 6, w - 8, 26, '#241806');
+    rect(ctx, x + 5, y + 7, w - 10, 24, '#3a2712');
+    rect(ctx, x + 4, y + 40, w - 8, 28, '#241806');
+    rect(ctx, x + 5, y + 41, w - 10, 26, '#3a2712');
+    // macaneta na altura da mao
+    rect(ctx, x + w - 8, y + 36, 4, 4, PAL.brass);
+    rect(ctx, x + w - 8, y + 36, 3, 1, '#d9c07a');
+    rect(ctx, x + w - 9, y + 34, 6, 1, '#2a2018');
+    grainRect(ctx, x, y, w, h, ['#1a1108', PAL.rust], 0.05, seed + 2);
   }
   return { x, y, w, h };
 }
@@ -4386,6 +4531,8 @@ function buildAlley() {
     weather: 'rain',
     rainIntensity: 1,
     reflect: 0.13,
+    ambience: [{ n: 'rain', g: 0.22 }, { n: 'wind', g: 0.04 }],
+    randomSfx: [{ fn: 'thunder', min: 26, max: 70, vol: 0.5 }],
     minX: 24, maxX: W - 40,
     spawn: { x: 90, facing: 1 },
     doorX: DOOR_X + 13,
@@ -4606,6 +4753,9 @@ function buildBar() {
     doorX: 57,
     bloom: 0.42,
     indoor: true,
+    // chuva so no que vaza pela porta da frente, bem abafada
+    ambience: [{ n: 'roomtone', g: 0.10 }, { n: 'rain', g: 0.035 }],
+    randomSfx: [{ fn: 'drip', min: 6, max: 15, vol: 0.6 }],
     enterBarks: ['bark_bar_enter', 'bark_bar_enter2'],
     barks: [
       { x: 200, key: 'bark_bar_dark', range: 44 },
@@ -4742,77 +4892,170 @@ function buildBackroom() {
     doorX: 59,
     bloom: 0.4,
     indoor: true,
-    enterBarks: ['bark_pool'],
+    ambience: [{ n: 'roomtone', g: 0.09 }],
+    randomSfx: [{ fn: 'drip', min: 4, max: 10, vol: 0.8 }],
+    // urgente: ele fala da poca na hora que entra, cortando o resto
+    enterBarksNow: ['bark_pool'],
     barks: [{ x: 330, key: 'bark_note_pre', range: 44 }],
   });
 }
 
 // ---------------------------------------------------------------------------
-// CATIVEIRO — onde ele acorda
+// GALPAO — onde ele acorda algemado
 // ---------------------------------------------------------------------------
 
-function buildCell() {
-  const W = 340, GY = 214;
+function buildWarehouse() {
+  const W = 760, GY = 214;
+
+  const back = makeBuffer(Math.ceil(VW + (W - VW) * 0.5) + 8, VH);
+  {
+    const b = back.x;
+    rect(b, 0, 0, back.c.width, VH, '#0a0c0f');
+    // vigas do teto la no fundo, sumindo no escuro
+    for (let x = 20; x < back.c.width; x += 96) {
+      rect(b, x, 14, 4, 70, '#14171c');
+      rect(b, x - 30, 14, 64, 3, '#171a20');
+    }
+    ditherV(b, 0, 84, back.c.width, 60, '#101317', '#08090c', 5);
+  }
 
   const main = makeBuffer(W, VH);
   const g = main.x;
 
-  rect(g, 0, 0, W, VH, '#100f0e');
-  // concreto cru, manchado
-  M.brickWall(g, 0, 0, W, GY, 3101, {
-    base: '#2e2b27', hi: '#39352f', dk: '#211e1b', mortar: '#171513', moss: false,
+  rect(g, 0, 0, W, VH, '#131211');
+  // chapa ondulada ate a metade, alvenaria embaixo
+  M.metalPanel(g, 0, 0, W, 120, 3101, { hi: '#3a4048', mid: '#2b3037', dk: '#1a1e23' });
+  M.brickWall(g, 0, 120, W, GY - 120, 3111, {
+    base: '#332f2a', hi: '#3d3831', dk: '#252220', mortar: '#1a1816', moss: false,
   });
-  M.asphalt(g, 0, GY, W, VH - GY, 3111, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
-  rect(g, 0, GY, W, 1, '#0a0908');
-  grainRect(g, 0, 0, W, GY, ['#191715', '#3d3831'], 0.05, 3121);
+  for (let i = 0; i < 44; i++) {
+    g.globalAlpha = 0.6 * (1 - i / 44);
+    rect(g, 0, i, W, 1, '#040506');
+    g.globalAlpha = 1;
+  }
 
-  // manchas de umidade descendo
-  for (const px of [40, 120, 250, 300]) {
-    for (let i = 0; i < 60; i++) {
-      g.globalAlpha = 0.1;
-      rect(g, px + Math.sin(i * 0.3) * 2, 20 + i, 2, 1, '#0d0f12');
+  // claraboia quebrada: a unica luz que nao e eletrica
+  rect(g, 470, 0, 64, 16, '#0b0d10');
+  rect(g, 474, 2, 56, 11, '#3d4d63');
+  rect(g, 486, 2, 3, 11, '#0b0d10');
+  rect(g, 508, 2, 3, 11, '#0b0d10');
+  rect(g, 492, 4, 12, 7, '#5f7ba8');   // vidro quebrado, ceu passando
+
+  M.asphalt(g, 0, GY, W, VH - GY, 3121, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
+  rect(g, 0, GY, W, 1, '#0a0908');
+  grainRect(g, 0, 120, W, GY - 120, ['#191715', '#3d3831'], 0.05, 3131);
+
+  // manchas de umidade descendo pela parede
+  for (const px of [70, 240, 400, 610]) {
+    for (let i = 0; i < 70; i++) {
+      g.globalAlpha = 0.09;
+      rect(g, px + Math.sin(i * 0.3) * 2, 124 + i, 2, 1, '#0d0f12');
       g.globalAlpha = 1;
     }
   }
 
-  // O cano. Fica na altura do ombro de quem esta sentado no chao.
-  M.wallPipe(g, 0, 168, W, 3131);
+  // O cano onde ele acorda algemado. Altura do ombro de quem esta sentado.
+  M.wallPipe(g, 0, 168, 300, 3141);
+  M.wallPipe(g, 330, 168, W - 330, 3151);
+  // o pedaco que falta entre os dois e onde ele vai arrebentar
 
-  // porta trancada, do outro lado da sala
-  const d = M.doorFrame(g, 286, GY, 3141);
-  rect(g, d.x + 4, d.y + 20, 18, 4, '#2a2622');   // tabua atravessada
-  rect(g, d.x + 4, d.y + 20, 18, 1, '#403a33');
+  // engradados, paletes, tambores
+  M.crate(g, 300, GY, 1, 3161);
+  M.crate(g, 324, GY, 0, 3171);
+  M.crate(g, 306, GY - 17, 0, 3181);
+  M.crate(g, 560, GY, 1, 3191);
+  M.crate(g, 700, GY, 0, 3201);
+  M.debris(g, 380, GY, 50, 3211);
+  M.puddle(g, 250, GY + 12, 60, 3221);
+  M.puddle(g, 520, GY + 16, 44, 3231);
 
-  // A lampada fica em cima dele: e a unica coisa que ele consegue ver, e
-  // isso e proposital — a sala inteira e uma pergunta sem resposta.
-  const lights = [
-    { x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 },
-    { x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' },
-    { x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 },
-  ];
+  // correntes penduradas do teto
+  for (const cx of [180, 350, 620]) {
+    for (let i = 0; i < 40 + (cx % 30); i++) {
+      rect(g, cx + (i % 2), 10 + i * 2, 2, 1, '#2a2e33');
+    }
+  }
+
+  const inter = [];
+  const lights = [];
+
+  // porta lateral, pregada por fora
+  const d = M.doorFrame(g, 420, GY, 3241);
+  for (let i = 0; i < 3; i++) {
+    const by = d.y + 12 + i * 22;
+    rect(g, d.x - 5, by, d.w + 10, 6, '#2f2620');
+    rect(g, d.x - 5, by, d.w + 10, 1, '#463a2e');
+    rect(g, d.x + 4, by + 1, 2, 4, '#6a6a6a');
+    rect(g, d.x + d.w - 7, by + 1, 2, 4, '#6a6a6a');
+  }
+
+  // portao de enrolar, fechado
+  const gx = 640, gw = 96;
+  rect(g, gx, GY - 96, gw, 96, '#232830');
+  for (let i = 0; i < 96; i += 5) {
+    rect(g, gx, GY - 96 + i, gw, 4, i % 10 ? '#2b313a' : '#232830');
+    rect(g, gx, GY - 96 + i, gw, 1, '#3a4250');
+  }
+  rect(g, gx - 3, GY - 100, gw + 6, 5, '#1a1e24');
+  grainRect(g, gx, GY - 96, gw, 96, [PAL.rust, '#1a1e24'], 0.05, 3251);
+  rect(g, gx + gw / 2 - 10, GY - 30, 20, 8, '#151a1f');   // cadeado por fora
+
+  // lampada em cima dele
   M.bareBulb(g, 196, 12, 30);
+  lights.push({ x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 });
+  lights.push({ x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' });
+  lights.push({ x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 });
+  // luar entrando pela claraboia
+  lights.push({ x: 502, y: 10, r: 150, color: '#6f8ec4', i: 0.44, falloff: 1.35 });
+  lights.push({ x: 502, y: 190, r: 96, color: '#5c78a8', i: 0.26, falloff: 1.4 });
+  // resto de luz vindo por baixo do portao
+  lights.push({ x: 688, y: 210, r: 74, color: '#b8905c', i: 0.30, falloff: 1.3 });
+  // preenchimento no vao entre a lampada e a claraboia — sem ele o meio do
+  // galpao fica preto e o jogador anda no escuro sem saber que ha chao ali
+  lights.push({ x: 366, y: 152, r: 138, color: '#7d6a52', i: 0.32, falloff: 1.35 });
 
-  const fore = makeBuffer(VW, VH);
-  rect(fore.x, 0, 0, VW, 12, '#030202');
-  rect(fore.x, 0, VH - 10, VW, 10, '#030202');
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.15) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 12, '#030202');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#030202');
+  rect(fore.x, 268, 0, 8, VH, '#050607');
 
-  return new Level({
-    key: 'cell',
+  const lvl = new Level({
+    key: 'warehouse',
     nameKey: 'loc_cell',
     width: W, groundY: GY,
     ambient: '#1e222c',
-    layers: [{ c: main.c, par: 1 }],
-    fores: [{ c: fore.c, par: 1 }],
+    layers: [{ c: back.c, par: 0.5 }, { c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.15 }],
     lightDefs: lights,
-    interactables: [],
+    interactables: inter,
     weather: 'none',
-    reflect: 0.04,
-    minX: 150, maxX: 152,     // preso: nao ha para onde ir
+    reflect: 0.06,
+    minX: 150, maxX: 152,          // algemado: nao ha para onde ir
     spawn: { x: 151, facing: 1 },
-    bloom: 0.35,
+    bloom: 0.4,
     indoor: true,
     pipeY: 168,
+    doorX: 436,
+    // Nada de chuva aqui dentro. O galpao soa por dentro: ar parado, agua
+    // pingando em algum canto e a estrutura cedendo de vez em quando.
+    ambience: [{ n: 'hall', g: 0.11 }, { n: 'wind', g: 0.022 }],
+    randomSfx: [
+      { fn: 'drip', min: 3.5, max: 9, vol: 0.9 },
+      { fn: 'metalCreak', min: 11, max: 26, vol: 0.8 },
+      { fn: 'distantThump', min: 22, max: 50, vol: 0.7 },
+      { fn: 'chainRattle', min: 17, max: 40, vol: 0.5 },
+    ],
+    // usado depois que ele se solta
+    freeMinX: 40, freeMaxX: 716,
   });
+
+  lvl.interLivre = [
+    { x: 300, y: 176, w: 34, h: 16, prompt: 'prompt_use', action: 'take_pipe', range: 30 },
+    { x: d.x, y: d.y, w: d.w, h: d.h, prompt: 'prompt_use', action: 'pry_door', range: 34 },
+    { x: gx, y: GY - 96, w: gw, h: 96, prompt: 'prompt_look', lines: 'wh_gate', range: 44 },
+    { x: 470, y: 0, w: 64, h: 16, prompt: 'prompt_look', lines: 'wh_sky', range: 40 },
+  ];
+  return lvl;
 }
 
 // ---------------------------------------------------------------------------
@@ -5047,7 +5290,7 @@ function buildRoad() {
   Object.defineProperty(__exp, "buildAlley", { get: function(){ return buildAlley; }, enumerable: true });
   Object.defineProperty(__exp, "buildBar", { get: function(){ return buildBar; }, enumerable: true });
   Object.defineProperty(__exp, "buildBackroom", { get: function(){ return buildBackroom; }, enumerable: true });
-  Object.defineProperty(__exp, "buildCell", { get: function(){ return buildCell; }, enumerable: true });
+  Object.defineProperty(__exp, "buildWarehouse", { get: function(){ return buildWarehouse; }, enumerable: true });
   Object.defineProperty(__exp, "buildCar", { get: function(){ return buildCar; }, enumerable: true });
   Object.defineProperty(__exp, "buildRoad", { get: function(){ return buildRoad; }, enumerable: true });
 };
@@ -5137,6 +5380,28 @@ const STR = {
                     en: 'Someone stood here bleeding. For too long.' },
   bark_note_pre:  { pt: 'Tem um papel no meio da poça.',
                     en: 'There is a piece of paper in the middle of it.' },
+  qte_hint:       { pt: 'A  +  D  ALTERNADO',           en: 'A  +  D  ALTERNATE' },
+  to_be_continued:{ pt: 'CONTINUA',                     en: 'TO BE CONTINUED' },
+  prompt_pry:     { pt: 'FORCAR',                       en: 'PRY' },
+
+  bark_note_1:    { pt: 'Quem escreveu isso sabia que eu viria.',
+                    en: 'Whoever wrote this knew I would come.' },
+  bark_note_2:    { pt: 'Sabia ate onde eu ia parar pra ler.',
+                    en: 'Knew exactly where I would stop to read it.' },
+  bark_note_3:    { pt: 'Tem alguem atras de mim, nao tem?',
+                    en: 'There is someone behind me, is there not?' },
+
+  bark_free_1:    { pt: 'Cano velho. Enferrujado por dentro.',
+                    en: 'Old pipe. Rusted through.' },
+  bark_free_2:    { pt: 'Levaram tudo. O cigarro, a arma, a carteira.',
+                    en: 'They took everything. The smokes, the gun, the wallet.' },
+  bark_free_3:    { pt: 'Deixaram o casaco. Que gentileza.',
+                    en: 'They left the coat. How thoughtful.' },
+  bark_pipe_take: { pt: 'Serve.',                       en: 'This will do.' },
+  bark_door_pry:  { pt: 'Pregada por fora. Alguem me trancou aqui.',
+                    en: 'Nailed from outside. Someone locked me in.' },
+  bark_out:       { pt: 'Ar. Finalmente.',              en: 'Air. Finally.' },
+
   bark_cell_1:    { pt: 'Cano. Frio. Sem folga.',       en: 'Pipe. Cold. No slack.' },
   bark_cell_2:    { pt: 'Nao me mataram. Isso e pior.', en: 'They did not kill me. That is worse.' },
   bark_cell_3:    { pt: 'Alguem me trouxe ate aqui. Carregado.',
@@ -5324,6 +5589,17 @@ const LINES = {
     { pt: 'Entao de onde veio a ligacao?',
       en: 'So where did the call come from?' },
   ],
+  wh_gate: [
+    { pt: 'Portao de enrolar. Cadeado do lado de fora.',
+      en: 'Roller gate. Padlock on the outside.' },
+    { pt: 'Nao fui eu que fechei.', en: 'I did not close it.' },
+  ],
+  wh_sky: [
+    { pt: 'Claraboia quebrada. Uns oito metros de altura.',
+      en: 'Broken skylight. Twenty-five feet up.' },
+    { pt: 'Se eu tivesse vinte anos a menos, talvez.',
+      en: 'Twenty years ago, maybe.' },
+  ],
   bar_wreck: [
     { pt: 'A parede foi arrebentada de dentro para fora.',
       en: 'The wall was broken from the inside out.' },
@@ -5460,6 +5736,12 @@ class NoteScene {
         break;
 
       case 'approach': {
+        // Ele fala enquanto ela vem. O jogador ja viu; ele nao. Cada frase
+        // chega mais perto de perceber, e a ultima chega tarde demais.
+        if (this.pt > 0.6 && !this._f1) { this._f1 = 1; this.player.say('bark_note_1', 2.4, true); }
+        if (this.pt > 3.6 && !this._f2) { this._f2 = 1; this.player.say('bark_note_2', 2.4, true); }
+        if (this.dist < 90 && !this._f3) { this._f3 = 1; this.player.say('bark_note_3', 2.4, true); }
+
         // anda devagar, e desacelera de leve chegando perto: a ultima parte
         // demora mais do que o jogador espera
         const d = this.dist;
@@ -5523,6 +5805,9 @@ class NoteScene {
           gfx.eyelid = 1;
           gfx.letterbox = 0;
           this.finished = true;
+          // So agora ele fala. Antes disso as falas apareciam por tras das
+          // palpebras fechadas e o jogador nao lia nenhuma.
+          if (this.onAwake) this.onAwake();
         }
         break;
       }
@@ -5692,6 +5977,8 @@ class Player {
     if (this.fireCd > 0) this.fireCd -= dt;
     if (this.ammoHud > 0) this.ammoHud -= dt;
 
+    // sem arma no coldre nao ha o que sacar
+    if (this.hasGun === false) { d.aim.on = false; this.gun = 'holstered'; return; }
     const querMirar = canAct && input.mouse.right && this.state !== 'punch' && this.state !== 'interact';
 
     if (this.gun === 'holstered') {
@@ -5877,10 +6164,13 @@ class Player {
         // com a arma na mao ele nao vai procurar cigarro
         if (this.gun !== 'holstered') this.idleTime = 0;
         else this.idleTime += dt;
-        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
+        // Sem cigarro no bolso nao ha animacao de cigarro. Depois que
+        // levam tudo dele, o ocio precisa virar outra coisa.
+        const parado = this.idleAnim || 'idle';
+        if (this.idleTime > IDLE_TO_SMOKE && canAct && !this.idleAnim) {
           this.state = 'smoke';
           d.play('smoke', { restart: true, blend: 0.3 });
-        } else if (d.anim !== 'idle') d.play('idle');
+        } else if (d.anim !== parado) d.play(parado, { blend: 0.35 });
       }
     }
 
@@ -5890,13 +6180,21 @@ class Player {
 
   // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
   // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
-  say(key, dur = 2.6) {
-    if (this.floatText && this.floatText.key === key) return;
-    if (this.barkQueue.some(b => b.key === key)) return;
+  // `agora` corta o que estiver na tela e a fila inteira. Serve para o que
+  // ele precisa dizer no instante em que ve — uma poca de sangue nao pode
+  // esperar tres falas sobre cadeiras empilhadas.
+  say(key, dur = 2.6, agora = false) {
+    if (agora) { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
+    else {
+      if (this.floatText && this.floatText.key === key) return;
+      if (this.barkQueue.some(b => b.key === key)) return;
+    }
     this.barkQueue.push({ key, dur });
   }
 
-  sayAll(keys) { for (const k of keys) this.say(k); }
+  sayAll(keys, agora = false) {
+    for (let i = 0; i < keys.length; i++) this.say(keys[i], 2.6, agora && i === 0);
+  }
 
   _updateBarks(dt) {
     if (this.floatText) {
@@ -7515,7 +7813,7 @@ const { PAL } = __req("art/palette.js");
 const { ANIM_NAMES } = __req("art/detective.js");
 const { Camera } = __req("world/camera.js");
 const { Rain, Fog, Particles, DustMotes } = __req("world/fx.js");
-const { buildAlley, buildBar, buildBackroom, buildCell, buildRoad, buildCar } = __req("world/levels.js");
+const { buildAlley, buildBar, buildBackroom, buildWarehouse, buildRoad, buildCar } = __req("world/levels.js");
 const { NoteScene } = __req("systems/scene-nota.js");
 const { Player } = __req("systems/player.js");
 const { Dialogue, drawPrompt, drawLocationCard } = __req("systems/dialogue.js");
@@ -7570,7 +7868,7 @@ class Game {
     set('abrindo os fundos...');
     await frame();
     this.levels.backroom = buildBackroom();
-    this.levels.cell = buildCell();
+    this.levels.warehouse = buildWarehouse();
 
     set('ligando o carro...');
     await frame();
@@ -7682,6 +7980,7 @@ class Game {
       case 'menu': this.updateMenu(dt); break;
       case 'cutscene': this.updateCutscene(dt); break;
       case 'play': this.updatePlay(dt); break;
+      case 'endcard': this.updateEndCard(dt); break;
       case 'lab': this.updateLab(dt); break;
     }
 
@@ -7822,16 +8121,21 @@ class Game {
     this.player.clearBarks();
     this.player.frozen = false;
     this.player.controllable = true;
+    this.qte = null;
+    this.flags = this.flags || {};
     if (lv.barks) for (const b of lv.barks) b.done = false;
-    if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
+    if (lv.enterBarksNow) this.player.sayAll(lv.enterBarksNow, true);
+    else if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
+    // Cada lugar tem o proprio som. Antes a chuva seguia o jogador para
+    // dentro de qualquer sala, o que dizia ao ouvido que nada tinha mudado.
     audio.stopAllLoops();
-    if (lv.weather === 'rain') {
-      audio.startLoop('rain', { gain: 0.22, fade: 1.2 });
-      audio.startLoop('wind', { gain: 0.04, fade: 2 });
-    } else {
-      audio.startLoop('roomtone', { gain: 0.10, fade: 1.5 });
-      audio.startLoop('rain', { gain: 0.045, fade: 2 });  // chuva abafada la fora
+    for (const a of (lv.ambience || [{ n: 'roomtone', g: 0.1 }])) {
+      audio.startLoop(a.n, { gain: a.g, fade: a.f || 1.5 });
+    }
+    this.randomSfxT = [];
+    if (lv.randomSfx) {
+      for (const r of lv.randomSfx) this.randomSfxT.push(r.min + Math.random() * (r.max - r.min));
     }
   }
 
@@ -7857,10 +8161,12 @@ class Game {
           this.player.controllable = false;   // continua algemado
         }
       }
-      const canControl = !this.dialogue.active && !this.transition && !this.scene;
+      if (this.qte) this.updateQte(sim);
+      const canControl = !this.dialogue.active && !this.transition && !this.scene && !this.qte;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
       this.checkBarks(lv);
+      this.updateRandomSfx(lv, sim);
       this.rain.update(sim, this.cam.x);
       this.fog.update(sim, lv.t);
       this.fx.update(sim);
@@ -7905,7 +8211,8 @@ class Game {
     // O balao fica acima da CABECA do detetive, nao acima do objeto: quase
     // sempre ele esta colado no objeto, e em cima do objeto o balao tapava
     // justamente o personagem.
-    const near = (!this.dialogue.active && !paused && !this.scene) ? lv.nearest(this.player.x) : null;
+    const near = (!this.dialogue.active && !paused && !this.scene && !this.qte)
+      ? lv.nearest(this.player.x) : null;
     this.promptA = lerp(this.promptA || 0, near ? 1 : 0, 1 - Math.exp(-14 * dt));
     if (this.promptA > 0.02 && near) {
       drawPrompt(gfx.s, this.player.x - cam.ix, this.player.y - cam.iy - 70,
@@ -7926,7 +8233,8 @@ class Game {
     }
 
     if (this.scene) this.scene.drawUI(gfx.s);
-    if (!paused && !this.scene) this.drawGunUI(gfx.s, cam);
+    if (this.qte) this.drawQteUI(gfx.s);
+    if (!paused && !this.scene && !this.qte) this.drawGunUI(gfx.s, cam);
 
     // Poupa o personagem do grao e das scanlines (ver gfx._post).
     gfx.protect = {
@@ -7987,6 +8295,22 @@ class Game {
     }
   }
 
+  // Sons soltos do lugar: uma gota, uma chapa de metal cedendo, uma porta
+  // longe. Espacados de forma irregular — som que chega em intervalo certo
+  // deixa de ser ambiente e vira metronomo.
+  updateRandomSfx(lv, dt) {
+    if (!lv.randomSfx || !this.randomSfxT) return;
+    for (let i = 0; i < lv.randomSfx.length; i++) {
+      const r = lv.randomSfx[i];
+      this.randomSfxT[i] -= dt;
+      if (this.randomSfxT[i] <= 0) {
+        this.randomSfxT[i] = r.min + Math.random() * (r.max - r.min);
+        const fn = audio[r.fn];
+        if (fn) fn.call(audio, r.vol === undefined ? 1 : r.vol);
+      }
+    }
+  }
+
   // Falas de passagem: dispara quando o jogador cruza um ponto da fase.
   // Cada uma so uma vez por visita — repetir piada mata a piada.
   checkBarks(lv) {
@@ -8030,6 +8354,33 @@ class Game {
       this.startNoteScene();
       return;
     }
+    if (it.action === 'take_pipe') {
+      this.flags.pipe = true;
+      it.disabled = true;
+      audio.reloadClick(0.6);
+      this.player.say('bark_pipe_take', 2.0, true);
+      return;
+    }
+    if (it.action === 'pry_door') {
+      if (!this.flags.pipe) {
+        this.player.say('bark_door_pry', 2.6, true);
+        audio.doorSlam(0.35);
+        gfx.shake(1.6, 0.2);
+        return;
+      }
+      // com o cano na mao: arranca as tabuas
+      audio.strain(1);
+      gfx.shake(3, 0.4);
+      this.fx.burst(18, () => ({
+        x: this.player.x + this.player.facing * 20 + Math.random() * 10,
+        y: this.level.groundY - 40 - Math.random() * 40,
+        vx: this.player.facing * (30 + Math.random() * 80), vy: -40 + Math.random() * 80,
+        ay: 260, life: 0.6, size: 1, color: '#43301e', a: 1, fade: 1,
+      }));
+      setTimeout(() => audio.doorCreak(1), 260);
+      this.fadeTo(() => this.endOfChapter(), 1.4, 0.01);
+      return;
+    }
     if (it.lines) {
       const arr = LINES[it.lines] || [];
       this.dialogue.start(arr.map((_, i) => ({ name: null, text: L(it.lines, i) })));
@@ -8043,14 +8394,136 @@ class Game {
   startNoteScene() {
     this.scene = new NoteScene(this.player, this.fx);
     this.scene.onWake = () => {
-      this.enterLevel('cell', null, 1);
+      this.enterLevel('warehouse', null, 1);
       this.player.frozen = true;
       this.player.controllable = false;
       this.player.det.play('cuffed', { blend: 0 });
+      // levaram tudo: nem arma, nem coldre cheio
+      this.player.hasGun = false;
+      this.player.gun = 'holstered';
+      this.player.ammo = 0; this.player.reserve = 0;
+      this.player.det.props.gun = 'none';
+      this.locCard = 0;
+    };
+    // So depois das palpebras abrirem: antes disso as falas ficavam
+    // escondidas atras do preto e ninguem lia nenhuma.
+    this.scene.onAwake = () => {
       this.locCard = 4.5;
-      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3']);
+      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3'], true);
+      this.qte = { prog: 0, last: null, t: 0, hint: 0 };
     };
     this.scene.start(this.level);
+  }
+
+  // -------------------------------------------------------------------
+  // o QTE de se soltar do cano
+  // -------------------------------------------------------------------
+
+  updateQte(dt) {
+    const q = this.qte, p = this.player;
+    q.t += dt;
+    q.hint = Math.min(1, q.hint + dt * 1.4);
+
+    // A alternancia e o que importa: martelar a mesma tecla nao adianta.
+    const a = input.pressedFrame.has('KeyA') || input.pressedFrame.has('ArrowLeft');
+    const d = input.pressedFrame.has('KeyD') || input.pressedFrame.has('ArrowRight');
+    let puxou = false;
+    if (a && q.last !== 'A') { q.last = 'A'; puxou = true; }
+    else if (d && q.last !== 'D') { q.last = 'D'; puxou = true; }
+
+    if (puxou) {
+      q.prog = clamp(q.prog + 0.058, 0, 1);
+      q.pull = 0.16;
+      audio.strain(0.7 + q.prog * 0.5);
+      if (Math.random() < 0.4) audio.chainRattle(0.5);
+      gfx.shake(0.6 + q.prog * 1.6, 0.12);
+    }
+    // Trava de catraca: o progresso nunca cai abaixo do quarto ja
+    // conquistado. Sem isso, quem martela devagar fica preso para sempre e
+    // o jogo vira um teste de dedo, nao de tensao.
+    q.floor = Math.max(q.floor || 0, Math.floor(q.prog * 4) / 4);
+    q.prog = Math.max(q.floor, q.prog - dt * 0.20);
+    if (q.pull > 0) q.pull -= dt;
+
+    const puxando = q.pull > 0;
+    if (puxando && p.det.anim !== 'strainCuffs') p.det.play('strainCuffs', { blend: 0.08 });
+    else if (!puxando && q.prog < 0.02 && p.det.anim !== 'cuffed') p.det.play('cuffed', { blend: 0.3 });
+    p.det.speed = 1 + q.prog;
+    p.det.update(dt);
+
+    if (q.prog >= 1) this.breakFree();
+  }
+
+  breakFree() {
+    const p = this.player, lv = this.level;
+    this.qte = null;
+    audio.pipeBurst(1);
+    gfx.shake(4.5, 0.6);
+    // ferrugem e agua saindo do cano arrebentado
+    this.fx.burst(30, () => ({
+      x: p.x + 8 + Math.random() * 26, y: lv.pipeY + 2,
+      vx: 40 + Math.random() * 90, vy: -20 + Math.random() * 60, ay: 260,
+      life: 0.5 + Math.random() * 0.7, size: 1,
+      color: Math.random() > 0.5 ? '#6b8ba8' : '#6e4728', a: 0.9, fade: 1.1,
+    }));
+
+    p.frozen = false;
+    p.controllable = true;
+    p.det.play('idle', { blend: 0.4 });
+    // De pe, mas sem nada: o ocio dele agora e sentar e esperar.
+    p.idleAnim = 'sitImpatient';
+    lv.minX = lv.freeMinX;
+    lv.maxX = lv.freeMaxX;
+    lv.interactables = lv.interLivre;
+    for (const b of (lv.barks || [])) b.done = false;
+    p.sayAll(['bark_free_1', 'bark_free_2', 'bark_free_3'], true);
+  }
+
+  drawQteUI(ctx) {
+    const q = this.qte;
+    if (!q) return;
+    const a = q.hint;
+    const w = 108, h = 6;
+    const x = (VW - w) / 2, y = VH - 52;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#0c0a0b';
+    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = '#2a2320';
+    ctx.fillRect(x, y, w, h);
+    const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
+    g2.addColorStop(0, '#7a2a22');
+    g2.addColorStop(1, '#c8503a');
+    ctx.fillStyle = g2;
+    ctx.fillRect(x, y, Math.round(w * q.prog), h);
+    ctx.restore();
+    const pisca = q.last === 'A' ? 0 : 1;
+    text(ctx, T('qte_hint'), VW / 2, y - 14, {
+      size: 9, font: 'ui', weight: 'bold', color: pisca ? '#e8e0d2' : PAL.uiAccent,
+      align: 'center', track: 3, alpha: a, shadow: true,
+    });
+  }
+
+  // Fim do trecho jogavel. Cartao preto, e volta para o menu.
+  endOfChapter() {
+    this.state = 'endcard';
+    this.endT = 0;
+    this.qte = null;
+    this.scene = null;
+    audio.stopAllLoops();
+    audio.stopDread(0.2);
+  }
+
+  updateEndCard(dt) {
+    this.endT += dt;
+    gfx.begin('#000');
+    const a = clamp(this.endT - 0.4, 0, 1) * clamp(4.6 - this.endT, 0, 1);
+    text(gfx.s, T('to_be_continued'), VW / 2, VH / 2 - 6, {
+      size: 13, font: 'serif', color: PAL.uiText, align: 'center', track: 4, alpha: a,
+    });
+    gfx.fade = 0;
+    gfx.present(dt);
+    if (this.endT > 5.2) this.toMenu();
   }
 
   // -------------------------------------------------------------------

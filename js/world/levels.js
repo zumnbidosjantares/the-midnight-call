@@ -273,6 +273,8 @@ export function buildAlley() {
     weather: 'rain',
     rainIntensity: 1,
     reflect: 0.13,
+    ambience: [{ n: 'rain', g: 0.22 }, { n: 'wind', g: 0.04 }],
+    randomSfx: [{ fn: 'thunder', min: 26, max: 70, vol: 0.5 }],
     minX: 24, maxX: W - 40,
     spawn: { x: 90, facing: 1 },
     doorX: DOOR_X + 13,
@@ -493,6 +495,9 @@ export function buildBar() {
     doorX: 57,
     bloom: 0.42,
     indoor: true,
+    // chuva so no que vaza pela porta da frente, bem abafada
+    ambience: [{ n: 'roomtone', g: 0.10 }, { n: 'rain', g: 0.035 }],
+    randomSfx: [{ fn: 'drip', min: 6, max: 15, vol: 0.6 }],
     enterBarks: ['bark_bar_enter', 'bark_bar_enter2'],
     barks: [
       { x: 200, key: 'bark_bar_dark', range: 44 },
@@ -629,77 +634,170 @@ export function buildBackroom() {
     doorX: 59,
     bloom: 0.4,
     indoor: true,
-    enterBarks: ['bark_pool'],
+    ambience: [{ n: 'roomtone', g: 0.09 }],
+    randomSfx: [{ fn: 'drip', min: 4, max: 10, vol: 0.8 }],
+    // urgente: ele fala da poca na hora que entra, cortando o resto
+    enterBarksNow: ['bark_pool'],
     barks: [{ x: 330, key: 'bark_note_pre', range: 44 }],
   });
 }
 
 // ---------------------------------------------------------------------------
-// CATIVEIRO — onde ele acorda
+// GALPAO — onde ele acorda algemado
 // ---------------------------------------------------------------------------
 
-export function buildCell() {
-  const W = 340, GY = 214;
+export function buildWarehouse() {
+  const W = 760, GY = 214;
+
+  const back = makeBuffer(Math.ceil(VW + (W - VW) * 0.5) + 8, VH);
+  {
+    const b = back.x;
+    rect(b, 0, 0, back.c.width, VH, '#0a0c0f');
+    // vigas do teto la no fundo, sumindo no escuro
+    for (let x = 20; x < back.c.width; x += 96) {
+      rect(b, x, 14, 4, 70, '#14171c');
+      rect(b, x - 30, 14, 64, 3, '#171a20');
+    }
+    ditherV(b, 0, 84, back.c.width, 60, '#101317', '#08090c', 5);
+  }
 
   const main = makeBuffer(W, VH);
   const g = main.x;
 
-  rect(g, 0, 0, W, VH, '#100f0e');
-  // concreto cru, manchado
-  M.brickWall(g, 0, 0, W, GY, 3101, {
-    base: '#2e2b27', hi: '#39352f', dk: '#211e1b', mortar: '#171513', moss: false,
+  rect(g, 0, 0, W, VH, '#131211');
+  // chapa ondulada ate a metade, alvenaria embaixo
+  M.metalPanel(g, 0, 0, W, 120, 3101, { hi: '#3a4048', mid: '#2b3037', dk: '#1a1e23' });
+  M.brickWall(g, 0, 120, W, GY - 120, 3111, {
+    base: '#332f2a', hi: '#3d3831', dk: '#252220', mortar: '#1a1816', moss: false,
   });
-  M.asphalt(g, 0, GY, W, VH - GY, 3111, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
-  rect(g, 0, GY, W, 1, '#0a0908');
-  grainRect(g, 0, 0, W, GY, ['#191715', '#3d3831'], 0.05, 3121);
+  for (let i = 0; i < 44; i++) {
+    g.globalAlpha = 0.6 * (1 - i / 44);
+    rect(g, 0, i, W, 1, '#040506');
+    g.globalAlpha = 1;
+  }
 
-  // manchas de umidade descendo
-  for (const px of [40, 120, 250, 300]) {
-    for (let i = 0; i < 60; i++) {
-      g.globalAlpha = 0.1;
-      rect(g, px + Math.sin(i * 0.3) * 2, 20 + i, 2, 1, '#0d0f12');
+  // claraboia quebrada: a unica luz que nao e eletrica
+  rect(g, 470, 0, 64, 16, '#0b0d10');
+  rect(g, 474, 2, 56, 11, '#3d4d63');
+  rect(g, 486, 2, 3, 11, '#0b0d10');
+  rect(g, 508, 2, 3, 11, '#0b0d10');
+  rect(g, 492, 4, 12, 7, '#5f7ba8');   // vidro quebrado, ceu passando
+
+  M.asphalt(g, 0, GY, W, VH - GY, 3121, { hi: '#33302b', mid: '#26231f', dk: '#191714' });
+  rect(g, 0, GY, W, 1, '#0a0908');
+  grainRect(g, 0, 120, W, GY - 120, ['#191715', '#3d3831'], 0.05, 3131);
+
+  // manchas de umidade descendo pela parede
+  for (const px of [70, 240, 400, 610]) {
+    for (let i = 0; i < 70; i++) {
+      g.globalAlpha = 0.09;
+      rect(g, px + Math.sin(i * 0.3) * 2, 124 + i, 2, 1, '#0d0f12');
       g.globalAlpha = 1;
     }
   }
 
-  // O cano. Fica na altura do ombro de quem esta sentado no chao.
-  M.wallPipe(g, 0, 168, W, 3131);
+  // O cano onde ele acorda algemado. Altura do ombro de quem esta sentado.
+  M.wallPipe(g, 0, 168, 300, 3141);
+  M.wallPipe(g, 330, 168, W - 330, 3151);
+  // o pedaco que falta entre os dois e onde ele vai arrebentar
 
-  // porta trancada, do outro lado da sala
-  const d = M.doorFrame(g, 286, GY, 3141);
-  rect(g, d.x + 4, d.y + 20, 18, 4, '#2a2622');   // tabua atravessada
-  rect(g, d.x + 4, d.y + 20, 18, 1, '#403a33');
+  // engradados, paletes, tambores
+  M.crate(g, 300, GY, 1, 3161);
+  M.crate(g, 324, GY, 0, 3171);
+  M.crate(g, 306, GY - 17, 0, 3181);
+  M.crate(g, 560, GY, 1, 3191);
+  M.crate(g, 700, GY, 0, 3201);
+  M.debris(g, 380, GY, 50, 3211);
+  M.puddle(g, 250, GY + 12, 60, 3221);
+  M.puddle(g, 520, GY + 16, 44, 3231);
 
-  // A lampada fica em cima dele: e a unica coisa que ele consegue ver, e
-  // isso e proposital — a sala inteira e uma pergunta sem resposta.
-  const lights = [
-    { x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 },
-    { x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' },
-    { x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 },
-  ];
+  // correntes penduradas do teto
+  for (const cx of [180, 350, 620]) {
+    for (let i = 0; i < 40 + (cx % 30); i++) {
+      rect(g, cx + (i % 2), 10 + i * 2, 2, 1, '#2a2e33');
+    }
+  }
+
+  const inter = [];
+  const lights = [];
+
+  // porta lateral, pregada por fora
+  const d = M.doorFrame(g, 420, GY, 3241);
+  for (let i = 0; i < 3; i++) {
+    const by = d.y + 12 + i * 22;
+    rect(g, d.x - 5, by, d.w + 10, 6, '#2f2620');
+    rect(g, d.x - 5, by, d.w + 10, 1, '#463a2e');
+    rect(g, d.x + 4, by + 1, 2, 4, '#6a6a6a');
+    rect(g, d.x + d.w - 7, by + 1, 2, 4, '#6a6a6a');
+  }
+
+  // portao de enrolar, fechado
+  const gx = 640, gw = 96;
+  rect(g, gx, GY - 96, gw, 96, '#232830');
+  for (let i = 0; i < 96; i += 5) {
+    rect(g, gx, GY - 96 + i, gw, 4, i % 10 ? '#2b313a' : '#232830');
+    rect(g, gx, GY - 96 + i, gw, 1, '#3a4250');
+  }
+  rect(g, gx - 3, GY - 100, gw + 6, 5, '#1a1e24');
+  grainRect(g, gx, GY - 96, gw, 96, [PAL.rust, '#1a1e24'], 0.05, 3251);
+  rect(g, gx + gw / 2 - 10, GY - 30, 20, 8, '#151a1f');   // cadeado por fora
+
+  // lampada em cima dele
   M.bareBulb(g, 196, 12, 30);
+  lights.push({ x: 196, y: 44, r: 180, color: '#c8a06a', i: 0.86, flick: 'bulb', falloff: 0.95 });
+  lights.push({ x: 196, y: 44, r: 20, color: '#ffe0aa', i: 0.9, flick: 'bulb' });
+  lights.push({ x: 158, y: 190, r: 86, color: '#a8804e', i: 0.36, falloff: 1.25 });
+  // luar entrando pela claraboia
+  lights.push({ x: 502, y: 10, r: 150, color: '#6f8ec4', i: 0.44, falloff: 1.35 });
+  lights.push({ x: 502, y: 190, r: 96, color: '#5c78a8', i: 0.26, falloff: 1.4 });
+  // resto de luz vindo por baixo do portao
+  lights.push({ x: 688, y: 210, r: 74, color: '#b8905c', i: 0.30, falloff: 1.3 });
+  // preenchimento no vao entre a lampada e a claraboia — sem ele o meio do
+  // galpao fica preto e o jogador anda no escuro sem saber que ha chao ali
+  lights.push({ x: 366, y: 152, r: 138, color: '#7d6a52', i: 0.32, falloff: 1.35 });
 
-  const fore = makeBuffer(VW, VH);
-  rect(fore.x, 0, 0, VW, 12, '#030202');
-  rect(fore.x, 0, VH - 10, VW, 10, '#030202');
+  const fore = makeBuffer(Math.ceil(VW + (W - VW) * 1.15) + 8, VH);
+  rect(fore.x, 0, 0, fore.c.width, 12, '#030202');
+  rect(fore.x, 0, VH - 8, fore.c.width, 8, '#030202');
+  rect(fore.x, 268, 0, 8, VH, '#050607');
 
-  return new Level({
-    key: 'cell',
+  const lvl = new Level({
+    key: 'warehouse',
     nameKey: 'loc_cell',
     width: W, groundY: GY,
     ambient: '#1e222c',
-    layers: [{ c: main.c, par: 1 }],
-    fores: [{ c: fore.c, par: 1 }],
+    layers: [{ c: back.c, par: 0.5 }, { c: main.c, par: 1 }],
+    fores: [{ c: fore.c, par: 1.15 }],
     lightDefs: lights,
-    interactables: [],
+    interactables: inter,
     weather: 'none',
-    reflect: 0.04,
-    minX: 150, maxX: 152,     // preso: nao ha para onde ir
+    reflect: 0.06,
+    minX: 150, maxX: 152,          // algemado: nao ha para onde ir
     spawn: { x: 151, facing: 1 },
-    bloom: 0.35,
+    bloom: 0.4,
     indoor: true,
     pipeY: 168,
+    doorX: 436,
+    // Nada de chuva aqui dentro. O galpao soa por dentro: ar parado, agua
+    // pingando em algum canto e a estrutura cedendo de vez em quando.
+    ambience: [{ n: 'hall', g: 0.11 }, { n: 'wind', g: 0.022 }],
+    randomSfx: [
+      { fn: 'drip', min: 3.5, max: 9, vol: 0.9 },
+      { fn: 'metalCreak', min: 11, max: 26, vol: 0.8 },
+      { fn: 'distantThump', min: 22, max: 50, vol: 0.7 },
+      { fn: 'chainRattle', min: 17, max: 40, vol: 0.5 },
+    ],
+    // usado depois que ele se solta
+    freeMinX: 40, freeMaxX: 716,
   });
+
+  lvl.interLivre = [
+    { x: 300, y: 176, w: 34, h: 16, prompt: 'prompt_use', action: 'take_pipe', range: 30 },
+    { x: d.x, y: d.y, w: d.w, h: d.h, prompt: 'prompt_use', action: 'pry_door', range: 34 },
+    { x: gx, y: GY - 96, w: gw, h: 96, prompt: 'prompt_look', lines: 'wh_gate', range: 44 },
+    { x: 470, y: 0, w: 64, h: 16, prompt: 'prompt_look', lines: 'wh_sky', range: 40 },
+  ];
+  return lvl;
 }
 
 // ---------------------------------------------------------------------------

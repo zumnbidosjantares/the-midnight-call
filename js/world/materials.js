@@ -234,25 +234,30 @@ export function boardedWindow(ctx, x, y, w, h, seed) {
   rect(ctx, x - 2, y - 2, w + 4, 1, '#2b2320');
 }
 
+// Porta de tamanho gente. O detetive tem 62px; uma porta real e uns 15%
+// mais alta que um homem, entao 74. A versao antiga tinha 46 e ele parecia
+// ter que entrar de quatro.
 export function doorFrame(ctx, x, gy, seed, opt = {}) {
-  const w = 26, h = 46;
+  const w = 32, h = 74;
   const y = gy - h;
   // batente
-  rect(ctx, x - 3, y - 3, w + 6, h + 3, '#1d1815');
-  rect(ctx, x - 3, y - 3, w + 6, 2, '#2e2620');
+  rect(ctx, x - 4, y - 4, w + 8, h + 4, '#1d1815');
+  rect(ctx, x - 4, y - 4, w + 8, 2, '#2e2620');
+  rect(ctx, x - 4, y - 4, 2, h + 4, '#251e19');
   // vao escuro
   rect(ctx, x, y, w, h, '#07080a');
   if (!opt.open) {
-    woodPanel(ctx, x, y, w, h, seed, { pw: 9, hi: '#43301f', mid: '#31220f', dk: '#1e1409' });
+    woodPanel(ctx, x, y, w, h, seed, { pw: 11, hi: '#43301f', mid: '#31220f', dk: '#1e1409' });
     // almofadas
-    rect(ctx, x + 3, y + 4, w - 6, 15, '#241806');
-    rect(ctx, x + 4, y + 5, w - 8, 13, '#3a2712');
-    rect(ctx, x + 3, y + 24, w - 6, 17, '#241806');
-    rect(ctx, x + 4, y + 25, w - 8, 15, '#3a2712');
-    // macaneta
-    rect(ctx, x + w - 6, y + 24, 3, 3, PAL.brass);
-    rect(ctx, x + w - 6, y + 24, 2, 1, '#d9c07a');
-    grainRect(ctx, x, y, w, h, ['#1a1108', PAL.rust], 0.06, seed + 2);
+    rect(ctx, x + 4, y + 6, w - 8, 26, '#241806');
+    rect(ctx, x + 5, y + 7, w - 10, 24, '#3a2712');
+    rect(ctx, x + 4, y + 40, w - 8, 28, '#241806');
+    rect(ctx, x + 5, y + 41, w - 10, 26, '#3a2712');
+    // macaneta na altura da mao
+    rect(ctx, x + w - 8, y + 36, 4, 4, PAL.brass);
+    rect(ctx, x + w - 8, y + 36, 3, 1, '#d9c07a');
+    rect(ctx, x + w - 9, y + 34, 6, 1, '#2a2018');
+    grainRect(ctx, x, y, w, h, ['#1a1108', PAL.rust], 0.05, seed + 2);
   }
   return { x, y, w, h };
 }

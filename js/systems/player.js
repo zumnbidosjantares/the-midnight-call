@@ -121,6 +121,8 @@ export class Player {
     if (this.fireCd > 0) this.fireCd -= dt;
     if (this.ammoHud > 0) this.ammoHud -= dt;
 
+    // sem arma no coldre nao ha o que sacar
+    if (this.hasGun === false) { d.aim.on = false; this.gun = 'holstered'; return; }
     const querMirar = canAct && input.mouse.right && this.state !== 'punch' && this.state !== 'interact';
 
     if (this.gun === 'holstered') {
@@ -306,10 +308,13 @@ export class Player {
         // com a arma na mao ele nao vai procurar cigarro
         if (this.gun !== 'holstered') this.idleTime = 0;
         else this.idleTime += dt;
-        if (this.idleTime > IDLE_TO_SMOKE && canAct) {
+        // Sem cigarro no bolso nao ha animacao de cigarro. Depois que
+        // levam tudo dele, o ocio precisa virar outra coisa.
+        const parado = this.idleAnim || 'idle';
+        if (this.idleTime > IDLE_TO_SMOKE && canAct && !this.idleAnim) {
           this.state = 'smoke';
           d.play('smoke', { restart: true, blend: 0.3 });
-        } else if (d.anim !== 'idle') d.play('idle');
+        } else if (d.anim !== parado) d.play(parado, { blend: 0.35 });
       }
     }
 
@@ -319,13 +324,21 @@ export class Player {
 
   // Falas soltas em cima da cabeca. Uma de cada vez, com um respiro entre
   // elas — duas ao mesmo tempo viram ruido e ninguem le nenhuma.
-  say(key, dur = 2.6) {
-    if (this.floatText && this.floatText.key === key) return;
-    if (this.barkQueue.some(b => b.key === key)) return;
+  // `agora` corta o que estiver na tela e a fila inteira. Serve para o que
+  // ele precisa dizer no instante em que ve — uma poca de sangue nao pode
+  // esperar tres falas sobre cadeiras empilhadas.
+  say(key, dur = 2.6, agora = false) {
+    if (agora) { this.floatText = null; this.barkQueue.length = 0; this.barkGap = 0; }
+    else {
+      if (this.floatText && this.floatText.key === key) return;
+      if (this.barkQueue.some(b => b.key === key)) return;
+    }
     this.barkQueue.push({ key, dur });
   }
 
-  sayAll(keys) { for (const k of keys) this.say(k); }
+  sayAll(keys, agora = false) {
+    for (let i = 0; i < keys.length; i++) this.say(keys[i], 2.6, agora && i === 0);
+  }
 
   _updateBarks(dt) {
     if (this.floatText) {

@@ -498,6 +498,116 @@ class Audio {
     o.start(t); o.stop(t + dur + 0.2);
   }
 
+  // ---------------- sons pontuais de ambiente ----------------
+  // Sao estes, e nao um loop, que dizem em que lugar voce esta: uma gota
+  // que cai a cada oito segundos num galpao vazio conta mais do que
+  // qualquer textura de fundo.
+
+  drip(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(900 + Math.random() * 500, t);
+    o.frequency.exponentialRampToValueAtTime(260, t + 0.09);
+    const g = this._env(o, t, 0.001, 0.12, 0.12 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.2);
+  }
+
+  metalCreak(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.3;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 22;
+    const base = 300 + Math.random() * 500;
+    f.frequency.setValueAtTime(base, t);
+    f.frequency.linearRampToValueAtTime(base * 1.5, t + 0.9);
+    f.frequency.linearRampToValueAtTime(base * 1.2, t + 1.8);
+    s.connect(f);
+    const g = this._env(f, t, 0.3, 1.6, 0.10 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 2, 2.2); s.stop(t + 2.2);
+  }
+
+  chainRattle(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const s = c.createBufferSource();
+      s.buffer = this.noiseBuf;
+      const f = c.createBiquadFilter();
+      f.type = 'bandpass'; f.Q.value = 16;
+      f.frequency.value = 2200 + Math.random() * 1800;
+      s.connect(f);
+      const g = this._env(f, t + i * 0.045 * (0.6 + Math.random()), 0.001, 0.05, 0.07 * vol);
+      g.connect(this.verb);
+      s.start(t + i * 0.05, Math.random() * 3, 0.1); s.stop(t + i * 0.05 + 0.12);
+    }
+  }
+
+  // longe, do lado de fora, alguem fechando alguma coisa pesada
+  distantThump(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(90, t);
+    o.frequency.exponentialRampToValueAtTime(34, t + 0.3);
+    const g = this._env(o, t, 0.01, 0.4, 0.16 * vol);
+    g.connect(this.verb);
+    o.start(t); o.stop(t + 0.5);
+  }
+
+  // cano velho arrebentando: metal cedendo e depois agua com pressao
+  pipeBurst(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 8;
+    f.frequency.setValueAtTime(1600, t);
+    f.frequency.exponentialRampToValueAtTime(420, t + 0.25);
+    s.connect(f);
+    const g = this._env(f, t, 0.002, 0.3, 0.4 * vol);
+    g.connect(this.verb);
+    s.start(t, Math.random() * 3, 0.5); s.stop(t + 0.5);
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(50, t + 0.2);
+    this._env(o, t, 0.001, 0.25, 0.4 * vol);
+    o.start(t); o.stop(t + 0.35);
+    // jato de agua depois
+    const j = c.createBufferSource();
+    j.buffer = this.noiseBuf;
+    const jf = c.createBiquadFilter();
+    jf.type = 'highpass'; jf.frequency.value = 2200;
+    j.connect(jf);
+    this._env(jf, t + 0.1, 0.15, 1.4, 0.13 * vol);
+    j.start(t + 0.1, Math.random() * 2, 1.8); j.stop(t + 1.8);
+  }
+
+  // esforco: puxar, forcar, arrebentar
+  strain(vol = 1) {
+    if (!this.ensure()) return;
+    const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.playbackRate.value = 0.35;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 12;
+    f.frequency.setValueAtTime(420 + Math.random() * 200, t);
+    f.frequency.linearRampToValueAtTime(700, t + 0.3);
+    s.connect(f);
+    this._env(f, t, 0.03, 0.34, 0.13 * vol);
+    s.start(t, Math.random() * 2, 0.5); s.stop(t + 0.5);
+  }
+
   uiMove() {
     if (!this.ensure()) return;
     const c = this.ctx, t = c.currentTime;
@@ -556,7 +666,12 @@ class Audio {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(opt.gain, t + (opt.fade || 1.5));
 
-    if (name === 'rain') {
+    if (name === 'hall') {
+      // ar parado de galpao: grave largo, sem chuva nenhuma
+      src.playbackRate.value = 0.18;
+      f.type = 'lowpass'; f.frequency.value = 150;
+      src.connect(f); f.connect(g);
+    } else if (name === 'rain') {
       src.playbackRate.value = 1.7;
       f.type = 'highpass'; f.frequency.value = 950;
       const f2 = c.createBiquadFilter();

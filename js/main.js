@@ -16,7 +16,7 @@ import { PAL } from './art/palette.js';
 import { ANIM_NAMES } from './art/detective.js';
 import { Camera } from './world/camera.js';
 import { Rain, Fog, Particles, DustMotes } from './world/fx.js';
-import { buildAlley, buildBar, buildBackroom, buildCell, buildRoad, buildCar } from './world/levels.js';
+import { buildAlley, buildBar, buildBackroom, buildWarehouse, buildRoad, buildCar } from './world/levels.js';
 import { NoteScene } from './systems/scene-nota.js';
 import { Player } from './systems/player.js';
 import { Dialogue, drawPrompt, drawLocationCard } from './systems/dialogue.js';
@@ -71,7 +71,7 @@ class Game {
     set('abrindo os fundos...');
     await frame();
     this.levels.backroom = buildBackroom();
-    this.levels.cell = buildCell();
+    this.levels.warehouse = buildWarehouse();
 
     set('ligando o carro...');
     await frame();
@@ -183,6 +183,7 @@ class Game {
       case 'menu': this.updateMenu(dt); break;
       case 'cutscene': this.updateCutscene(dt); break;
       case 'play': this.updatePlay(dt); break;
+      case 'endcard': this.updateEndCard(dt); break;
       case 'lab': this.updateLab(dt); break;
     }
 
@@ -323,16 +324,21 @@ class Game {
     this.player.clearBarks();
     this.player.frozen = false;
     this.player.controllable = true;
+    this.qte = null;
+    this.flags = this.flags || {};
     if (lv.barks) for (const b of lv.barks) b.done = false;
-    if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
+    if (lv.enterBarksNow) this.player.sayAll(lv.enterBarksNow, true);
+    else if (lv.enterBarks) this.player.sayAll(lv.enterBarks);
 
+    // Cada lugar tem o proprio som. Antes a chuva seguia o jogador para
+    // dentro de qualquer sala, o que dizia ao ouvido que nada tinha mudado.
     audio.stopAllLoops();
-    if (lv.weather === 'rain') {
-      audio.startLoop('rain', { gain: 0.22, fade: 1.2 });
-      audio.startLoop('wind', { gain: 0.04, fade: 2 });
-    } else {
-      audio.startLoop('roomtone', { gain: 0.10, fade: 1.5 });
-      audio.startLoop('rain', { gain: 0.045, fade: 2 });  // chuva abafada la fora
+    for (const a of (lv.ambience || [{ n: 'roomtone', g: 0.1 }])) {
+      audio.startLoop(a.n, { gain: a.g, fade: a.f || 1.5 });
+    }
+    this.randomSfxT = [];
+    if (lv.randomSfx) {
+      for (const r of lv.randomSfx) this.randomSfxT.push(r.min + Math.random() * (r.max - r.min));
     }
   }
 
@@ -358,10 +364,12 @@ class Game {
           this.player.controllable = false;   // continua algemado
         }
       }
-      const canControl = !this.dialogue.active && !this.transition && !this.scene;
+      if (this.qte) this.updateQte(sim);
+      const canControl = !this.dialogue.active && !this.transition && !this.scene && !this.qte;
       this.player.update(sim, lv, canControl);
       this.cam.follow(this.player.x, 0, this.player.facing, sim, Math.abs(this.player.vx) > 4);
       this.checkBarks(lv);
+      this.updateRandomSfx(lv, sim);
       this.rain.update(sim, this.cam.x);
       this.fog.update(sim, lv.t);
       this.fx.update(sim);
@@ -406,7 +414,8 @@ class Game {
     // O balao fica acima da CABECA do detetive, nao acima do objeto: quase
     // sempre ele esta colado no objeto, e em cima do objeto o balao tapava
     // justamente o personagem.
-    const near = (!this.dialogue.active && !paused && !this.scene) ? lv.nearest(this.player.x) : null;
+    const near = (!this.dialogue.active && !paused && !this.scene && !this.qte)
+      ? lv.nearest(this.player.x) : null;
     this.promptA = lerp(this.promptA || 0, near ? 1 : 0, 1 - Math.exp(-14 * dt));
     if (this.promptA > 0.02 && near) {
       drawPrompt(gfx.s, this.player.x - cam.ix, this.player.y - cam.iy - 70,
@@ -427,7 +436,8 @@ class Game {
     }
 
     if (this.scene) this.scene.drawUI(gfx.s);
-    if (!paused && !this.scene) this.drawGunUI(gfx.s, cam);
+    if (this.qte) this.drawQteUI(gfx.s);
+    if (!paused && !this.scene && !this.qte) this.drawGunUI(gfx.s, cam);
 
     // Poupa o personagem do grao e das scanlines (ver gfx._post).
     gfx.protect = {
@@ -488,6 +498,22 @@ class Game {
     }
   }
 
+  // Sons soltos do lugar: uma gota, uma chapa de metal cedendo, uma porta
+  // longe. Espacados de forma irregular — som que chega em intervalo certo
+  // deixa de ser ambiente e vira metronomo.
+  updateRandomSfx(lv, dt) {
+    if (!lv.randomSfx || !this.randomSfxT) return;
+    for (let i = 0; i < lv.randomSfx.length; i++) {
+      const r = lv.randomSfx[i];
+      this.randomSfxT[i] -= dt;
+      if (this.randomSfxT[i] <= 0) {
+        this.randomSfxT[i] = r.min + Math.random() * (r.max - r.min);
+        const fn = audio[r.fn];
+        if (fn) fn.call(audio, r.vol === undefined ? 1 : r.vol);
+      }
+    }
+  }
+
   // Falas de passagem: dispara quando o jogador cruza um ponto da fase.
   // Cada uma so uma vez por visita — repetir piada mata a piada.
   checkBarks(lv) {
@@ -531,6 +557,33 @@ class Game {
       this.startNoteScene();
       return;
     }
+    if (it.action === 'take_pipe') {
+      this.flags.pipe = true;
+      it.disabled = true;
+      audio.reloadClick(0.6);
+      this.player.say('bark_pipe_take', 2.0, true);
+      return;
+    }
+    if (it.action === 'pry_door') {
+      if (!this.flags.pipe) {
+        this.player.say('bark_door_pry', 2.6, true);
+        audio.doorSlam(0.35);
+        gfx.shake(1.6, 0.2);
+        return;
+      }
+      // com o cano na mao: arranca as tabuas
+      audio.strain(1);
+      gfx.shake(3, 0.4);
+      this.fx.burst(18, () => ({
+        x: this.player.x + this.player.facing * 20 + Math.random() * 10,
+        y: this.level.groundY - 40 - Math.random() * 40,
+        vx: this.player.facing * (30 + Math.random() * 80), vy: -40 + Math.random() * 80,
+        ay: 260, life: 0.6, size: 1, color: '#43301e', a: 1, fade: 1,
+      }));
+      setTimeout(() => audio.doorCreak(1), 260);
+      this.fadeTo(() => this.endOfChapter(), 1.4, 0.01);
+      return;
+    }
     if (it.lines) {
       const arr = LINES[it.lines] || [];
       this.dialogue.start(arr.map((_, i) => ({ name: null, text: L(it.lines, i) })));
@@ -544,14 +597,136 @@ class Game {
   startNoteScene() {
     this.scene = new NoteScene(this.player, this.fx);
     this.scene.onWake = () => {
-      this.enterLevel('cell', null, 1);
+      this.enterLevel('warehouse', null, 1);
       this.player.frozen = true;
       this.player.controllable = false;
       this.player.det.play('cuffed', { blend: 0 });
+      // levaram tudo: nem arma, nem coldre cheio
+      this.player.hasGun = false;
+      this.player.gun = 'holstered';
+      this.player.ammo = 0; this.player.reserve = 0;
+      this.player.det.props.gun = 'none';
+      this.locCard = 0;
+    };
+    // So depois das palpebras abrirem: antes disso as falas ficavam
+    // escondidas atras do preto e ninguem lia nenhuma.
+    this.scene.onAwake = () => {
       this.locCard = 4.5;
-      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3']);
+      this.player.sayAll(['bark_cell_1', 'bark_cell_2', 'bark_cell_3'], true);
+      this.qte = { prog: 0, last: null, t: 0, hint: 0 };
     };
     this.scene.start(this.level);
+  }
+
+  // -------------------------------------------------------------------
+  // o QTE de se soltar do cano
+  // -------------------------------------------------------------------
+
+  updateQte(dt) {
+    const q = this.qte, p = this.player;
+    q.t += dt;
+    q.hint = Math.min(1, q.hint + dt * 1.4);
+
+    // A alternancia e o que importa: martelar a mesma tecla nao adianta.
+    const a = input.pressedFrame.has('KeyA') || input.pressedFrame.has('ArrowLeft');
+    const d = input.pressedFrame.has('KeyD') || input.pressedFrame.has('ArrowRight');
+    let puxou = false;
+    if (a && q.last !== 'A') { q.last = 'A'; puxou = true; }
+    else if (d && q.last !== 'D') { q.last = 'D'; puxou = true; }
+
+    if (puxou) {
+      q.prog = clamp(q.prog + 0.058, 0, 1);
+      q.pull = 0.16;
+      audio.strain(0.7 + q.prog * 0.5);
+      if (Math.random() < 0.4) audio.chainRattle(0.5);
+      gfx.shake(0.6 + q.prog * 1.6, 0.12);
+    }
+    // Trava de catraca: o progresso nunca cai abaixo do quarto ja
+    // conquistado. Sem isso, quem martela devagar fica preso para sempre e
+    // o jogo vira um teste de dedo, nao de tensao.
+    q.floor = Math.max(q.floor || 0, Math.floor(q.prog * 4) / 4);
+    q.prog = Math.max(q.floor, q.prog - dt * 0.20);
+    if (q.pull > 0) q.pull -= dt;
+
+    const puxando = q.pull > 0;
+    if (puxando && p.det.anim !== 'strainCuffs') p.det.play('strainCuffs', { blend: 0.08 });
+    else if (!puxando && q.prog < 0.02 && p.det.anim !== 'cuffed') p.det.play('cuffed', { blend: 0.3 });
+    p.det.speed = 1 + q.prog;
+    p.det.update(dt);
+
+    if (q.prog >= 1) this.breakFree();
+  }
+
+  breakFree() {
+    const p = this.player, lv = this.level;
+    this.qte = null;
+    audio.pipeBurst(1);
+    gfx.shake(4.5, 0.6);
+    // ferrugem e agua saindo do cano arrebentado
+    this.fx.burst(30, () => ({
+      x: p.x + 8 + Math.random() * 26, y: lv.pipeY + 2,
+      vx: 40 + Math.random() * 90, vy: -20 + Math.random() * 60, ay: 260,
+      life: 0.5 + Math.random() * 0.7, size: 1,
+      color: Math.random() > 0.5 ? '#6b8ba8' : '#6e4728', a: 0.9, fade: 1.1,
+    }));
+
+    p.frozen = false;
+    p.controllable = true;
+    p.det.play('idle', { blend: 0.4 });
+    // De pe, mas sem nada: o ocio dele agora e sentar e esperar.
+    p.idleAnim = 'sitImpatient';
+    lv.minX = lv.freeMinX;
+    lv.maxX = lv.freeMaxX;
+    lv.interactables = lv.interLivre;
+    for (const b of (lv.barks || [])) b.done = false;
+    p.sayAll(['bark_free_1', 'bark_free_2', 'bark_free_3'], true);
+  }
+
+  drawQteUI(ctx) {
+    const q = this.qte;
+    if (!q) return;
+    const a = q.hint;
+    const w = 108, h = 6;
+    const x = (VW - w) / 2, y = VH - 52;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#0c0a0b';
+    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = '#2a2320';
+    ctx.fillRect(x, y, w, h);
+    const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
+    g2.addColorStop(0, '#7a2a22');
+    g2.addColorStop(1, '#c8503a');
+    ctx.fillStyle = g2;
+    ctx.fillRect(x, y, Math.round(w * q.prog), h);
+    ctx.restore();
+    const pisca = q.last === 'A' ? 0 : 1;
+    text(ctx, T('qte_hint'), VW / 2, y - 14, {
+      size: 9, font: 'ui', weight: 'bold', color: pisca ? '#e8e0d2' : PAL.uiAccent,
+      align: 'center', track: 3, alpha: a, shadow: true,
+    });
+  }
+
+  // Fim do trecho jogavel. Cartao preto, e volta para o menu.
+  endOfChapter() {
+    this.state = 'endcard';
+    this.endT = 0;
+    this.qte = null;
+    this.scene = null;
+    audio.stopAllLoops();
+    audio.stopDread(0.2);
+  }
+
+  updateEndCard(dt) {
+    this.endT += dt;
+    gfx.begin('#000');
+    const a = clamp(this.endT - 0.4, 0, 1) * clamp(4.6 - this.endT, 0, 1);
+    text(gfx.s, T('to_be_continued'), VW / 2, VH / 2 - 6, {
+      size: 13, font: 'serif', color: PAL.uiText, align: 'center', track: 4, alpha: a,
+    });
+    gfx.fade = 0;
+    gfx.present(dt);
+    if (this.endT > 5.2) this.toMenu();
   }
 
   // -------------------------------------------------------------------

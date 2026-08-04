@@ -468,6 +468,31 @@ export const ANIM = {
     ],
   },
 
+  // Sentado no chao, impaciente: joelhos dobrados, bracos apoiados neles,
+  // e a perna batendo. Sem cigarro para ocupar a mao, so resta o pe.
+  sitImpatient: {
+    dur: 2.6, loop: true,
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.18, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -104, lFf: 20, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.34, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.52, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -104, lFf: 20, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+      { t: 0.66, p: pose({ hy: 19.4, torso: 7, head: -9, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 44, aFf: -60, aBu: 39, aBf: -55 }) },
+      { t: 0.86, p: pose({ hy: 19.4, torso: 8, head: 9, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 45, aFf: -61, aBu: 39, aBf: -55 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: 9, head: 4, lFt: 62, lFs: -96, lFf: 12, lBt: 54, lBs: -88, lBf: 10, aFu: 46, aFf: -62, aBu: 40, aBf: -56 }) },
+    ],
+  },
+
+  // puxando as algemas contra o cano — o QTE de escapar
+  strainCuffs: {
+    dur: 0.44, loop: true, ease: 'linear',
+    keys: [
+      { t: 0.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+      { t: 0.45, p: pose({ hy: 17, torso: -16, head: -2, lFt: 66, lFs: -44, lFf: 6, lBt: 58, lBs: -40, lBf: 6, aFu: -150, aFf: 6, aBu: -155, aBf: 5 }) },
+      { t: 1.00, p: pose({ hy: 20, torso: -6, head: 10, lFt: 76, lFs: -26, lFf: 6, lBt: 67, lBs: -22, lBf: 6, aFu: -158, aFf: 12, aBu: -163, aBf: 10 }) },
+    ],
+  },
+
   // parado olhando para tras — reservado para os sustos
   lookback: {
     dur: 1.60, loop: false,

@@ -735,6 +735,65 @@ What he does about the pipe — and the first NPC.
 
 ---
 
+## Session 08 — 2026-08-04
+
+**Duration:** ~50 min (estimate) · **Tokens:** ~100k (estimate)
+
+### Ambience is per-place now
+
+The rain used to follow the player into every room, which told the ear that
+nothing had changed. Levels now declare `ambience` (which loops at what
+gain) and `randomSfx` (one-shots at irregular intervals). New sounds: drip,
+metal creak, chain rattle, distant thump, pipe burst, strain.
+
+The warehouse has no rain at all — still air, water dripping somewhere, and
+the structure giving every twenty seconds or so. The intervals are randomised
+inside a range because a sound on a fixed beat stops being ambience and
+becomes a metronome.
+
+### Barks, fixed three ways
+
+- **`say(key, dur, agora)`** — `agora` clears the current line and the whole
+  queue. The blood pool now fires the instant he walks in, cutting whatever
+  he was saying about chairs.
+- **He talks while the figure approaches.** Three lines that get closer to
+  realising, the last one arriving too late.
+- **Nothing is said behind closed eyelids.** The wake-up lines used to play
+  under the black and were never read. The scene now has an `onAwake`
+  callback that fires only when the eyes are fully open.
+
+### Escape
+
+- **QTE**: alternate `A` and `D`. Hammering one key does nothing — the
+  alternation is the whole mechanic. Each valid pull shakes the screen and
+  strains the chain; the bar decays if you stop. There is a **ratchet**: it
+  never falls below the last quarter reached, so a slow player still gets
+  out. Without it the scene becomes a finger test instead of a tense one.
+- The pipe bursts, rust and water spray, and he is free — **with nothing**.
+  No gun, no cigarettes. `hasGun = false` blocks the draw entirely.
+- **His idle changes.** With no cigarette to occupy his hands, standing
+  still now means sitting on the floor tapping a foot (`sitImpatient`).
+- The broken length of pipe on the floor becomes the tool: pick it up, pry
+  the boarded door, and that is the end of the playable chunk.
+
+### Doors were too small
+
+26×46 for a 62px man — he would have had to crawl. Now 32×74, which is the
+real-world ratio of a door to a person.
+
+### Note on testing
+
+The QTE was measured accumulating correctly (0 → 0.414 over eight
+alternating presses, monotonic) but a scripted loop of sixty presses never
+completed. The mechanism is verified; the loop is a harness artifact I did
+not chase further. **Worth a real play-test.**
+
+### Next session starts with
+
+What is on the other side of that door.
+
+---
+
 ## Template for the next entry
 
 ```
