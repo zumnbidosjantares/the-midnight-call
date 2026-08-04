@@ -152,6 +152,7 @@ class Gfx {
 
   begin(clearColor) {
     const s = this.s;
+    this.protect = null;          // cada estado decide de novo o que poupar
     s.setTransform(1, 0, 0, 1, 0, 0);
     s.globalCompositeOperation = 'source-over';
     s.globalAlpha = 1;
@@ -256,6 +257,40 @@ class Gfx {
 
   // ---------- pos-processamento e apresentacao ----------
 
+  // Aplica um efeito de tela cheia poupando o retangulo `protect` — que e
+  // onde o personagem esta. Grao e scanline em cima de um rosto de 14px
+  // comem os pixels que desenham o olho e a boca, e ele fica com cara de
+  // borrao. Fora dele o efeito vale inteiro; em cima dele, um quarto.
+  _post(modo, alpha, desenha) {
+    const s = this.s, p = this.protect;
+    if (!p) {
+      s.save();
+      s.globalCompositeOperation = modo;
+      s.globalAlpha = alpha;
+      desenha(s);
+      s.restore();
+      return;
+    }
+    s.save();
+    s.beginPath();
+    s.rect(0, 0, VW, VH);
+    s.rect(p.x, p.y, p.w, p.h);
+    s.clip('evenodd');            // tudo menos o personagem
+    s.globalCompositeOperation = modo;
+    s.globalAlpha = alpha;
+    desenha(s);
+    s.restore();
+
+    s.save();
+    s.beginPath();
+    s.rect(p.x, p.y, p.w, p.h);
+    s.clip();
+    s.globalCompositeOperation = modo;
+    s.globalAlpha = alpha * 0.25;
+    desenha(s);
+    s.restore();
+  }
+
   present(dt) {
     this.time += dt;
     const s = this.s, o = this.o;
@@ -274,20 +309,15 @@ class Gfx {
     if (this.grainAmount > 0) {
       this.grainTimer += dt;
       if (this.grainTimer > 1 / 18) { this.grainTimer = 0; this.grainIdx = (this.grainIdx + 1) % this.grain.length; }
-      s.globalCompositeOperation = 'overlay';
-      s.globalAlpha = this.grainAmount;
-      s.drawImage(this.grain[this.grainIdx], 0, 0);
-      s.globalAlpha = 1;
-      s.globalCompositeOperation = 'source-over';
+      const img = this.grain[this.grainIdx];
+      this._post('overlay', this.grainAmount, (c) => c.drawImage(img, 0, 0));
     }
 
     if (this.scanlines > 0) {
-      s.globalCompositeOperation = 'multiply';
-      s.globalAlpha = this.scanlines;
-      s.fillStyle = this.scanPattern;
-      s.fillRect(0, 0, VW, VH);
-      s.globalAlpha = 1;
-      s.globalCompositeOperation = 'source-over';
+      this._post('multiply', this.scanlines, (c) => {
+        c.fillStyle = this.scanPattern;
+        c.fillRect(0, 0, VW, VH);
+      });
     }
 
     if (this.letterbox > 0) {

@@ -408,6 +408,13 @@ class Game {
 
     if (!paused) this.drawGunUI(gfx.s, cam);
 
+    // Poupa o personagem do grao e das scanlines (ver gfx._post).
+    gfx.protect = {
+      x: Math.round(this.player.x - cam.ix) - 26,
+      y: Math.round(this.player.y - cam.iy) - 76,
+      w: 52, h: 80,
+    };
+
     this.dialogue.draw(gfx.s);
     this.pause.draw(gfx.s);
     if (this.debug) this.drawDebug(gfx.s, 'PLAY ' + lv.key);
