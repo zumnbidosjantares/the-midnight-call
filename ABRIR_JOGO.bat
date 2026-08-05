@@ -20,17 +20,25 @@ REM Quem abre o navegador e o servidor.py, DEPOIS que a porta ja esta
 REM escutando. Nao mova isso para ca: abrir o navegador antes do servidor
 REM subir faz a pagina bater numa porta morta e parecer que o jogo travou.
 
-where py >nul 2>nul
-if %errorlevel%==0 goto :temPython
-
-where python >nul 2>nul
-if %errorlevel%==0 goto :temPython
-
-where node >nul 2>nul
+py --version >nul 2>nul
 if %errorlevel%==0 (
-  start "" http://localhost:8137/index.html
-  npx --yes serve -l 8137 --no-clipboard .
-  goto :fim
+  start "" http://localhost:8123/index.html
+  if exist "servidor.py" ( py servidor.py 8123 ) else ( py -m http.server 8123 )
+  goto :eof
+)
+
+python --version >nul 2>nul
+if %errorlevel%==0 (
+  start "" http://localhost:8123/index.html
+  if exist "servidor.py" ( python servidor.py 8123 ) else ( python -m http.server 8123 )
+  goto :eof
+)
+
+node --version >nul 2>nul
+if %errorlevel%==0 (
+  start "" http://localhost:8123/index.html
+  npx --yes serve -l 8123 --no-clipboard .
+  goto :eof
 )
 
 echo   Nao encontrei Python nem Node.js instalado.
